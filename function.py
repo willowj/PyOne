@@ -144,6 +144,7 @@ def Dir(path=u'/'):
             tasks.append(t)
         for t in tasks:
             t.join()
+        RemoveRepeatFile()
     else:
         grandid=0
         parent=''
@@ -177,6 +178,7 @@ def Dir(path=u'/'):
             tasks.append(t)
         for t in tasks:
             t.join()
+        RemoveRepeatFile()
 
 
 class GetItemThread(Thread):
@@ -589,7 +591,7 @@ def UploadDir(local_dir,remote_dir,threads=5):
     for t in tasks:
         t.join()
     #删除错误数据
-    #items.remove({'$where':'this.parent==this.id'})
+    RemoveRepeatFile()
 
 
 
@@ -627,6 +629,40 @@ def CheckTimeOut(fileid):
                 break
 
 
+def RemoveRepeatFile():
+    """
+    db.items.aggregate([
+        {
+            $group:{_id:{id:'$id'},count:{$sum:1},dups:{$addToSet:'$_id'}}
+        },
+        {
+            $match:{count:{$gt:1}}
+        }
+
+        ]).forEach(function(it){
+
+             it.dups.shift();
+            db.items.remove({_id: {$in: it.dups}});
+
+        });
+    """
+    deleteData=items.aggregate([
+    {'$group': { 
+        '_id': { 'id': "$id"}, 
+        'uniqueIds': { '$addToSet': "$_id" },
+        'count': { '$sum': 1 } 
+      }}, 
+      { '$match': { 
+        'count': { '$gt': 1 } 
+      }}
+    ]);
+    first=True
+    for d in deleteData:
+        first=True
+        for did in d['id']:
+            if not first:
+                items.delete_one({'id':did});
+            first=False
 
 
 if __name__=='__main__':
