@@ -556,6 +556,7 @@ def UploadDir(local_dir,remote_dir,threads=5):
         remote_path=remote_path.replace('//','/')
         check_file_list.append((remote_path,file))
     print(u'check repeat file')
+    cloud_files=None
     if remote_dir=='/':
         cloud_files=_GetAllFile()
     else:
@@ -575,7 +576,10 @@ def UploadDir(local_dir,remote_dir,threads=5):
                     parent_path='/'.join([parent_path,parent['name']])
             grandid=idx+1
             cloud_files=_GetAllFile(parent_id,parent_path)
-    cloud_files=dict([(i,i) for i in cloud_files])
+    if cloud_files is None:
+        cloud_files={}
+    else:
+        cloud_files=dict([(i,i) for i in cloud_files])
     queue=Queue()
     tasks=[]
     for remote_path,file in check_file_list:
