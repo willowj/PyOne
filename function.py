@@ -372,7 +372,6 @@ def _upload_part(uploadUrl, filepath, offset, length,trytime=1):
             offset=data.get('nextExpectedRanges')[0].split('-')[0]
             return {'status':'success','msg':'partition upload success','code':1,'offset':offset}
         else:
-            print(data.get('error').get('message'))
             trytime+=1
             if trytime<=3:
                 return {'status':'fail'
@@ -487,6 +486,9 @@ def UploadSession(uploadUrl, filepath):
             offset=result['offset']
         #错误，重试
         elif code==2:
+            if result['sys_msg']=='The request has been throttled':
+                print(result['sys_msg']+' ; wait for 180s')
+                time.sleep(180)
             offset=offset
             trytime=result['trytime']
         #重试超过3次，放弃
@@ -519,7 +521,8 @@ def Upload(filepath,remote_path=None):
             if session_data.get('uploadUrl'):
                 uploadUrl=session_data.get('uploadUrl')
                 data=UploadSession(uploadUrl,filepath)
-                AddResource(data)
+                if data!=False:
+                    AddResource(data)
             else:
                 print(session_data)
                 print('create upload session fail! {}'.format(remote_path))
@@ -537,7 +540,7 @@ class MultiUpload(Thread):
             Upload(localpath,remote_dir)
 
 
-def UploadDir(local_dir,remote_dir,threads=5):
+def UploadDir(local_dir,remote_dir,threads=10):
     print(u'geting file from dir {}'.format(local_dir))
     localfiles=list_all_files(local_dir)
     print(u'get {} files from dir {}'.format(len(localfiles),local_dir))
@@ -576,7 +579,10 @@ def UploadDir(local_dir,remote_dir,threads=5):
                     parent_path='/'.join([parent_path,parent['name']])
             grandid=idx+1
             cloud_files=_GetAllFile(parent_id,parent_path)
-    cloud_files=dict([(i,i) for i in cloud_files])
+    try:
+        cloud_files=dict([(i,i) for i in cloud_files])
+    except:
+        cloud_files={}
     queue=Queue()
     tasks=[]
     for remote_path,file in check_file_list:
@@ -660,12 +666,14 @@ def RemoveRepeatFile():
     first=True
     try:
         for d in deleteData:
+            print d
             first=True
             for did in d['id']:
                 if not first:
                     items.delete_one({'id':did});
                 first=False
-    except:
+    except Exception as e:
+        print(e)
         return
 
 
