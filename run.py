@@ -85,17 +85,38 @@ def FetchData(path='/',page=1,per_page=50,sortby='lastModtime',order='desc'):
     return resp,total
 
 
+def _thunbnail(id):
+    app_url=GetAppUrl()
+    token=GetToken()
+    headers={'Authorization':'bearer {}'.format(token),'Content-type':'application/json'}
+    url=app_url+'_api/v2.0/me/drive/items/{}/thumbnails/0?select=large'.format(id)
+    r=requests.get(url,headers=headers)
+    data=json.loads(r.content)
+    if data.get('large').get('url'):
+        downloadUrl=data.get('large').get('url').replace('thumbnail','videomanifest')+'&part=index&format=dash&useScf=True&pretranscode=0&transcodeahead=0'
+        return downloadUrl
+    else:
+        return False
+
+
 def _getdownloadurl(id):
     app_url=GetAppUrl()
     token=GetToken()
-    headers={'Authorization':'bearer {}'.format(token)}
-    url=app_url+'_api/v2.0/me/drive/items/'+id+'/content'
-    r=requests.head(url,headers=headers)
-    data=r.headers
-    if data.get('Location'):
-        return data.get('Location')
+    filename=GetName(id)
+    ext=filename.split('.')[-1]
+    if ext in ['webm','avi','mpg', 'mpeg', 'rm', 'rmvb', 'mov', 'wmv', 'mkv', 'asf']:
+        downloadUrl=_thunbnail(id)
+        return downloadUrl
     else:
-        return False
+        headers={'Authorization':'bearer {}'.format(token),'Content-type':'application/json'}
+        url=app_url+'_api/v2.0/me/drive/items/'+id
+        r=requests.get(url,headers=headers)
+        data=json.loads(r.content)
+        if data.get('@content.downloadUrl'):
+            return data.get('@content.downloadUrl')
+        else:
+            return False
+
 
 def GetDownloadUrl(id):
     if rd.exists('downloadUrl:{}'.format(id)):
