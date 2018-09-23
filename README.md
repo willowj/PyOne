@@ -7,7 +7,7 @@
 3. PyOne适合Python程序猿进行二开
 
 ## 适用onedrive版本 ##
-1. 世纪互联版
+1. 个人版
 2. onedrive商业版
 3. onedrive教育版（需要学校管理员开启权限）
 
@@ -17,4 +17,4 @@
 3. **需要安装redis，MongoDB**
 
 ## 安装教程 ##
-请转移到我的博客查看[安装教程](https://abbeyokgo.github.io/2018/08/16/pyone-onedrive-part1/)
+请转移到我的博客查看[安装教程](https://abbeyok.com/2018/09/23/pyone2-0/)

@@ -23,44 +23,40 @@ from config import *
 from pymongo import MongoClient,ASCENDING,DESCENDING
 ######mongodb
 client = MongoClient('localhost',27017)
-db=client.one2
+db=client.two
 items=db.items
 
 
 #######授权链接
-base=base_dict[od_type]
-BaseAuthUrl=base['BaseAuthUrl']
-ResourceID=base['ResourceID']
-client_id=base['client_id']
-client_secret=base['client_secret']
+LoginUrl=BaseAuthUrl+'/common/oauth2/v2.0/authorize?response_type=code\
+&client_id={client_id}&redirect_uri={redirect_uri}&scope=offline_access%20files.readwrite.all'
+OAuthUrl=BaseAuthUrl+'/common/oauth2/v2.0/token'
+AuthData='client_id={client_id}&redirect_uri={redirect_uri}&client_secret={client_secret}&code={code}&grant_type=authorization_code'
+ReFreshData='client_id={client_id}&redirect_uri={redirect_uri}&client_secret={client_secret}&refresh_token={refresh_token}&grant_type=refresh_token'
 
-LoginUrl=BaseAuthUrl+'/common/oauth2/authorize?response_type=code\
-&client_id={client_id}&redirect_uri={redirect_uri}'.format(client_id=client_id,redirect_uri=urllib.quote(redirect_uri))
-OAuthUrl=BaseAuthUrl+'/common/oauth2/token'
-AuthData='client_id={client_id}&redirect_uri={redirect_uri}&client_secret={client_secret}&code={code}&grant_type=authorization_code&resource={resource_id}'
-ReFreshData='client_id={client_id}&redirect_uri={redirect_uri}&client_secret={client_secret}&refresh_token={refresh_token}&grant_type=refresh_token&resource={resource_id}'
-
-headers={}
+headers={'User-Agent':'ISV|PyOne|PyOne/2.0'}
 
 def convert2unicode(string):
     return string.encode('utf-8')
 
+def get_value(key):
+    allow_key=['client_secret','client_id']
+    if key not in allow_key:
+        return u'禁止获取'
+    config_path=os.path.join(config_dir,'config.py')
+    with open(config_path,'r') as f:
+        value=re.findall('{}="(.*)"'.format(key),f.read())[0]
+    return value
+    
+
 ################################################################################
 ###################################授权函数#####################################
 ################################################################################
-
-
-def OAuth(code):
-    headers['Content-Type']='application/x-www-form-urlencoded'
-    data=AuthData.format(client_id=client_id,redirect_uri=urllib.quote(redirect_uri),client_secret=client_secret,code=code,resource_id=ResourceID)
-    url=OAuthUrl
-    r=requests.post(url,data=data,headers=headers)
-    return json.loads(r.text)
-
 def ReFreshToken(refresh_token):
-    app_url=GetAppUrl()
+    client_id=get_value('client_id')
+    client_secret=get_value('client_secret')
     headers['Content-Type']='application/x-www-form-urlencoded'
-    data=ReFreshData.format(client_id=client_id,redirect_uri=urllib.quote(redirect_uri),client_secret=client_secret,refresh_token=refresh_token,resource_id=app_url)
+    data=ReFreshData.format(client_id=client_id,redirect_uri=urllib.quote(redirect_uri),client_secret=client_secret,refresh_token=refresh_token)
     url=OAuthUrl
     r=requests.post(url,data=data,headers=headers)
     return json.loads(r.text)
@@ -102,7 +98,7 @@ def GetAppUrl():
         #     print 'token:',token
         #     if token:
         #         header={'Authorization': 'Bearer {}'.format(token)}
-        #         url='https://api.office.com/discovery/v2.0/me/services'
+        #         url='https://api.office.com/discovery/v1.0/me/services'
         #         r=requests.get(url,headers=header)
         #         retdata=json.loads(r.text)
         #         print retdata
@@ -128,7 +124,7 @@ def date_to_char(date):
 def Dir(path=u'/'):
     app_url=GetAppUrl()
     if path=='/':
-        BaseUrl=app_url+u'_api/v2.0/me/drive/root/children?expand=thumbnails'
+        BaseUrl=app_url+u'v1.0/me/drive/root/children?expand=thumbnails'
         items.remove()
         queue=Queue()
         # queue.put(dict(url=BaseUrl,grandid=grandid,parent=parent,trytime=1))
@@ -163,7 +159,7 @@ def Dir(path=u'/'):
             grandid=idx+1
             parent=parent_id
         path=urllib.quote(path)
-        BaseUrl=app_url+u'_api/v2.0/me/drive/root:{}:/children?expand=thumbnails'.format(path)
+        BaseUrl=app_url+u'v1.0/me/drive/root:{}:/children?expand=thumbnails'.format(path)
         queue=Queue()
         # queue.put(dict(url=BaseUrl,grandid=grandid,parent=parent,trytime=1))
         g=GetItemThread(queue)
@@ -226,7 +222,7 @@ class GetItemThread(Thread):
                         if value.get('folder').get('childCount')==0:
                             continue
                         else:
-                            url=app_url+'_api/v2.0/me'+value.get('parentReference').get('path')+'/'+value.get('name')+':/children?expand=thumbnails'
+                            url=app_url+'v1.0/me'+value.get('parentReference').get('path')+'/'+value.get('name')+':/children?expand=thumbnails'
                             self.queue.put(dict(url=url,grandid=grandid+1,parent=item['id'],trytime=1))
                     else:
                         item['type']=GetExt(value['name'])
@@ -257,7 +253,7 @@ class GetItemThread(Thread):
         app_url=GetAppUrl()
         token=GetToken()
         header={'Authorization': 'Bearer {}'.format(token)}
-        url=app_url+u'_api/v2.0/me/drive/root:{}:/'.format(path)
+        url=app_url+u'v1.0/me/drive/root:{}:/'.format(path)
         r=requests.get(url,headers=header)
         data=json.loads(r.content)
         return data
@@ -272,7 +268,7 @@ def UpdateFile():
 def FileExists(filename):
     token=GetToken()
     headers={'Authorization':'bearer {}'.format(token),'Content-Type':'application/json'}
-    search_url=app_url+"_api/v2.0/me/drive/root/search(q='{}')".format(filename)
+    search_url=app_url+"v1.0/me/drive/root/search(q='{}')".format(filename)
     r=requests.get(search_url,headers=headers)
     jsondata=json.loads(r.text)
     if len(jsondata['value'])==0:
@@ -283,7 +279,7 @@ def FileExists(filename):
 def FileInfo(fileid):
     token=GetToken()
     headers={'Authorization':'bearer {}'.format(token),'Content-Type':'application/json'}
-    search_url=app_url+"_api/v2.0/me/drive/items/{}".format(fileid)
+    search_url=app_url+"v1.0/me/drive/items/{}".format(fileid)
     r=requests.get(search_url,headers=headers)
     jsondata=json.loads(r.text)
     return jsondata
@@ -336,13 +332,13 @@ def _file_content(path,offset,length):
 def _upload(filepath,remote_path): #remote_path like 'share/share.mp4'
     token=GetToken()
     headers={'Authorization':'bearer {}'.format(token)}
-    url=app_url+'_api/v2.0/me/drive/root:'+urllib.quote(remote_path)+':/content'
+    url=app_url+'v1.0/me/drive/root:'+urllib.quote(remote_path)+':/content'
     r=requests.put(url,headers=headers,data=open(filepath,'rb'))
     data=json.loads(r.content)
     if data.get('error'):
         print(data.get('error').get('message'))
         return False
-    elif data.get('@content.downloadUrl'):
+    elif data.get('@microsoft.graph.downloadUrl'):
         return data
     else:
         print(data)
@@ -365,7 +361,7 @@ def _upload_part(uploadUrl, filepath, offset, length,trytime=1):
     try:
         r=requests.put(uploadUrl,headers=headers,data=filebin)
         data=json.loads(r.content)
-        if data.get('@content.downloadUrl'):
+        if data.get('@microsoft.graph.downloadUrl'):
             print(u'{} upload success!'.format(filepath))
             return {'status':'success','msg':'all upload success','code':0,'info':data}
         elif r.status_code==202:
@@ -387,9 +383,9 @@ def _upload_part(uploadUrl, filepath, offset, length,trytime=1):
         trytime+=1
         print('error to opreate _upload_part("{}","{}","{}","{}"), try times {}'.format(uploadUrl, filepath, offset, length,trytime))
         if trytime<=3:
-            return {'status':'fail','msg':'please retry','code':2,'trytime':trytime}
+            return {'status':'fail','msg':'please retry','code':2,'trytime':trytime,'sys_msg':''}
         else:
-            return {'status':'fail','msg':'retry times limit','code':3}
+            return {'status':'fail','msg':'retry times limit','code':3,'sys_msg':''}
 
 def _GetAllFile(parent_id="",parent_path="",filelist=[]):
     for f in db.items.find({'parent':parent_id}):
@@ -451,7 +447,7 @@ def AddResource(data):
 def CreateUploadSession(path):
     token=GetToken()
     headers={'Authorization':'bearer {}'.format(token),'Content-Type':'application/json'}
-    url=app_url+'_api/v2.0/me/drive/root:'+urllib.quote(path)+':/createUploadSession'
+    url=app_url+'v1.0/me/drive/root:'+urllib.quote(path)+':/createUploadSession'
     data={
           "item": {
             "@microsoft.graph.conflictBehavior": "rename",
@@ -487,8 +483,8 @@ def UploadSession(uploadUrl, filepath):
         #错误，重试
         elif code==2:
             if result['sys_msg']=='The request has been throttled':
-                print(result['sys_msg']+' ; wait for 180s')
-                time.sleep(180)
+                print(result['sys_msg']+' ; wait for 1800s')
+                time.sleep(1800)
             offset=offset
             trytime=result['trytime']
         #重试超过3次，放弃
@@ -540,7 +536,7 @@ class MultiUpload(Thread):
             Upload(localpath,remote_dir)
 
 
-def UploadDir(local_dir,remote_dir,threads=10):
+def UploadDir(local_dir,remote_dir,threads=5):
     print(u'geting file from dir {}'.format(local_dir))
     localfiles=list_all_files(local_dir)
     print(u'get {} files from dir {}'.format(len(localfiles),local_dir))
@@ -610,7 +606,7 @@ def DeleteRemoteFile(fileid):
     app_url=GetAppUrl()
     token=GetToken()
     headers={'Authorization':'bearer {}'.format(token)}
-    url=app_url+'_api/v2.0/me/drive/items/'+fileid
+    url=app_url+'v1.0/me/drive/items/'+fileid
     r=requests.delete(url,headers=headers)
     if r.status_code==204:
         DeleteLocalFile(fileid)
@@ -623,11 +619,11 @@ def CheckTimeOut(fileid):
     app_url=GetAppUrl()
     token=GetToken()
     headers={'Authorization':'bearer {}'.format(token),'Content-Type':'application/json'}
-    url=app_url+'_api/v2.0/me/drive/items/'+fileid
+    url=app_url+'v1.0/me/drive/items/'+fileid
     r=requests.get(url,headers=headers)
     data=json.loads(r.content)
-    if data.get('@content.downloadUrl'):
-        downloadUrl=data.get('@content.downloadUrl')
+    if data.get('@microsoft.graph.downloadUrl'):
+        downloadUrl=data.get('@microsoft.graph.downloadUrl')
         start_time=time.time()
         for i in range(10000):
             r=requests.head(downloadUrl)

@@ -84,12 +84,11 @@ def FetchData(path='/',page=1,per_page=50,sortby='lastModtime',order='desc'):
         total=0
     return resp,total
 
-
 def _thunbnail(id):
     app_url=GetAppUrl()
     token=GetToken()
     headers={'Authorization':'bearer {}'.format(token),'Content-type':'application/json'}
-    url=app_url+'_api/v2.0/me/drive/items/{}/thumbnails/0?select=large'.format(id)
+    url=app_url+'v1.0/me/drive/items/{}/thumbnails/0?select=large'.format(id)
     r=requests.get(url,headers=headers)
     data=json.loads(r.content)
     if data.get('large').get('url'):
@@ -109,24 +108,24 @@ def _getdownloadurl(id):
         return downloadUrl
     else:
         headers={'Authorization':'bearer {}'.format(token),'Content-type':'application/json'}
-        url=app_url+'_api/v2.0/me/drive/items/'+id
+        url=app_url+'v1.0/me/drive/items/'+id
         r=requests.get(url,headers=headers)
         data=json.loads(r.content)
-        if data.get('@content.downloadUrl'):
-            return data.get('@content.downloadUrl')
+        if data.get('@microsoft.graph.downloadUrl'):
+            return data.get('@microsoft.graph.downloadUrl')
         else:
             return False
 
 
 def GetDownloadUrl(id):
-    if rd.exists('downloadUrl:{}'.format(id)):
-        downloadUrl,ftime=rd.get('downloadUrl:{}'.format(id)).split('####')
+    if rd.exists('downloadUrl2:{}'.format(id)):
+        downloadUrl,ftime=rd.get('downloadUrl2:{}'.format(id)).split('####')
         if time.time()-int(ftime)>=600:
             print('{} downloadUrl expired!'.format(id))
             downloadUrl=_getdownloadurl(id)
             ftime=int(time.time())
             k='####'.join([downloadUrl,str(ftime)])
-            rd.set('downloadUrl:{}'.format(id),k)
+            rd.set('downloadUrl2:{}'.format(id),k)
         else:
             print('get {}\'s downloadUrl from cache'.format(id))
             downloadUrl=downloadUrl
@@ -135,7 +134,7 @@ def GetDownloadUrl(id):
         downloadUrl=_getdownloadurl(id)
         ftime=int(time.time())
         k='####'.join([downloadUrl,str(ftime)])
-        rd.set('downloadUrl:{}'.format(id),k)
+        rd.set('downloadUrl2:{}'.format(id),k)
     return downloadUrl
 
 
@@ -205,7 +204,8 @@ def has_item(path,name):
     try:
         if path=='/':
             if items.find_one({'grandid':0,'name':name}):
-                item=_remote_content(items.find_one({'grandid':0,'name':name})['id']).strip()
+                fid=items.find_one({'grandid':0,'name':name})['id']
+                item=_remote_content(fid).strip()
         else:
             route=path.split('/')
             pid=0
@@ -283,98 +283,73 @@ def before_request():
     print '{}:{}:{}'.format(request.endpoint,ip,ua)
     referrer=request.referrer if request.referrer is not None else 'no-referrer'
 
-
 @app.route('/<path:path>',methods=['POST','GET'])
 @app.route('/',methods=['POST','GET'])
 def index(path='/'):
     if path=='favicon.ico':
         return redirect('https://www.baidu.com/favicon.ico')
-    code=request.args.get('code')
-    if code is not None:
-        Atoken=OAuth(code)
-        if Atoken.get('access_token'):
-            with open('data/Atoken.json','w') as f:
-                json.dump(Atoken,f,ensure_ascii=False)
-            app_url=GetAppUrl()
-            refresh_token=Atoken.get('refresh_token')
-            with open('data/AppUrl','w') as f:
-                f.write(app_url)
-            token=ReFreshToken(refresh_token)
-            with open('data/token.json','w') as f:
-                json.dump(token,f,ensure_ascii=False)
-            return make_response('<h1>授权成功!<a href="/">点击进入首页</a></h1>')
+    if items.count()==0:
+        if not os.path.exists(os.path.join(config_dir,'data/token.json')):
+            return redirect(url_for('admin.install',step=0))
         else:
-            return jsonify(Atoken)
+            subprocess.Popen('python {} UpdateFile'.format(os.path.join(config_dir,'function.py')),shell=True)
+            return make_response('<h1>正在更新数据!</h1>')
+    #参数
+    page=request.args.get('page',1,type=int)
+    image_mode=request.args.get('image_mode')
+    sortby=request.args.get('sortby')
+    order=request.args.get('order')
+    #是否有密码
+    password,_,cur=has_item(path,'.password')
+    md5_p=md5(path)
+    has_verify_=has_verify(path)
+    if request.method=="POST":
+        password1=request.form.get('password')
+        if password1==password:
+            resp=make_response(redirect(url_for('.index',path=path)))
+            resp.delete_cookie(md5_p)
+            resp.set_cookie(md5_p,password)
+            return resp
+    if password!=False:
+        if (not request.cookies.get(md5_p) or request.cookies.get(md5_p)!=password) and has_verify_==False:
+            return render_template('password.html',path=path)
+    #设置cookies
+    if image_mode:
+        image_mode=request.args.get('image_mode',type=int)
     else:
-        if items.count()==0:
-            if not os.path.exists('data/token.json'):
-                html='''
-                <h1><a href="{}" target="_blank">点击授权账号</a></h1><br>
-                <form action="" method="get">
-                    <input type="text" name="code" placeholder="输入验证码并验证">
-                    <input type="submit" name="提交验证">
-                </form>
-                '''
-                return make_response(html.format(LoginUrl))
-            else:
-                subprocess.Popen('python {} UpdateFile'.format(os.path.join(config_dir,'function.py')),shell=True)
-                return make_response('<h1>正在更新数据!</h1>')
-        #参数
-        page=request.args.get('page',1,type=int)
-        image_mode=request.args.get('image_mode')
+        image_mode=request.cookies.get('image_mode') if request.cookies.get('image_mode') is not None else 0
+        image_mode=int(image_mode)
+    if sortby:
         sortby=request.args.get('sortby')
+    else:
+        sortby=request.cookies.get('sortby') if request.cookies.get('sortby') is not None else 'lastModtime'
+        sortby=sortby
+    if order:
         order=request.args.get('order')
-        #是否有密码
-        password,_,cur=has_item(path,'.password')
-        md5_p=md5(path)
-        has_verify_=has_verify(path)
-        if request.method=="POST":
-            password1=request.form.get('password')
-            if password1==password:
-                resp=make_response(redirect(url_for('.index',path=path)))
-                resp.delete_cookie(md5_p)
-                resp.set_cookie(md5_p,password)
-                return resp
-        if password!=False:
-            if (not request.cookies.get(md5_p) or request.cookies.get(md5_p)!=password) and has_verify_==False:
-                return render_template('password.html',path=path)
-        #设置cookies
-        if image_mode:
-            image_mode=request.args.get('image_mode',type=int)
-        else:
-            image_mode=request.cookies.get('image_mode') if request.cookies.get('image_mode') is not None else 0
-            image_mode=int(image_mode)
-        if sortby:
-            sortby=request.args.get('sortby')
-        else:
-            sortby=request.cookies.get('sortby') if request.cookies.get('sortby') is not None else 'lastModtime'
-            sortby=sortby
-        if order:
-            order=request.args.get('order')
-        else:
-            order=request.cookies.get('order') if request.cookies.get('order') is not None else 'desc'
-            order=order
-        # README
-        ext='Markdown'
-        readme,_,i=has_item(path,'README.md')
-        if readme==False:
-            readme,_,i=has_item(path,'readme.md')
-        if readme==False:
-            ext='Text'
-            readme,_,i=has_item(path,'readme.txt')
-        if readme==False:
-            ext='Text'
-            readme,_,i=has_item(path,'README.txt')
-        if readme!=False:
-            readme=markdown.markdown(readme)
-        #参数
-        resp,total = FetchData(path=path,page=page,per_page=50,sortby=sortby,order=order)
-        pagination=Pagination(query=None,page=page, per_page=50, total=total, items=None)
-        resp=make_response(render_template('index.html',pagination=pagination,items=resp,path=path,image_mode=image_mode,readme=readme,ext=ext,sortby=sortby,order=order,endpoint='.index'))
-        resp.set_cookie('image_mode',str(image_mode))
-        resp.set_cookie('sortby',str(sortby))
-        resp.set_cookie('order',str(order))
-        return resp
+    else:
+        order=request.cookies.get('order') if request.cookies.get('order') is not None else 'desc'
+        order=order
+    # README
+    ext='Markdown'
+    readme,_,i=has_item(path,'README.md')
+    if readme==False:
+        readme,_,i=has_item(path,'readme.md')
+    if readme==False:
+        ext='Text'
+        readme,_,i=has_item(path,'readme.txt')
+    if readme==False:
+        ext='Text'
+        readme,_,i=has_item(path,'README.txt')
+    if readme!=False:
+        readme=markdown.markdown(readme)
+    #参数
+    resp,total = FetchData(path=path,page=page,per_page=50,sortby=sortby,order=order)
+    pagination=Pagination(query=None,page=page, per_page=50, total=total, items=None)
+    resp=make_response(render_template('index.html',pagination=pagination,items=resp,path=path,image_mode=image_mode,readme=readme,ext=ext,sortby=sortby,order=order,endpoint='.index'))
+    resp.set_cookie('image_mode',str(image_mode))
+    resp.set_cookie('sortby',str(sortby))
+    resp.set_cookie('order',str(order))
+    return resp
 
 
 @app.route('/file/<fileid>',methods=['GET','POST'])
@@ -406,14 +381,14 @@ def show(fileid):
     else:
         if 'no-referrer' in allow_site:
             downloadUrl=GetDownloadUrl(fileid)
-            return redirect(downloadUrl)
-        if sum([i in referrer for i in allow_site])>0:
+            resp=redirect(downloadUrl)
+            return resp
+        elif sum([i in referrer for i in allow_site])>0:
             downloadUrl=GetDownloadUrl(fileid)
-            if ext in ['mp4','webm','avi','mpg', 'mpeg', 'rm', 'rmvb', 'mov', 'wmv', 'mkv', 'asf']:
-                downloadUrl=downloadUrl.replace('thumbnail','videomanifest')+'&part=index&format=dash&useScf=True&pretranscode=0&transcodeahead=0'
             return redirect(downloadUrl)
         else:
             return abort(404)
+
 
 
 ######################注册应用

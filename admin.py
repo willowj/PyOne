@@ -20,7 +20,7 @@ admin = Blueprint('admin', __name__,url_prefix='/admin')
 
 ############功能函数
 def set(key,value):
-    allow_key=['title','share_path','downloadUrl_timeout','allow_site','password']
+    allow_key=['title','share_path','downloadUrl_timeout','allow_site','password','client_secret','client_id']
     if key not in allow_key:
         return u'禁止修改'
     print 'set {}:{}'.format(key,value)
@@ -39,7 +39,7 @@ def set(key,value):
 ############视图函数
 @admin.before_request
 def before_request():
-    if request.endpoint.startswith('admin') and request.endpoint!='admin.login' and session.get('login') is None:
+    if request.endpoint.startswith('admin') and request.endpoint!='admin.login' and request.endpoint!='admin.install' and session.get('login') is None:
         return redirect(url_for('admin.login'))
 
 
@@ -172,7 +172,7 @@ def edit():
         token=GetToken()
         app_url=GetAppUrl()
         headers={'Authorization':'bearer {}'.format(token)}
-        url=app_url+'_api/v2.0/me/drive/items/{}/content'.format(fileid)
+        url=app_url+'v1.0/me/drive/items/{}/content'.format(fileid)
         try:
             r=requests.put(url,headers=headers,data=content,timeout=10)
             data=json.loads(r.content)
@@ -194,22 +194,24 @@ def edit():
     if language is None:
         language='Text'
     content=_remote_content(fileid)
-    return render_template('admin/edit.html',content=content,fileid=fileid,language=language)
+    return render_template('admin/edit.html',content=content,fileid=fileid,name=name,language=language)
 
 
-@admin.route('/setpass',methods=["GET","POST"])
-def setpass():
+@admin.route('/setFile',methods=["GET","POST"])
+@admin.route('/setFile/<filename>',methods=["GET","POST"])
+def setFile(filename=None):
     if request.method=='POST':
         path=request.form.get('path')
+        filename=request.form.get('filename')
         if not path.startswith('/'):
             path='/'+path
-        remote_file=os.path.join(path,'.password')
+        remote_file=os.path.join(path,filename)
         content=request.form.get('content').encode('utf-8')
         info={}
         token=GetToken()
         app_url=GetAppUrl()
         headers={'Authorization':'bearer {}'.format(token)}
-        url=app_url+'_api/v2.0/me/drive/items/root:{}:/content'.format(remote_file)
+        url=app_url+'v1.0/me/drive/items/root:{}:/content'.format(remote_file)
         try:
             r=requests.put(url,headers=headers,data=content,timeout=10)
             data=json.loads(r.content)
@@ -225,10 +227,10 @@ def setpass():
             info['msg']='超时'
         return jsonify(info)
     path=urllib.unquote(request.args.get('path'))
-    _,fid,i=has_item(path,'.password')
+    _,fid,i=has_item(path,filename)
     if fid!=False:
         return redirect(url_for('admin.edit',fileid=fid))
-    return render_template('admin/setpass.html',path=path)
+    return render_template('admin/setpass.html',path=path,filename=filename)
 
 
 
@@ -271,9 +273,55 @@ def logout():
 
 @admin.route('/reload',methods=['GET','POST'])
 def reload():
+    config_dir='/root/wbm/'
     cmd='supervisorctl -c {} restart pyone'.format(os.path.join(config_dir,'supervisord.conf'))
+    print cmd
     subprocess.Popen(cmd,shell=True)
     flash('正在重启网站...')
     return redirect(url_for('admin.setting'))
 
+
+
+
+###########################################安装
+@admin.route('/install',methods=['POST','GET'])
+def install():
+    if items.count()>0 or os.path.exists(os.path.join(config_dir,'data/token.json')):
+        return redirect('/')
+    if request.method=='POST':
+        step=request.form.get('step',type=int)
+        if step==1:
+            client_secret=request.form.get('client_secret')
+            client_id=request.form.get('client_id')
+            redirect_uri='https://auth.3pp.me'
+            set('client_secret',client_secret)
+            set('client_id',client_id)
+            login_url=LoginUrl.format(client_id=client_id,redirect_uri=redirect_uri)
+            return render_template('admin/install_1.html',client_secret=client_secret,client_id=client_id,login_url=login_url)
+        else:
+            client_secret=request.form.get('client_secret')
+            client_id=request.form.get('client_id')
+            code=request.form.get('code')
+            redirect_uri='https://auth.3pp.me'
+            #授权
+            headers['Content-Type']='application/x-www-form-urlencoded'
+            data=AuthData.format(client_id=client_id,redirect_uri=urllib.quote(redirect_uri),client_secret=client_secret,code=code)
+            url=OAuthUrl
+            r=requests.post(url,data=data,headers=headers)
+            Atoken=json.loads(r.text)
+            if Atoken.get('access_token'):
+                with open(os.path.join(config_dir,'data/Atoken.json'),'w') as f:
+                    json.dump(Atoken,f,ensure_ascii=False)
+                app_url=GetAppUrl()
+                refresh_token=Atoken.get('refresh_token')
+                with open(os.path.join(config_dir,'data/AppUrl'),'w') as f:
+                    f.write(app_url)
+                token=ReFreshToken(refresh_token)
+                with open(os.path.join(config_dir,'data/token.json'),'w') as f:
+                    json.dump(token,f,ensure_ascii=False)
+                return make_response('<h1>授权成功!<a href="/">点击进入首页</a></h1>')
+            else:
+                return jsonify(Atoken)
+    resp=render_template('admin/install_0.html',step=1)
+    return resp
 
