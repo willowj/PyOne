@@ -31,6 +31,7 @@ a:hover {color: black; text-decoration:none;}
                 <th>
                     <button class="mdui-btn mdui-btn-icon" onclick="delAllProduct()" mdui-tooltip="{{'{'}}content: '删除'{{'}'}}"><i class="mdui-icon material-icons">&#xe872;</i></button>
                     <button class="mdui-btn mdui-btn-icon" onclick="setPasswd('{{path}}')" mdui-tooltip="{{'{'}}content: '设置密码'{{'}'}}"><i class="mdui-icon material-icons">&#xe32a;</i> </button>
+                    <button class="mdui-btn mdui-btn-icon" onclick="setReadMe('{{path}}')" mdui-tooltip="{{'{'}}content: '设置README'{{'}'}}"><i class="mdui-icon material-icons">&#xe0d8;</i> </button>
                 </th>
             </tr>
           </thead>
@@ -199,8 +200,11 @@ a:hover {color: black; text-decoration:none;}
   }
 
   function setPasswd(path){
-    window.open('{{url_for('admin.setpass')}}?path='+path, '_blank');
+    window.open("{{url_for('admin.setFile',filename='.password')}}?path="+path, '_blank');
   }
 
+  function setReadMe(path){
+    window.open("{{url_for('admin.setFile',filename='README.md')}}?path="+path, '_blank');
+  }
 </script>
 {%endblock content%}
