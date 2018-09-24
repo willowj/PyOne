@@ -20,7 +20,7 @@
 请转移到我的博客查看[安装教程](https://abbeyok.com/2018/09/23/pyone2-0/)
 
 ## 更新源码步骤 ##
-1. 先将data目录复制出去
+1. 先将data目录和config.py复制出去
 2. 删除原来的PyOne源码
 3. 重新git clone一份PyOne源码
-4. 将data目录替换新源码的data目录
+4. 将原来的data目录替换新源码的data目录，原来的config.py替换新源码的config.py
