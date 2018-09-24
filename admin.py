@@ -92,7 +92,7 @@ def setting():
                 flash(u'请输入新密码或者二次确认新密码')
             elif password1 is not None and password2 is not None and password1!=password2:
                 flash(u'两次输入密码不相同')
-            elif password1 is not None and password2 is not None and password1==password2:
+            elif password1 is not None and password2 is not None and password1==password2 and password1!='':
                 new_password=password1
             if password_s==password:
                 set('title',title)
@@ -105,6 +105,7 @@ def setting():
                 flash(u'原密码错误')
         return render_template('admin/setting.html')
     return render_template('admin/setting.html')
+
 
 
 
