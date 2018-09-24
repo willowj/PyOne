@@ -7,7 +7,7 @@
     }
 </style>
 <div class="mdui-container">
-  <h4>设置密码</h4>
+  <h4>添加文件 - {{filename}}</h4>
 <pre id="editor" ></pre>
 <button class="mdui-btn mdui-btn-icon" onclick="SubmitNew()">
     <i class="mdui-icon material-icons">&#xe5ca;</i>
@@ -32,15 +32,15 @@
         maxLines: Infinity
     });
     function SubmitNew(){
-        if(!confirm("确定设置密码？")){
+        if(!confirm("确定添加文件？")){
             return ;
         }
         content=editor.getValue();
         $.ajax({
               type: "POST",
-              url: "{{url_for('admin.setpass')}}",
+              url: "{{url_for('admin.setFile')}}",
               dataType:'json',
-              data: {path:'{{path}}',content:content},
+              data: {path:'{{path}}',filename:'{{filename}}',content:content},
               beforeSend:function(xhr){
                   var index = layer.load(2, {
                     shade: [0.1,'#fff'] //0.1透明度的白色背景
