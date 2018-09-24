@@ -100,6 +100,7 @@ def setting():
                 set('share_path',share_path)
                 set('allow_site',allow_site)
                 set('password',new_password)
+                reload()
             else:
                 flash(u'原密码错误')
         return render_template('admin/setting.html')
@@ -273,9 +274,7 @@ def logout():
 
 @admin.route('/reload',methods=['GET','POST'])
 def reload():
-    config_dir='/root/wbm/'
     cmd='supervisorctl -c {} restart pyone'.format(os.path.join(config_dir,'supervisord.conf'))
-    print cmd
     subprocess.Popen(cmd,shell=True)
     flash('正在重启网站...')
     return redirect(url_for('admin.setting'))
