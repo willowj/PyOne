@@ -319,7 +319,7 @@ def install():
                 token=ReFreshToken(refresh_token)
                 with open(os.path.join(config_dir,'data/token.json'),'w') as f:
                     json.dump(token,f,ensure_ascii=False)
-                return make_response('<h1>授权成功!<a href="/">点击进入首页</a></h1>')
+                return make_response('<h1>授权成功!<a href="/">点击进入首页</a><br>请在后台另开一个ssh窗口，运行：<pre>python function.py UpdateFile</pre>进行更新数据操作</h1>')
             else:
                 return jsonify(Atoken)
     resp=render_template('admin/install_0.html',step=1)
