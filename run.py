@@ -292,8 +292,8 @@ def index(path='/'):
         if not os.path.exists(os.path.join(config_dir,'data/token.json')):
             return redirect(url_for('admin.install',step=0))
         else:
-            subprocess.Popen('python {} UpdateFile'.format(os.path.join(config_dir,'function.py')),shell=True)
-            return make_response('<h1>正在更新数据!</h1>')
+            #subprocess.Popen('python {} UpdateFile'.format(os.path.join(config_dir,'function.py')),shell=True)
+            return make_response('<h1>正在更新数据！如果您是网站管理员，请在后台运行命令：python function.py UpdateFile</h1>')
     #参数
     page=request.args.get('page',1,type=int)
     image_mode=request.args.get('image_mode')
