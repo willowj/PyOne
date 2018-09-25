@@ -72,8 +72,7 @@ def ReFreshToken(refresh_token):
 
 def GetToken(Token_file='token.json'):
     if os.path.exists(os.path.join(data_dir,Token_file)):
-        with open(os.path.join(data_dir,Token_file),'r') as f:
-            token=open_json(f)
+        token=open_json(os.path.join(data_dir,Token_file))
         try:
             if time.time()>int(token.get('expires_on')):
                 print 'token timeout'
