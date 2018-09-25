@@ -53,11 +53,18 @@ def get_value(key):
 ###################################授权函数#####################################
 ################################################################################
 def open_json(filepath):
+    token=False
     with open(filepath,'r') as f:
         try:
             token=json.load(f)
         except:
-            token=json.loads(f.read()[:-5])
+            for i in range(1,10):
+                try:
+                    token=json.loads(f.read()[:-i])
+                except:
+                    token=False
+                if token!=False:
+                    return token
     return token
 
 def ReFreshToken(refresh_token):
