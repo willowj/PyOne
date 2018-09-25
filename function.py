@@ -52,6 +52,14 @@ def get_value(key):
 ################################################################################
 ###################################授权函数#####################################
 ################################################################################
+def open_json(filepath):
+    with open(filepath,'r') as f:
+        try:
+            token=json.load(f)
+        except:
+            token=json.loads(f.read()[:-5])
+    return token
+
 def ReFreshToken(refresh_token):
     client_id=get_value('client_id')
     client_secret=get_value('client_secret')
@@ -65,7 +73,7 @@ def ReFreshToken(refresh_token):
 def GetToken(Token_file='token.json'):
     if os.path.exists(os.path.join(data_dir,Token_file)):
         with open(os.path.join(data_dir,Token_file),'r') as f:
-            token=json.load(f)
+            token=open_json(f)
         try:
             if time.time()>int(token.get('expires_on')):
                 print 'token timeout'
@@ -85,6 +93,7 @@ def GetToken(Token_file='token.json'):
         return token.get('access_token')
     else:
         return False
+
 
 def GetAppUrl():
     global app_url
