@@ -344,20 +344,6 @@ def _file_content(path,offset,length):
     return content
 
 
-def _upload(filepath,remote_path): #remote_path like 'share/share.mp4'
-    token=GetToken()
-    headers={'Authorization':'bearer {}'.format(token)}
-    url=app_url+'v1.0/me/drive/root:'+urllib.quote(remote_path)+':/content'
-    r=requests.put(url,headers=headers,data=open(filepath,'rb'))
-    data=json.loads(r.content)
-    if data.get('error'):
-        print(data.get('error').get('message'))
-        return False
-    elif data.get('@microsoft.graph.downloadUrl'):
-        return data
-    else:
-        print(data)
-        return False
 
 def _upload(filepath,remote_path): #remote_path like 'share/share.mp4'
     token=GetToken()
@@ -377,7 +363,7 @@ def _upload(filepath,remote_path): #remote_path like 'share/share.mp4'
                 return False
         except Exception as e:
             trytime+=1
-            print('error to opreate _upload_part("{}","{}","{}","{}"), try times {}'.format(uploadUrl, filepath, offset, length,trytime))
+            print('error to opreate _upload("{}","{}"), try times {}'.format(filepath,remote_path,trytime))
         finally:
             if trytime>3:
                 break
