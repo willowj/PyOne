@@ -47,7 +47,7 @@ def get_value(key):
     with open(config_path,'r') as f:
         value=re.findall('{}="(.*)"'.format(key),f.read())[0]
     return value
-    
+
 
 ################################################################################
 ###################################授权函数#####################################
@@ -358,6 +358,29 @@ def _upload(filepath,remote_path): #remote_path like 'share/share.mp4'
     else:
         print(data)
         return False
+
+def _upload(filepath,remote_path): #remote_path like 'share/share.mp4'
+    token=GetToken()
+    headers={'Authorization':'bearer {}'.format(token)}
+    url=app_url+'v1.0/me/drive/root:'+urllib.quote(remote_path)+':/content'
+    r=requests.put(url,headers=headers,data=open(filepath,'rb'))
+    trytime=1
+    while 1:
+        try:
+            if data.get('error'):
+                print(data.get('error').get('message'))
+                return False
+            elif data.get('@microsoft.graph.downloadUrl'):
+                return data
+            else:
+                print(data)
+                return False
+        except Exception as e:
+            trytime+=1
+            print('error to opreate _upload_part("{}","{}","{}","{}"), try times {}'.format(uploadUrl, filepath, offset, length,trytime))
+        finally:
+            if trytime>3:
+                break
 
 def _upload_part(uploadUrl, filepath, offset, length,trytime=1):
     size=_filesize(filepath)
@@ -677,7 +700,6 @@ def RemoveRepeatFile():
     first=True
     try:
         for d in deleteData:
-            print d
             first=True
             for did in d['uniqueIds']:
                 if not first:
