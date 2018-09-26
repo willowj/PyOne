@@ -178,7 +178,7 @@ def edit():
         try:
             r=requests.put(url,headers=headers,data=content,timeout=10)
             data=json.loads(r.content)
-            if data.get('@content.downloadUrl'):
+            if data.get('@microsoft.graph.downloadUrl'):
                 info['status']=0
                 info['msg']='修改成功'
                 rd.delete('{}:content'.format(fileid))
@@ -218,7 +218,7 @@ def setFile(filename=None):
             r=requests.put(url,headers=headers,data=content,timeout=10)
             data=json.loads(r.content)
             AddResource(data)
-            if data.get('@content.downloadUrl'):
+            if data.get('@microsoft.graph.downloadUrl'):
                 info['status']=0
                 info['msg']='添加成功'
             else:
