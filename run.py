@@ -311,7 +311,7 @@ def before_request():
 @app.route('/',methods=['POST','GET'])
 def index(path='/'):
     if path=='favicon.ico':
-        return redirect('https://www.baidu.com/favicon.ico')
+        return redirect('https://onedrive.live.com/favicon.ico')
     if items.count()==0:
         if not os.path.exists(os.path.join(config_dir,'data/token.json')):
             return redirect(url_for('admin.install',step=0))
