@@ -46,8 +46,8 @@ def FetchData(path='/',page=1,per_page=50,sortby='lastModtime',order='desc'):
         order=ASCENDING
     try:
         if path=='/':
-            total=items.find({'grandid':0}).count()
-            data=items.find({'grandid':0}).collation({"locale": "zh", 'numericOrdering':True})\
+            total=items.find({'grandid':0,'name':{'$nin':('README.md','README.txt','readme.md','readme.txt','.password')}}).count()
+            data=items.find({'grandid':0,'name':{'$nin':('README.md','README.txt','readme.md','readme.txt','.password')}}).collation({"locale": "zh", 'numericOrdering':True})\
                 .sort([('order',ASCENDING),(sortby,order)])\
                 .limit(per_page).skip((page-1)*per_page)
             for d in data:
@@ -67,8 +67,8 @@ def FetchData(path='/',page=1,per_page=50,sortby='lastModtime',order='desc'):
                 else:
                     f=items.find_one({'grandid':idx,'name':r,'parent':pid})
                 pid=f['id']
-            total=items.find({'grandid':idx+1,'parent':pid}).count()
-            data=items.find({'grandid':idx+1,'parent':pid}).collation({"locale": "zh", 'numericOrdering':True})\
+            total=items.find({'grandid':idx+1,'parent':pid,'name':{'$nin':('README.md','README.txt','readme.md','readme.txt','.password')}}).count()
+            data=items.find({'grandid':idx+1,'parent':pid,'name':{'$nin':('README.md','README.txt','readme.md','readme.txt','.password')}}).collation({"locale": "zh", 'numericOrdering':True})\
                 .sort([('order',ASCENDING),(sortby,order)])\
                 .limit(per_page).skip((page-1)*per_page)
             for d in data:
