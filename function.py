@@ -517,7 +517,7 @@ def Upload(filepath,remote_path=None):
         remote_path=os.path.join(remote_path,os.path.basename(filepath))
     if not remote_path.startswith('/'):
         remote_path='/'+remote_path
-    if _filesize(filepath)<10485760:
+    if _filesize(filepath)<1024*1024*3.25:
         result=_upload(filepath,remote_path)
         if result==False:
             print(u'{} upload fail!'.format(filepath))
