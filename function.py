@@ -679,9 +679,9 @@ def RemoveRepeatFile():
         for d in deleteData:
             print d
             first=True
-            for did in d['id']:
+            for did in d['uniqueIds']:
                 if not first:
-                    items.delete_one({'id':did});
+                    items.delete_one({'_id':did});
                 first=False
     except Exception as e:
         print(e)
