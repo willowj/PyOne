@@ -154,6 +154,18 @@ def GetName(id):
     item=items.find_one({'id':id})
     return item['name']
 
+def GetPath(id):
+    item=items.find_one({'id':id})
+    path=item['name']
+    if item>0:
+        parent_id=item['parent']
+        for i in range(item['grandid']):
+            parent_item=items.find_one({'id':parent_id})
+            parent_name=parent_item['name']
+            parent_id=parent_item['parent']
+            path=parent_name+'/'+path
+    return path
+
 def CanEdit(filename):
     ext=filename.split('.')[-1]
     if ext in ["html","htm","php","css","go","java","js","json","txt","sh","md",".password"]:
@@ -368,6 +380,7 @@ def index(path='/'):
 def show(fileid):
     name=GetName(fileid)
     ext=name.split('.')[-1]
+    path=GetPath(fileid)
     if request.method=='POST':
         url=request.url.replace(':80','').replace(':443','')
         if ext in ['csv','doc','docx','odp','ods','odt','pot','potm','potx','pps','ppsx','ppsxm','ppt','pptm','pptx','rtf','xls','xlsx']:
@@ -375,18 +388,18 @@ def show(fileid):
             url = 'https://view.officeapps.live.com/op/view.aspx?src='+urllib.quote(downloadUrl)
             return redirect(url)
         elif ext in ['bmp','jpg','jpeg','png','gif']:
-            return render_template('show/image.html',url=url)
+            return render_template('show/image.html',url=url,path=path)
         elif ext in ['mp4','webm']:
-            return render_template('show/video.html',url=url)
+            return render_template('show/video.html',url=url,path=path)
         elif ext in ['mp4','webm','avi','mpg', 'mpeg', 'rm', 'rmvb', 'mov', 'wmv', 'mkv', 'asf']:
-            return render_template('show/video2.html',url=url)
+            return render_template('show/video2.html',url=url,path=path)
         elif ext in ['avi','mpg', 'mpeg', 'rm', 'rmvb', 'mov', 'wmv', 'mkv', 'asf']:
-            return render_template('show/video2.html',url=url)
+            return render_template('show/video2.html',url=url,path=path)
         elif ext in ['ogg','mp3','wav']:
-            return render_template('show/audio.html',url=url)
+            return render_template('show/audio.html',url=url,path=path)
         elif CodeType(ext) is not None:
             content=_remote_content(fileid)
-            return render_template('show/code.html',content=content,url=url,language=CodeType(ext))
+            return render_template('show/code.html',content=content,url=url,language=CodeType(ext),path=path)
         else:
             downloadUrl=GetDownloadUrl(fileid)
             return redirect(downloadUrl)
