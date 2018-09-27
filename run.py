@@ -266,9 +266,17 @@ def verify_pass_before(path):
 
 def has_verify(path):
     verify=False
-    for last in verify_pass_before(path):
-        passwd,fid,cur=has_item(last,'.password')
-        if cur:
+    md5_p=md5(path)
+    passwd,fid,cur=has_item(path,'.password')
+    if fid:
+        vp=request.cookies.get(md5_p)
+        if passwd==vp:
+            verify=True
+    else:
+        for last in verify_pass_before(path):
+            if last=='':
+                last='/'
+            passwd,fid,cur=has_item(last,'.password')
             md5_p=md5(last)
             vp=request.cookies.get(md5_p)
             if passwd==vp:
