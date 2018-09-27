@@ -29,6 +29,7 @@
 1. linux环境（推荐centos7）
 2. Python2.7
 3. **需要安装redis，MongoDB**
+
 **推荐预先安装宝塔，再进行安装**
 
 ## 安装教程 ##
