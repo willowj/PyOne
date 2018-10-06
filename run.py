@@ -10,6 +10,7 @@ import markdown
 from function import *
 from config import *
 from redis import Redis
+from flask_caching import Cache
 from shelljob import proc
 import time
 import os
@@ -25,7 +26,7 @@ sys.setdefaultencoding("utf-8")
 #######flask
 app=Flask(__name__)
 app.secret_key=os.path.join(config_dir,'PyOne'+password)
-
+cache = Cache(app, config={'CACHE_TYPE': 'redis'})
 rd=Redis(host='localhost',port=6379)
 
 ################################################################################
@@ -36,10 +37,14 @@ def md5(string):
     a.update(string.encode(encoding='utf-8'))
     return a.hexdigest()
 
+@cache.memoize(timeout=60*5)
 def FetchData(path='/',page=1,per_page=50,sortby='lastModtime',order='desc',dismiss=False):
+    path=urllib.unquote(path)
     resp=[]
     if sortby not in ['lastModtime','type','size','name']:
         sortby='lastModtime'
+    if sortby=='size':
+        sortby='size_order'
     if order=='desc':
         order=DESCENDING
     else:
@@ -47,8 +52,8 @@ def FetchData(path='/',page=1,per_page=50,sortby='lastModtime',order='desc',dism
     try:
         if path=='/':
             if dismiss:
-                total=items.find({'grandid':0,'name':{'$nin':('README.md','README.txt','readme.md','readme.txt','.password')}}).count()
-                data=items.find({'grandid':0,'name':{'$nin':('README.md','README.txt','readme.md','readme.txt','.password')}}).collation({"locale": "zh", 'numericOrdering':True})\
+                total=items.find({'grandid':0,'name':{'$nin':('README.md','README.txt','readme.md','readme.txt','.password','HEAD.md','HEAD.txt','head.md','head.txt')}}).count()
+                data=items.find({'grandid':0,'name':{'$nin':('README.md','README.txt','readme.md','readme.txt','.password','HEAD.md','HEAD.txt','head.md','head.txt')}}).collation({"locale": "zh", 'numericOrdering':True})\
                     .sort([('order',ASCENDING),(sortby,order)])\
                     .limit(per_page).skip((page-1)*per_page)
             else:
@@ -73,9 +78,11 @@ def FetchData(path='/',page=1,per_page=50,sortby='lastModtime',order='desc',dism
                 else:
                     f=items.find_one({'grandid':idx,'name':r,'parent':pid})
                 pid=f['id']
+            if f['type']!='folder':
+                return f,'files'
             if dismiss:
-                total=items.find({'grandid':idx+1,'parent':pid,'name':{'$nin':('README.md','README.txt','readme.md','readme.txt','.password')}}).count()
-                data=items.find({'grandid':idx+1,'parent':pid,'name':{'$nin':('README.md','README.txt','readme.md','readme.txt','.password')}}).collation({"locale": "zh", 'numericOrdering':True})\
+                total=items.find({'grandid':idx+1,'parent':pid,'name':{'$nin':('README.md','README.txt','readme.md','readme.txt','.password','HEAD.md','HEAD.txt','head.md','head.txt')}}).count()
+                data=items.find({'grandid':idx+1,'parent':pid,'name':{'$nin':('README.md','README.txt','readme.md','readme.txt','.password','HEAD.md','HEAD.txt','head.md','head.txt')}}).collation({"locale": "zh", 'numericOrdering':True})\
                     .sort([('order',ASCENDING),(sortby,order)])\
                     .limit(per_page).skip((page-1)*per_page)
             else:
@@ -96,6 +103,7 @@ def FetchData(path='/',page=1,per_page=50,sortby='lastModtime',order='desc',dism
         total=0
     return resp,total
 
+@cache.memoize(timeout=60*5)
 def _thunbnail(id):
     app_url=GetAppUrl()
     token=GetToken()
@@ -109,7 +117,7 @@ def _thunbnail(id):
     else:
         return False
 
-
+@cache.memoize(timeout=60*5)
 def _getdownloadurl(id):
     app_url=GetAppUrl()
     token=GetToken()
@@ -127,7 +135,6 @@ def _getdownloadurl(id):
             return data.get('@microsoft.graph.downloadUrl')
         else:
             return False
-
 
 def GetDownloadUrl(id):
     if rd.exists('downloadUrl2:{}'.format(id)):
@@ -154,6 +161,7 @@ def GetName(id):
     item=items.find_one({'id':id})
     return item['name']
 
+@cache.memoize(timeout=60*5)
 def GetPath(id):
     item=items.find_one({'id':id})
     path=item['name']
@@ -165,6 +173,40 @@ def GetPath(id):
             parent_id=parent_item['parent']
             path=parent_name+'/'+path
     return path
+
+def GetReadMe(path):
+    # README
+    ext='Markdown'
+    readme,_,i=has_item(path,'README.md')
+    if readme==False:
+        readme,_,i=has_item(path,'readme.md')
+    if readme==False:
+        ext='Text'
+        readme,_,i=has_item(path,'readme.txt')
+    if readme==False:
+        ext='Text'
+        readme,_,i=has_item(path,'README.txt')
+    if readme!=False:
+        readme=markdown.markdown(readme)
+    return readme,ext
+
+
+def GetHead(path):
+    # README
+    ext='Markdown'
+    head,_,i=has_item(path,'HEAD.md')
+    if head==False:
+        head,_,i=has_item(path,'head.md')
+    if head==False:
+        ext='Text'
+        head,_,i=has_item(path,'head.txt')
+    if head==False:
+        ext='Text'
+        head,_,i=has_item(path,'HEAD.txt')
+    if head!=False:
+        head=markdown.markdown(head)
+    return head,ext
+
 
 def CanEdit(filename):
     ext=filename.split('.')[-1]
@@ -345,6 +387,8 @@ def index(path='/'):
     if password!=False:
         if (not request.cookies.get(md5_p) or request.cookies.get(md5_p)!=password) and has_verify_==False:
             return render_template('password.html',path=path)
+    readme,ext_r=GetReadMe(path)
+    head,ext_d=GetHead(path)
     #设置cookies
     if image_mode:
         image_mode=request.args.get('image_mode',type=int)
@@ -361,23 +405,23 @@ def index(path='/'):
     else:
         order=request.cookies.get('order') if request.cookies.get('order') is not None else 'desc'
         order=order
-    # README
-    ext='Markdown'
-    readme,_,i=has_item(path,'README.md')
-    if readme==False:
-        readme,_,i=has_item(path,'readme.md')
-    if readme==False:
-        ext='Text'
-        readme,_,i=has_item(path,'readme.txt')
-    if readme==False:
-        ext='Text'
-        readme,_,i=has_item(path,'README.txt')
-    if readme!=False:
-        readme=markdown.markdown(readme)
     #参数
     resp,total = FetchData(path=path,page=page,per_page=50,sortby=sortby,order=order,dismiss=True)
+    if total=='files':
+        return show(resp['id'])
     pagination=Pagination(query=None,page=page, per_page=50, total=total, items=None)
-    resp=make_response(render_template('index.html',pagination=pagination,items=resp,path=path,image_mode=image_mode,readme=readme,ext=ext,sortby=sortby,order=order,endpoint='.index'))
+    resp=make_response(render_template('index.html'
+                    ,pagination=pagination
+                    ,items=resp
+                    ,path=path
+                    ,image_mode=image_mode
+                    ,readme=readme
+                    ,ext_r=ext_r
+                    ,head=head
+                    ,ext_d=ext_d
+                    ,sortby=sortby
+                    ,order=order
+                    ,endpoint='.index'))
     resp.set_cookie('image_mode',str(image_mode))
     resp.set_cookie('sortby',str(sortby))
     resp.set_cookie('order',str(order))
