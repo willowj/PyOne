@@ -10,3 +10,4 @@ requests
 markdown
 shelljob
 eventlet
+flask_caching
