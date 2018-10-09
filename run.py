@@ -11,6 +11,8 @@ from function import *
 from config import *
 from redis import Redis
 from flask_caching import Cache
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 from shelljob import proc
 import time
 import os
@@ -27,6 +29,12 @@ sys.setdefaultencoding("utf-8")
 app=Flask(__name__)
 app.secret_key=os.path.join(config_dir,'PyOne'+password)
 cache = Cache(app, config={'CACHE_TYPE': 'redis'})
+limiter = Limiter(
+    app,
+    key_func=get_remote_address,
+    default_limits=["200/minute", "50/second"],
+)
+
 rd=Redis(host='localhost',port=6379)
 
 ################################################################################
@@ -112,8 +120,7 @@ def _thunbnail(id):
     r=requests.get(url,headers=headers)
     data=json.loads(r.content)
     if data.get('large').get('url'):
-        downloadUrl=data.get('large').get('url').replace('thumbnail','videomanifest')+'&part=index&format=dash&useScf=True&pretranscode=0&transcodeahead=0'
-        return downloadUrl
+        return data.get('large').get('url')
     else:
         return False
 
@@ -125,6 +132,7 @@ def _getdownloadurl(id):
     ext=filename.split('.')[-1]
     if ext in ['webm','avi','mpg', 'mpeg', 'rm', 'rmvb', 'mov', 'wmv', 'mkv', 'asf']:
         downloadUrl=_thunbnail(id)
+        downloadUrl=downloadUrl.replace('thumbnail','videomanifest')+'&part=index&format=dash&useScf=True&pretranscode=0&transcodeahead=0'
         return downloadUrl
     else:
         headers={'Authorization':'bearer {}'.format(token),'Content-type':'application/json'}
@@ -156,7 +164,7 @@ def GetDownloadUrl(id):
         rd.set('downloadUrl2:{}'.format(id),k)
     return downloadUrl
 
-
+@cache.memoize(timeout=60*5)
 def GetName(id):
     item=items.find_one({'id':id})
     return item['name']
@@ -174,6 +182,7 @@ def GetPath(id):
             path=parent_name+'/'+path
     return path
 
+@cache.memoize(timeout=60*5)
 def GetReadMe(path):
     # README
     ext='Markdown'
@@ -191,6 +200,7 @@ def GetReadMe(path):
     return readme,ext
 
 
+@cache.memoize(timeout=60*5)
 def GetHead(path):
     # README
     ext='Markdown'
@@ -258,6 +268,7 @@ def _remote_content(fileid):
         else:
             return False
 
+@cache.memoize(timeout=60*5)
 def has_item(path,name):
     if items.count()==0:
         return False
@@ -340,11 +351,13 @@ def path_list(path):
 
 
 
+
 ################################################################################
 ###################################试图函数#####################################
 ################################################################################
 @app.before_request
 def before_request():
+    bad_ua=['FeedDemon ','BOT/0.1 (BOT for JCE)','CrawlDaddy ','Java','Feedly','UniversalFeedParser','ApacheBench','Swiftbot','ZmEu','Indy Library','oBot','jaunty','YandexBot','AhrefsBot','MJ12bot','WinHttp','EasouSpider','HttpClient','Microsoft URL Control','YYSpider','jaunty','Python-urllib','lightDeckReports Bot','PHP','vxiaotou-spider','spider']
     global referrer
     try:
         ip = request.headers['X-Forwarded-For'].split(',')[0]
@@ -354,11 +367,15 @@ def before_request():
         ua = request.headers.get('User-Agent')
     except:
         ua="null"
+    if sum([i.lower() in ua.lower() for i in bad_ua])>0:
+        print 'bad ua ',ua
+        return redirect('http://www.baidu.com')
     print '{}:{}:{}'.format(request.endpoint,ip,ua)
     referrer=request.referrer if request.referrer is not None else 'no-referrer'
 
 @app.route('/<path:path>',methods=['POST','GET'])
 @app.route('/',methods=['POST','GET'])
+@limiter.limit("200/minute;50/second")
 def index(path='/'):
     if path=='favicon.ico':
         return redirect('https://onedrive.live.com/favicon.ico')
@@ -427,11 +444,10 @@ def index(path='/'):
     resp.set_cookie('order',str(order))
     return resp
 
-
-@app.route('/file/<fileid>',methods=['GET','POST'])
+@app.route('/file/<fileid>')
 def show(fileid):
     name=GetName(fileid)
-    ext=name.split('.')[-1]
+    ext=name.split('.')[-1].lower()
     path=GetPath(fileid)
     if request.method=='POST':
         url=request.url.replace(':80','').replace(':443','')
@@ -466,6 +482,15 @@ def show(fileid):
         else:
             return abort(404)
 
+@app.route('/robot.txt')
+def robot():
+    resp="""
+User-agent:  *
+Disallow:  /
+    """
+    resp=make_response(resp)
+    resp.headers['Content-Type'] = 'text/javascript; charset=utf-8'
+    return resp
 
 
 ######################注册应用
@@ -483,6 +508,7 @@ app.jinja_env.globals['os']=os
 app.jinja_env.globals['re']=re
 app.jinja_env.globals['file_ico']=file_ico
 app.jinja_env.globals['title']=title
+app.jinja_env.globals['tj_code']=tj_code
 app.jinja_env.globals['allow_site']=','.join(allow_site)
 app.jinja_env.globals['share_path']=share_path
 app.jinja_env.globals['downloadUrl_timeout']=downloadUrl_timeout

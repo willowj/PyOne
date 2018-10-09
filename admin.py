@@ -20,7 +20,7 @@ admin = Blueprint('admin', __name__,url_prefix='/admin')
 
 ############功能函数
 def set(key,value):
-    allow_key=['title','share_path','downloadUrl_timeout','allow_site','password','client_secret','client_id']
+    allow_key=['title','share_path','downloadUrl_timeout','allow_site','password','client_secret','client_id','tj_code']
     if key not in allow_key:
         return u'禁止修改'
     print 'set {}:{}'.format(key,value)
@@ -28,11 +28,22 @@ def set(key,value):
     with open(config_path,'r') as f:
         old_text=f.read()
     with open(config_path,'w') as f:
-        if key=='allow_site':
-            value=value.split(',')
-            new_text=re.sub('{}=.*'.format(key),'{}={}'.format(key,value),old_text)
+        if len(re.findall(key,old_text))>0:
+            if key=='allow_site':
+                value=value.split(',')
+                new_text=re.sub('{}=.*'.format(key),'{}={}'.format(key,value),old_text)
+            elif key=='tj_code':
+                new_text=re.sub('{}=.*'.format(key),'{}="""{}"""'.format(key,value),old_text)
+            else:
+                new_text=re.sub('{}=.*'.format(key),'{}="{}"'.format(key,value),old_text)
         else:
-            new_text=re.sub('{}=.*'.format(key),'{}="{}"'.format(key,value),old_text)
+            if key=='allow_site':
+                value=value.split(',')
+                new_text=old_text+'\n\n{}={}'.format(key,value)
+            elif key=='tj_code':
+                new_text=re.sub('{}=.*'.format(key),'{}="""{}"""'.format(key,value),old_text)
+            else:
+                new_text=old_text+'\n\n{}="{}"'.format(key,value)
         f.write(new_text)
 
 
@@ -81,28 +92,23 @@ def setting():
         share_path=request.form.get('share_path','/')
         downloadUrl_timeout=request.form.get('downloadUrl_timeout',5*60)
         allow_site=request.form.get('allow_site','no-referrer')
+        tj_code=request.form.get('tj_code','')
         password1=request.form.get('password1')
         password2=request.form.get('password2')
-        password_s=request.form.get('password')
-        if password_s is None:
-            flash(u'请输入原密码')
-        else:
-            new_password=password
-            if ((password1 is not None and password2 is None) or (password1 is None and password2 is not None)):
-                flash(u'请输入新密码或者二次确认新密码')
-            elif password1 is not None and password2 is not None and password1!=password2:
-                flash(u'两次输入密码不相同')
-            elif password1 is not None and password2 is not None and password1==password2 and password1!='':
-                new_password=password1
-            if password_s==password:
-                set('title',title)
-                set('downloadUrl_timeout',downloadUrl_timeout)
-                set('share_path',share_path)
-                set('allow_site',allow_site)
-                set('password',new_password)
-                reload()
-            else:
-                flash(u'原密码错误')
+        new_password=password
+        if ((password1 is not None and password2 is None) or (password1 is None and password2 is not None)):
+            flash(u'请输入新密码或者二次确认新密码')
+        elif password1 is not None and password2 is not None and password1!=password2:
+            flash(u'两次输入密码不相同')
+        elif password1 is not None and password2 is not None and password1==password2 and password1!='':
+            new_password=password1
+        set('title',title)
+        set('downloadUrl_timeout',downloadUrl_timeout)
+        set('share_path',share_path)
+        set('allow_site',allow_site)
+        set('tj_code',tj_code)
+        set('password',new_password)
+        reload()
         return render_template('admin/setting.html')
     return render_template('admin/setting.html')
 
