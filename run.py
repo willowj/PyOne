@@ -45,7 +45,22 @@ def md5(string):
     a.update(string.encode(encoding='utf-8'))
     return a.hexdigest()
 
-@cache.memoize(timeout=60*5)
+def GetTotal(path):
+    key='total:{}'.format(path)
+    if rd.exists(key):
+        return int(rd.get(key))
+    else:
+        if path=='/':
+            total=items.find({'grandid':0}).count()
+        else:
+            f=items.find_one({'path':path})
+            pid=f['id']
+            total=items.find({'parent':pid}).count()
+            rd.set(key,total,300)
+        return total
+
+
+# @cache.memoize(timeout=60*5)
 def FetchData(path='/',page=1,per_page=50,sortby='lastModtime',order='desc',dismiss=False):
     path=urllib.unquote(path)
     resp=[]
@@ -59,16 +74,9 @@ def FetchData(path='/',page=1,per_page=50,sortby='lastModtime',order='desc',dism
         order=ASCENDING
     try:
         if path=='/':
-            if dismiss:
-                total=items.find({'grandid':0,'name':{'$nin':('README.md','README.txt','readme.md','readme.txt','.password','HEAD.md','HEAD.txt','head.md','head.txt')}}).count()
-                data=items.find({'grandid':0,'name':{'$nin':('README.md','README.txt','readme.md','readme.txt','.password','HEAD.md','HEAD.txt','head.md','head.txt')}}).collation({"locale": "zh", 'numericOrdering':True})\
-                    .sort([('order',ASCENDING),(sortby,order)])\
-                    .limit(per_page).skip((page-1)*per_page)
-            else:
-                total=items.find({'grandid':0}).count()
-                data=items.find({'grandid':0}).collation({"locale": "zh", 'numericOrdering':True})\
-                    .sort([('order',ASCENDING),(sortby,order)])\
-                    .limit(per_page).skip((page-1)*per_page)
+            data=items.find({'grandid':0}).collation({"locale": "zh", 'numericOrdering':True})\
+                .sort([('order',ASCENDING),(sortby,order)])\
+                .limit(per_page).skip((page-1)*per_page)
             for d in data:
                 item={}
                 item['name']=d['name']
@@ -76,22 +84,20 @@ def FetchData(path='/',page=1,per_page=50,sortby='lastModtime',order='desc',dism
                 item['lastModtime']=d['lastModtime']
                 item['size']=d['size']
                 item['type']=d['type']
-                resp.append(item)
+                if dismiss:
+                    if d['name'] not in ('README.md','README.txt','readme.md','readme.txt','.password','HEAD.md','HEAD.txt','head.md','head.txt'):
+                        resp.append(item)
+                else:
+                    resp.append(item)
+            total=GetTotal(path)
         else:
             f=items.find_one({'path':path})
             pid=f['id']
             if f['type']!='folder':
                 return f,'files'
-            if dismiss:
-                total=items.find({'parent':pid,'name':{'$nin':('README.md','README.txt','readme.md','readme.txt','.password','HEAD.md','HEAD.txt','head.md','head.txt')}}).count()
-                data=items.find({'parent':pid,'name':{'$nin':('README.md','README.txt','readme.md','readme.txt','.password','HEAD.md','HEAD.txt','head.md','head.txt')}}).collation({"locale": "zh", 'numericOrdering':True})\
-                    .sort([('order',ASCENDING),(sortby,order)])\
-                    .limit(per_page).skip((page-1)*per_page)
-            else:
-                total=items.find({'parent':pid}).count()
-                data=items.find({'parent':pid}).collation({"locale": "zh", 'numericOrdering':True})\
-                    .sort([('order',ASCENDING),(sortby,order)])\
-                    .limit(per_page).skip((page-1)*per_page)
+            data=items.find({'parent':pid}).collation({"locale": "zh", 'numericOrdering':True})\
+                .sort([('order',ASCENDING),(sortby,order)])\
+                .limit(per_page).skip((page-1)*per_page)
             for d in data:
                 item={}
                 item['name']=d['name']
@@ -99,7 +105,12 @@ def FetchData(path='/',page=1,per_page=50,sortby='lastModtime',order='desc',dism
                 item['lastModtime']=d['lastModtime']
                 item['size']=d['size']
                 item['type']=d['type']
-                resp.append(item)
+                if dismiss:
+                    if d['name'] not in ('README.md','README.txt','readme.md','readme.txt','.password','HEAD.md','HEAD.txt','head.md','head.txt'):
+                        resp.append(item)
+                else:
+                    resp.append(item)
+            total=GetTotal(path)
     except:
         resp=[]
         total=0
@@ -168,7 +179,6 @@ def GetName(id):
         rd.set(key,item['name'],300)
         return item['name']
 
-# @cache.memoize(timeout=60*5)
 def GetPath(id):
     key='path:{}'.format(id)
     if rd.exists(key):
