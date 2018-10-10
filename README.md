@@ -48,6 +48,10 @@ pip install -r requirements.txt
 ```
 supervisorctl -c supervisord.conf restart pyone
 ```
+7. 最好更新一下文件缓存：
+```
+python function.py UpdateFile
+```
 
 ## 提供安装服务 ##
 [点击购买](https://iofaka.com/?gid=4)
