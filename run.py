@@ -45,7 +45,7 @@ def md5(string):
     a.update(string.encode(encoding='utf-8'))
     return a.hexdigest()
 
-# @cache.memoize(timeout=60*5)
+@cache.memoize(timeout=60*5)
 def FetchData(path='/',page=1,per_page=50,sortby='lastModtime',order='desc',dismiss=False):
     path=urllib.unquote(path)
     resp=[]
@@ -158,25 +158,27 @@ def GetDownloadUrl(id):
         rd.set('downloadUrl2:{}'.format(id),k)
     return downloadUrl
 
-@cache.memoize(timeout=60*5)
-def GetName(id):
-    item=items.find_one({'id':id})
-    return item['name']
 
-@cache.memoize(timeout=60*5)
-def GetPath(id):
-    item=items.find_one({'id':id})
-    path=item['name']
-    if item>0:
-        parent_id=item['parent']
-        for i in range(item['grandid']):
-            parent_item=items.find_one({'id':parent_id})
-            parent_name=parent_item['name']
-            parent_id=parent_item['parent']
-            path=parent_name+'/'+path
-    return path
+def GetName(id):
+    key='name:{}'.format(id)
+    if rd.exists(key):
+        return rd.get(key)
+    else:
+        item=items.find_one({'id':id})
+        rd.set(key,item['name'],300)
+        return item['name']
 
 # @cache.memoize(timeout=60*5)
+def GetPath(id):
+    key='path:{}'.format(id)
+    if rd.exists(key):
+        return rd.get(key)
+    else:
+        item=items.find_one({'id':id})
+        rd.set(key,item['path'],300)
+        return item['path']
+
+@cache.memoize(timeout=60*5)
 def GetReadMe(path):
     # README
     ext='Markdown'
@@ -194,7 +196,7 @@ def GetReadMe(path):
     return readme,ext
 
 
-# @cache.memoize(timeout=60*5)
+@cache.memoize(timeout=60*5)
 def GetHead(path):
     # README
     ext='Markdown'
@@ -262,44 +264,59 @@ def _remote_content(fileid):
         else:
             return False
 
-# @cache.memoize(timeout=60*5)
+# @cache.memoize(timeout=60)
 def has_item(path,name):
     if items.count()==0:
         return False
-    item=False
-    fid=False
-    dz=False
-    cur=False
-    if name=='.password':
-        dz=True
-    try:
-        if path=='/':
-            if items.find_one({'grandid':0,'name':name}):
-                fid=items.find_one({'grandid':0,'name':name})['id']
-                item=_remote_content(fid).strip()
+    key='has_item$#$#{}$#$#{}'.format(path,name)
+    if rd.exists(key):
+        values=rd.get(key)
+        item,fid,cur=values.split('####')
+        if item=='False':
+            item=False
+        if cur=='False':
+            cur=False
         else:
-            route=path.split('/')
-            if name=='.password':
-                for idx,r in enumerate(route):
-                    p='/'.join(route[:idx+1])
-                    f=items.find_one({'path':p})
+            cur=True
+        if fid=='False':
+            fid=False
+        return item,fid,cur
+    else:
+        item=False
+        fid=False
+        dz=False
+        cur=False
+        if name=='.password':
+            dz=True
+        try:
+            if path=='/':
+                if items.find_one({'grandid':0,'name':name}):
+                    fid=items.find_one({'grandid':0,'name':name})['id']
+                    item=_remote_content(fid).strip()
+            else:
+                route=path.split('/')
+                if name=='.password':
+                    for idx,r in enumerate(route):
+                        p='/'.join(route[:idx+1])
+                        f=items.find_one({'path':p})
+                        pid=f['id']
+                        data=items.find_one({'name':name,'parent':pid})
+                        if data:
+                            fid=data['id']
+                            item=_remote_content(fid).strip()
+                            if idx==len(route)-1:
+                                cur=True
+                else:
+                    f=items.find_one({'path':path})
                     pid=f['id']
                     data=items.find_one({'name':name,'parent':pid})
                     if data:
                         fid=data['id']
                         item=_remote_content(fid).strip()
-                        if idx==len(route)-1:
-                            cur=True
-            else:
-                f=items.find_one({'path':path})
-                pid=f['id']
-                data=items.find_one({'name':name,'parent':pid})
-                if data:
-                    fid=data['id']
-                    item=_remote_content(fid).strip()
-    except:
-        item=False
-    return item,fid,cur
+        except:
+            item=False
+        rd.set(key,'{}####{}####{}'.format(item,fid,cur),300)
+        return item,fid,cur
 
 
 def verify_pass_before(path):
@@ -356,7 +373,7 @@ def before_request():
         ua="null"
     if sum([i.lower() in ua.lower() for i in bad_ua])>0:
         return redirect('http://www.baidu.com')
-    # print '{}:{}:{}'.format(request.endpoint,ip,ua)
+    print '{}:{}:{}'.format(request.endpoint,ip,ua)
     referrer=request.referrer if request.referrer is not None else 'no-referrer'
 
 @app.route('/<path:path>',methods=['POST','GET'])
@@ -376,6 +393,9 @@ def index(path='/'):
     image_mode=request.args.get('image_mode')
     sortby=request.args.get('sortby')
     order=request.args.get('order')
+    resp,total = FetchData(path=path,page=page,per_page=50,sortby=sortby,order=order,dismiss=True)
+    if total=='files':
+        return show(resp['id'])
     #是否有密码
     password,_,cur=has_item(path,'.password')
     md5_p=md5(path)
@@ -410,8 +430,6 @@ def index(path='/'):
         order=order
     #参数
     resp,total = FetchData(path=path,page=page,per_page=50,sortby=sortby,order=order,dismiss=True)
-    if total=='files':
-        return show(resp['id'])
     pagination=Pagination(query=None,page=page, per_page=50, total=total, items=None)
     resp=make_response(render_template('index.html'
                     ,pagination=pagination
