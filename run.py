@@ -45,7 +45,7 @@ def md5(string):
     a.update(string.encode(encoding='utf-8'))
     return a.hexdigest()
 
-@cache.memoize(timeout=60*5)
+# @cache.memoize(timeout=60*5)
 def FetchData(path='/',page=1,per_page=50,sortby='lastModtime',order='desc',dismiss=False):
     path=urllib.unquote(path)
     resp=[]
@@ -78,24 +78,18 @@ def FetchData(path='/',page=1,per_page=50,sortby='lastModtime',order='desc',dism
                 item['type']=d['type']
                 resp.append(item)
         else:
-            route=path.split('/')
-            pid=0
-            for idx,r in enumerate(route):
-                if pid==0:
-                    f=items.find_one({'grandid':idx,'name':r})
-                else:
-                    f=items.find_one({'grandid':idx,'name':r,'parent':pid})
-                pid=f['id']
+            f=items.find_one({'path':path})
+            pid=f['id']
             if f['type']!='folder':
                 return f,'files'
             if dismiss:
-                total=items.find({'grandid':idx+1,'parent':pid,'name':{'$nin':('README.md','README.txt','readme.md','readme.txt','.password','HEAD.md','HEAD.txt','head.md','head.txt')}}).count()
-                data=items.find({'grandid':idx+1,'parent':pid,'name':{'$nin':('README.md','README.txt','readme.md','readme.txt','.password','HEAD.md','HEAD.txt','head.md','head.txt')}}).collation({"locale": "zh", 'numericOrdering':True})\
+                total=items.find({'parent':pid,'name':{'$nin':('README.md','README.txt','readme.md','readme.txt','.password','HEAD.md','HEAD.txt','head.md','head.txt')}}).count()
+                data=items.find({'parent':pid,'name':{'$nin':('README.md','README.txt','readme.md','readme.txt','.password','HEAD.md','HEAD.txt','head.md','head.txt')}}).collation({"locale": "zh", 'numericOrdering':True})\
                     .sort([('order',ASCENDING),(sortby,order)])\
                     .limit(per_page).skip((page-1)*per_page)
             else:
-                total=items.find({'grandid':idx+1,'parent':pid}).count()
-                data=items.find({'grandid':idx+1,'parent':pid}).collation({"locale": "zh", 'numericOrdering':True})\
+                total=items.find({'parent':pid}).count()
+                data=items.find({'parent':pid}).collation({"locale": "zh", 'numericOrdering':True})\
                     .sort([('order',ASCENDING),(sortby,order)])\
                     .limit(per_page).skip((page-1)*per_page)
             for d in data:
@@ -148,16 +142,16 @@ def GetDownloadUrl(id):
     if rd.exists('downloadUrl2:{}'.format(id)):
         downloadUrl,ftime=rd.get('downloadUrl2:{}'.format(id)).split('####')
         if time.time()-int(ftime)>=600:
-            print('{} downloadUrl expired!'.format(id))
+            # print('{} downloadUrl expired!'.format(id))
             downloadUrl=_getdownloadurl(id)
             ftime=int(time.time())
             k='####'.join([downloadUrl,str(ftime)])
             rd.set('downloadUrl2:{}'.format(id),k)
         else:
-            print('get {}\'s downloadUrl from cache'.format(id))
+            # print('get {}\'s downloadUrl from cache'.format(id))
             downloadUrl=downloadUrl
     else:
-        print('first time get downloadUrl from {}'.format(id))
+        # print('first time get downloadUrl from {}'.format(id))
         downloadUrl=_getdownloadurl(id)
         ftime=int(time.time())
         k='####'.join([downloadUrl,str(ftime)])
@@ -182,7 +176,7 @@ def GetPath(id):
             path=parent_name+'/'+path
     return path
 
-@cache.memoize(timeout=60*5)
+# @cache.memoize(timeout=60*5)
 def GetReadMe(path):
     # README
     ext='Markdown'
@@ -200,7 +194,7 @@ def GetReadMe(path):
     return readme,ext
 
 
-@cache.memoize(timeout=60*5)
+# @cache.memoize(timeout=60*5)
 def GetHead(path):
     # README
     ext='Markdown'
@@ -268,7 +262,7 @@ def _remote_content(fileid):
         else:
             return False
 
-@cache.memoize(timeout=60*5)
+# @cache.memoize(timeout=60*5)
 def has_item(path,name):
     if items.count()==0:
         return False
@@ -285,27 +279,24 @@ def has_item(path,name):
                 item=_remote_content(fid).strip()
         else:
             route=path.split('/')
-            pid=0
-            for idx,r in enumerate(route):
-                if pid==0:
-                    f=items.find_one({'grandid':idx,'name':r})
-                    if dz:
-                        p=items.find_one({'grandid':idx,'name':name})
-                        if p:
-                            item=_remote_content(p['id']).strip()
-                else:
-                    f=items.find_one({'grandid':idx,'name':r,'parent':pid})
-                    if dz:
-                        p=items.find_one({'grandid':idx,'name':name,'parent':pid})
-                        if p:
-                            item=_remote_content(p['id']).strip()
+            if name=='.password':
+                for idx,r in enumerate(route):
+                    p='/'.join(route[:idx+1])
+                    f=items.find_one({'path':p})
+                    pid=f['id']
+                    data=items.find_one({'name':name,'parent':pid})
+                    if data:
+                        fid=data['id']
+                        item=_remote_content(fid).strip()
+                        if idx==len(route)-1:
+                            cur=True
+            else:
+                f=items.find_one({'path':path})
                 pid=f['id']
-            data=items.find_one({'grandid':idx+1,'name':name,'parent':pid})
-            if data:
-                fid=data['id']
-                item=_remote_content(fid).strip()
-                if dz:
-                    cur=True
+                data=items.find_one({'name':name,'parent':pid})
+                if data:
+                    fid=data['id']
+                    item=_remote_content(fid).strip()
     except:
         item=False
     return item,fid,cur
@@ -321,7 +312,7 @@ def has_verify(path):
     verify=False
     md5_p=md5(path)
     passwd,fid,cur=has_item(path,'.password')
-    if fid:
+    if fid and cur:
         vp=request.cookies.get(md5_p)
         if passwd==vp:
             verify=True
@@ -337,7 +328,6 @@ def has_verify(path):
     return verify
 
 
-
 def path_list(path):
     if path=='/':
         return [path]
@@ -349,15 +339,12 @@ def path_list(path):
     return plist
 
 
-
-
-
 ################################################################################
 ###################################试图函数#####################################
 ################################################################################
 @app.before_request
 def before_request():
-    bad_ua=['FeedDemon ','BOT/0.1 (BOT for JCE)','CrawlDaddy ','Java','Feedly','UniversalFeedParser','ApacheBench','Swiftbot','ZmEu','Indy Library','oBot','jaunty','YandexBot','AhrefsBot','MJ12bot','WinHttp','EasouSpider','HttpClient','Microsoft URL Control','YYSpider','jaunty','Python-urllib','lightDeckReports Bot','PHP','vxiaotou-spider','spider']
+    bad_ua=['Googlebot-Image','FeedDemon ','BOT/0.1 (BOT for JCE)','CrawlDaddy ','Java','Feedly','UniversalFeedParser','ApacheBench','Swiftbot','ZmEu','Indy Library','oBot','jaunty','YandexBot','AhrefsBot','MJ12bot','WinHttp','EasouSpider','HttpClient','Microsoft URL Control','YYSpider','jaunty','Python-urllib','lightDeckReports Bot','PHP','vxiaotou-spider','spider']
     global referrer
     try:
         ip = request.headers['X-Forwarded-For'].split(',')[0]
@@ -368,9 +355,8 @@ def before_request():
     except:
         ua="null"
     if sum([i.lower() in ua.lower() for i in bad_ua])>0:
-        print 'bad ua ',ua
         return redirect('http://www.baidu.com')
-    print '{}:{}:{}'.format(request.endpoint,ip,ua)
+    # print '{}:{}:{}'.format(request.endpoint,ip,ua)
     referrer=request.referrer if request.referrer is not None else 'no-referrer'
 
 @app.route('/<path:path>',methods=['POST','GET'])
@@ -508,7 +494,7 @@ app.jinja_env.globals['os']=os
 app.jinja_env.globals['re']=re
 app.jinja_env.globals['file_ico']=file_ico
 app.jinja_env.globals['title']=title
-app.jinja_env.globals['tj_code']=tj_code
+app.jinja_env.globals['tj_code']=tj_code if tj_code is not None else ''
 app.jinja_env.globals['allow_site']=','.join(allow_site)
 app.jinja_env.globals['share_path']=share_path
 app.jinja_env.globals['downloadUrl_timeout']=downloadUrl_timeout

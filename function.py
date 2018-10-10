@@ -183,7 +183,7 @@ def Dir(path=u'/'):
         if queue.qsize()==0:
             return
         tasks=[]
-        for i in range(min(5,queue.qsize())):
+        for i in range(min(10,queue.qsize())):
             t=GetItemThread(queue)
             t.start()
             tasks.append(t)
@@ -196,6 +196,15 @@ class GetItemThread(Thread):
     def __init__(self,queue):
         super(GetItemThread,self).__init__()
         self.queue=queue
+        if share_path=='/':
+            self.share_path=share_path
+        else:
+            sp=share_path
+            if not sp.startswith('/'):
+                sp='/'+share_path
+            if sp.endswith('/') and sp!='/':
+                sp=sp[:-1]
+            self.share_path=sp
 
     def run(self):
         while 1:
@@ -230,9 +239,20 @@ class GetItemThread(Thread):
                         item['name']=convert2unicode(value['name'])
                         item['id']=convert2unicode(value['id'])
                         item['size']=humanize.naturalsize(value['size'], gnu=True)
+                        item['size_order']=int(value['size'])
                         item['lastModtime']=date_to_char(parse(value['lastModifiedDateTime']))
                         item['grandid']=grandid
                         item['parent']=parent
+                        grand_path=value.get('parentReference').get('path').replace('/drive/root:','')
+                        if grand_path=='':
+                            path=convert2unicode(value['name'])
+                        else:
+                            path=grand_path.replace(self.share_path,'',1)+'/'+convert2unicode(value['name'])
+                        if path.startswith('/') and path!='/':
+                            path=path[1:]
+                        if path=='':
+                            path=convert2unicode(value['name'])
+                        item['path']=path
                         subfodler=items.insert_one(item)
                         if value.get('folder').get('childCount')==0:
                             continue
@@ -250,9 +270,20 @@ class GetItemThread(Thread):
                         item['name']=convert2unicode(value['name'])
                         item['id']=convert2unicode(value['id'])
                         item['size']=humanize.naturalsize(value['size'], gnu=True)
+                        item['size_order']=int(value['size'])
                         item['lastModtime']=date_to_char(parse(value['lastModifiedDateTime']))
                         item['grandid']=grandid
                         item['parent']=parent
+                        grand_path=value.get('parentReference').get('path').replace('/drive/root:','')
+                        if grand_path=='':
+                            path=convert2unicode(value['name'])
+                        else:
+                            path=grand_path.replace(self.share_path,'',1)+'/'+convert2unicode(value['name'])
+                        if path.startswith('/') and path!='/':
+                            path=path[1:]
+                        if path=='':
+                            path=convert2unicode(value['name'])
+                        item['path']=path
                         items.insert_one(item)
             if data.get('@odata.nextLink'):
                 self.queue.put(dict(url=data.get('@odata.nextLink'),grandid=grandid,parent=parent,trytime=1))
