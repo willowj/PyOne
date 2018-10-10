@@ -40,6 +40,14 @@
 2. 删除原来的PyOne源码
 3. 重新git clone一份PyOne源码
 4. 将原来的data目录替换新源码的data目录，原来的config.py替换新源码的config.py
+5. 重新安装依赖，看是否有新增的依赖包：
+```
+pip install -r requirements.txt
+```
+6. 重启网站：
+```
+supervisorctl -c supervisord.conf restart pyone
+```
 
 ## 提供安装服务 ##
 [点击购买](https://iofaka.com/?gid=4)
