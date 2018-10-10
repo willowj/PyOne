@@ -29,3 +29,5 @@ password="PyOne"
 
 #网站名称
 title="PyOne"
+
+tj_code=''
