@@ -278,7 +278,7 @@ def _remote_content(fileid):
 def has_item(path,name):
     if items.count()==0:
         return False
-    key='has_item$#$#{}$#$#{}'.format(path,name)
+    key='has_item$#$#$#$#{}$#$#$#$#{}'.format(path,name)
     if rd.exists(key):
         values=rd.get(key)
         item,fid,cur=values.split('########')
