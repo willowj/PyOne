@@ -229,6 +229,11 @@ class GetItemThread(Thread):
         try:
             r=requests.get(url,headers=header)
             data=json.loads(r.content)
+            if data.get('error'):
+                print('error:{}! waiting 180s'.format(data.get('error').get('message')))
+                time.sleep(180)
+                self.queue.put(dict(url=url,grandid=grandid,parent=parent,trytime=trytime))
+                return
             values=data.get('value')
             if len(values)>0:
                 for value in values:
@@ -261,19 +266,6 @@ class GetItemThread(Thread):
                             self.queue.put(dict(url=url,grandid=grandid+1,parent=item['id'],trytime=1))
                     else:
                         item['type']=GetExt(value['name'])
-                        if GetExt(value['name']) in ['bmp','jpg','jpeg','png','gif']:
-                            item['order']=3
-                        elif value['name']=='.password':
-                            item['order']=1
-                        else:
-                            item['order']=2
-                        item['name']=convert2unicode(value['name'])
-                        item['id']=convert2unicode(value['id'])
-                        item['size']=humanize.naturalsize(value['size'], gnu=True)
-                        item['size_order']=int(value['size'])
-                        item['lastModtime']=date_to_char(parse(value['lastModifiedDateTime']))
-                        item['grandid']=grandid
-                        item['parent']=parent
                         grand_path=value.get('parentReference').get('path').replace('/drive/root:','')
                         if grand_path=='':
                             path=convert2unicode(value['name'])
@@ -284,6 +276,23 @@ class GetItemThread(Thread):
                         if path=='':
                             path=convert2unicode(value['name'])
                         item['path']=path
+                        item['name']=convert2unicode(value['name'])
+                        item['id']=convert2unicode(value['id'])
+                        item['size']=humanize.naturalsize(value['size'], gnu=True)
+                        item['size_order']=int(value['size'])
+                        item['lastModtime']=date_to_char(parse(value['lastModifiedDateTime']))
+                        item['grandid']=grandid
+                        item['parent']=parent
+                        if GetExt(value['name']) in ['bmp','jpg','jpeg','png','gif']:
+                            item['order']=3
+                            key1='name:{}'.format(value['id'])
+                            key2='path:{}'.format(value['id'])
+                            rd.set(key1,value['name'])
+                            rd.set(key2,path)
+                        elif value['name']=='.password':
+                            item['order']=1
+                        else:
+                            item['order']=2
                         items.insert_one(item)
             if data.get('@odata.nextLink'):
                 self.queue.put(dict(url=data.get('@odata.nextLink'),grandid=grandid,parent=parent,trytime=1))

@@ -176,7 +176,7 @@ def GetName(id):
         return rd.get(key)
     else:
         item=items.find_one({'id':id})
-        rd.set(key,item['name'],300)
+        rd.set(key,item['name'])
         return item['name']
 
 def GetPath(id):
@@ -185,7 +185,7 @@ def GetPath(id):
         return rd.get(key)
     else:
         item=items.find_one({'id':id})
-        rd.set(key,item['path'],300)
+        rd.set(key,item['path'])
         return item['path']
 
 @cache.memoize(timeout=60*5)
@@ -325,7 +325,7 @@ def has_item(path,name):
                         item=_remote_content(fid).strip()
         except:
             item=False
-        rd.set(key,'{}####{}####{}'.format(item,fid,cur),300)
+        rd.set(key,'{}####{}####{}'.format(item,fid,cur))
         return item,fid,cur
 
 
