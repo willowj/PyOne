@@ -281,7 +281,7 @@ def has_item(path,name):
     key='has_item$#$#{}$#$#{}'.format(path,name)
     if rd.exists(key):
         values=rd.get(key)
-        item,fid,cur=values.split('####')
+        item,fid,cur=values.split('########')
         if item=='False':
             item=False
         if cur=='False':
@@ -325,7 +325,7 @@ def has_item(path,name):
                         item=_remote_content(fid).strip()
         except:
             item=False
-        rd.set(key,'{}####{}####{}'.format(item,fid,cur))
+        rd.set(key,'{}########{}########{}'.format(item,fid,cur))
         return item,fid,cur
 
 
