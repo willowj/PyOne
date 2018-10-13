@@ -188,6 +188,11 @@ def edit():
                 info['status']=0
                 info['msg']='修改成功'
                 rd.delete('{}:content'.format(fileid))
+                file=items.find_one({'id':fileid})
+                name=file['name']
+                path=file['path'].replace('/'+name,'')
+                key='has_item$#$#$#$#{}$#$#$#$#{}'.format(path,name)
+                rd.delete(key)
             else:
                 info['status']=0
                 info['msg']=data.get('error').get('message')
@@ -227,6 +232,8 @@ def setFile(filename=None):
             if data.get('@microsoft.graph.downloadUrl'):
                 info['status']=0
                 info['msg']='添加成功'
+                key='has_item$#$#$#$#{}$#$#$#$#{}'.format(path,name)
+                rd.delete(key)
             else:
                 info['status']=0
                 info['msg']=data.get('error').get('message')
