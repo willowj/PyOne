@@ -94,6 +94,7 @@ def GetToken(Token_file='token.json'):
                 Atoken=json.load(f)
             refresh_token=Atoken.get('refresh_token')
             token=ReFreshToken(refresh_token)
+            token['expires_on']=str(time.time()+3599)
             if token.get('access_token'):
                     with open(os.path.join(data_dir,Token_file),'w') as f:
                         json.dump(token,f,ensure_ascii=False)
@@ -391,6 +392,7 @@ def _upload(filepath,remote_path): #remote_path like 'share/share.mp4'
     headers={'Authorization':'bearer {}'.format(token)}
     url=app_url+'v1.0/me/drive/root:'+urllib.quote(remote_path)+':/content'
     r=requests.put(url,headers=headers,data=open(filepath,'rb'))
+    data=json.loads(r.content)
     trytime=1
     while 1:
         try:
@@ -404,10 +406,9 @@ def _upload(filepath,remote_path): #remote_path like 'share/share.mp4'
                 return False
         except Exception as e:
             trytime+=1
-            print('error to opreate _upload("{}","{}"), try times {}'.format(filepath,remote_path,trytime))
-        finally:
-            if trytime>3:
-                break
+            print('error to opreate _upload("{}","{}"), try times {},error:{}'.format(filepath,remote_path,trytime,e))
+        if trytime>3:
+            break
 
 def _upload_part(uploadUrl, filepath, offset, length,trytime=1):
     size=_filesize(filepath)
