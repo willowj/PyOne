@@ -188,7 +188,7 @@ def GetPath(id):
         rd.set(key,item['path'])
         return item['path']
 
-@cache.memoize(timeout=60*5)
+# @cache.memoize(timeout=60*5)
 def GetReadMe(path):
     # README
     ext='Markdown'
@@ -206,7 +206,7 @@ def GetReadMe(path):
     return readme,ext
 
 
-@cache.memoize(timeout=60*5)
+# @cache.memoize(timeout=60*5)
 def GetHead(path):
     # README
     ext='Markdown'

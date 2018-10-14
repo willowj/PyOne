@@ -190,7 +190,9 @@ def edit():
                 rd.delete('{}:content'.format(fileid))
                 file=items.find_one({'id':fileid})
                 name=file['name']
-                path=file['path'].replace('/'+name,'')
+                path=file['path'].replace('/'+name,'').replace(name,'')
+                if path=='':
+                    path='/'
                 key='has_item$#$#$#$#{}$#$#$#$#{}'.format(path,name)
                 rd.delete(key)
             else:
