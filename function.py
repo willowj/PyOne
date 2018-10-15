@@ -393,8 +393,8 @@ class GetItemThread(Thread):
         data=json.loads(r.content)
         return data
 
-def UpdateFile(renew=False):
-    if renew:
+def UpdateFile(renew='all'):
+    if renew=='all':
         items.remove()
         Dir_all(share_path)
     else:
