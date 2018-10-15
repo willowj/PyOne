@@ -142,6 +142,67 @@ def Dir(path=u'/'):
     app_url=GetAppUrl()
     if path=='/':
         BaseUrl=app_url+u'v1.0/me/drive/root/children?expand=thumbnails'
+        # items.remove()
+        queue=Queue()
+        # queue.put(dict(url=BaseUrl,grandid=grandid,parent=parent,trytime=1))
+        g=GetItemThread(queue)
+        g.GetItem(BaseUrl)
+        queue=g.queue
+        if queue.qsize()==0:
+            return
+        tasks=[]
+        for i in range(min(5,queue.qsize())):
+            t=GetItemThread(queue)
+            t.start()
+            tasks.append(t)
+        for t in tasks:
+            t.join()
+        RemoveRepeatFile()
+    else:
+        grandid=0
+        parent_id=''
+        parent=None
+        if path.endswith('/'):
+            path=path[:-1]
+        if not path.startswith('/'):
+            path='/'+path
+        if items.find_one({'grandid':0,'type':'folder'}):
+            for idx,p in enumerate(path[1:].split('/')):
+                if parent_id=='':
+                    parent=items.find_one({'name':p,'grandid':idx})
+                    parent_id=parent['id']
+                else:
+                    parent=items.find_one({'name':p,'grandid':idx,'parent':parent_id})
+                    parent_id=parent['id']
+                # items.delete_many({'parent':parent_id})
+            grandid=idx+1
+        path=urllib.quote(path)
+        BaseUrl=app_url+u'v1.0/me/drive/root:{}:/children?expand=thumbnails'.format(path)
+        checkUrl=app_url+u'v1.0/me/drive/root:{}:/'.format(path)
+        queue=Queue()
+        # queue.put(dict(url=BaseUrl,grandid=grandid,parent=parent,trytime=1))
+        g=GetItemThread(queue)
+        # g.GetItem(BaseUrl,grandid,parent_id,1)
+        # queue=g.queue
+        # if queue.qsize()==0:
+        #     return
+        if parent:
+            item_remote=g.GetItemByUrl(checkUrl)
+            if parent['size_order']==item_remote['size']:
+                return
+        tasks=[]
+        for i in range(min(10,queue.qsize())):
+            t=GetItemThread(queue)
+            t.start()
+            tasks.append(t)
+        for t in tasks:
+            t.join()
+        RemoveRepeatFile()
+
+def Dir_all(path=u'/'):
+    app_url=GetAppUrl()
+    if path=='/':
+        BaseUrl=app_url+u'v1.0/me/drive/root/children?expand=thumbnails'
         items.remove()
         queue=Queue()
         # queue.put(dict(url=BaseUrl,grandid=grandid,parent=parent,trytime=1))
@@ -193,7 +254,6 @@ def Dir(path=u'/'):
             t.join()
         RemoveRepeatFile()
 
-
 class GetItemThread(Thread):
     def __init__(self,queue):
         super(GetItemThread,self).__init__()
@@ -241,61 +301,70 @@ class GetItemThread(Thread):
                 for value in values:
                     item={}
                     if value.get('folder'):
-                        item['type']='folder'
-                        item['order']=0
-                        item['name']=convert2unicode(value['name'])
-                        item['id']=convert2unicode(value['id'])
-                        item['size']=humanize.naturalsize(value['size'], gnu=True)
-                        item['size_order']=int(value['size'])
-                        item['lastModtime']=date_to_char(parse(value['lastModifiedDateTime']))
-                        item['grandid']=grandid
-                        item['parent']=parent
-                        grand_path=value.get('parentReference').get('path').replace('/drive/root:','')
-                        if grand_path=='':
-                            path=convert2unicode(value['name'])
+                        folder=items.find_one({'id':value['id']})
+                        if folder is not None:
+                            if folder['size_order']==value['size']: #文件夹大小未变化，不更新
+                                print(u'path:{},origin size:{},current size:{}'.format(value['name'],folder['size_order'],value['size']))
                         else:
-                            path=grand_path.replace(self.share_path,'',1)+'/'+convert2unicode(value['name'])
-                        if path.startswith('/') and path!='/':
-                            path=path[1:]
-                        if path=='':
-                            path=convert2unicode(value['name'])
-                        item['path']=path
-                        subfodler=items.insert_one(item)
-                        if value.get('folder').get('childCount')==0:
+                            items.delete_one({'id':value['id']})
+                            item['type']='folder'
+                            item['order']=0
+                            item['name']=convert2unicode(value['name'])
+                            item['id']=convert2unicode(value['id'])
+                            item['size']=humanize.naturalsize(value['size'], gnu=True)
+                            item['size_order']=int(value['size'])
+                            item['lastModtime']=date_to_char(parse(value['lastModifiedDateTime']))
+                            item['grandid']=grandid
+                            item['parent']=parent
+                            grand_path=value.get('parentReference').get('path').replace('/drive/root:','')
+                            if grand_path=='':
+                                path=convert2unicode(value['name'])
+                            else:
+                                path=grand_path.replace(self.share_path,'',1)+'/'+convert2unicode(value['name'])
+                            if path.startswith('/') and path!='/':
+                                path=path[1:]
+                            if path=='':
+                                path=convert2unicode(value['name'])
+                            item['path']=path
+                            subfodler=items.insert_one(item)
+                            if value.get('folder').get('childCount')==0:
+                                continue
+                            else:
+                                url=app_url+'v1.0/me'+value.get('parentReference').get('path')+'/'+value.get('name')+':/children?expand=thumbnails'
+                                self.queue.put(dict(url=url,grandid=grandid+1,parent=item['id'],trytime=1))
+                    else:
+                        if items.find_one({'id':value['id']}) is not None: #文件存在
                             continue
                         else:
-                            url=app_url+'v1.0/me'+value.get('parentReference').get('path')+'/'+value.get('name')+':/children?expand=thumbnails'
-                            self.queue.put(dict(url=url,grandid=grandid+1,parent=item['id'],trytime=1))
-                    else:
-                        item['type']=GetExt(value['name'])
-                        grand_path=value.get('parentReference').get('path').replace('/drive/root:','')
-                        if grand_path=='':
-                            path=convert2unicode(value['name'])
-                        else:
-                            path=grand_path.replace(self.share_path,'',1)+'/'+convert2unicode(value['name'])
-                        if path.startswith('/') and path!='/':
-                            path=path[1:]
-                        if path=='':
-                            path=convert2unicode(value['name'])
-                        item['path']=path
-                        item['name']=convert2unicode(value['name'])
-                        item['id']=convert2unicode(value['id'])
-                        item['size']=humanize.naturalsize(value['size'], gnu=True)
-                        item['size_order']=int(value['size'])
-                        item['lastModtime']=date_to_char(parse(value['lastModifiedDateTime']))
-                        item['grandid']=grandid
-                        item['parent']=parent
-                        if GetExt(value['name']) in ['bmp','jpg','jpeg','png','gif']:
-                            item['order']=3
-                            key1='name:{}'.format(value['id'])
-                            key2='path:{}'.format(value['id'])
-                            rd.set(key1,value['name'])
-                            rd.set(key2,path)
-                        elif value['name']=='.password':
-                            item['order']=1
-                        else:
-                            item['order']=2
-                        items.insert_one(item)
+                            item['type']=GetExt(value['name'])
+                            grand_path=value.get('parentReference').get('path').replace('/drive/root:','')
+                            if grand_path=='':
+                                path=convert2unicode(value['name'])
+                            else:
+                                path=grand_path.replace(self.share_path,'',1)+'/'+convert2unicode(value['name'])
+                            if path.startswith('/') and path!='/':
+                                path=path[1:]
+                            if path=='':
+                                path=convert2unicode(value['name'])
+                            item['path']=path
+                            item['name']=convert2unicode(value['name'])
+                            item['id']=convert2unicode(value['id'])
+                            item['size']=humanize.naturalsize(value['size'], gnu=True)
+                            item['size_order']=int(value['size'])
+                            item['lastModtime']=date_to_char(parse(value['lastModifiedDateTime']))
+                            item['grandid']=grandid
+                            item['parent']=parent
+                            if GetExt(value['name']) in ['bmp','jpg','jpeg','png','gif']:
+                                item['order']=3
+                                key1='name:{}'.format(value['id'])
+                                key2='path:{}'.format(value['id'])
+                                rd.set(key1,value['name'])
+                                rd.set(key2,path)
+                            elif value['name']=='.password':
+                                item['order']=1
+                            else:
+                                item['order']=2
+                            items.insert_one(item)
             if data.get('@odata.nextLink'):
                 self.queue.put(dict(url=data.get('@odata.nextLink'),grandid=grandid,parent=parent,trytime=1))
         except Exception as e:
@@ -303,6 +372,7 @@ class GetItemThread(Thread):
             print(u'error to opreate GetItem("{}","{}","{}"),try times :{}, reason: {}'.format(url,grandid,parent,trytime,e))
             if trytime<=3:
                 self.queue.put(dict(url=url,grandid=grandid,parent=parent,trytime=trytime))
+
 
     def GetItemByPath(self,path):
         if path=='':
@@ -315,10 +385,20 @@ class GetItemThread(Thread):
         data=json.loads(r.content)
         return data
 
+    def GetItemByUrl(self,url):
+        app_url=GetAppUrl()
+        token=GetToken()
+        header={'Authorization': 'Bearer {}'.format(token)}
+        r=requests.get(url,headers=header)
+        data=json.loads(r.content)
+        return data
 
-def UpdateFile():
-    items.remove()
-    Dir(share_path)
+def UpdateFile(renew=False):
+    if renew:
+        items.remove()
+        Dir_all(share_path)
+    else:
+        Dir(share_path)
     print('update file success!')
 
 
