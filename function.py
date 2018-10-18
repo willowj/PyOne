@@ -816,6 +816,7 @@ def DeleteRemoteFile(fileid):
         DeleteLocalFile(fileid)
         return True
     else:
+        DeleteLocalFile(fileid)
         return False
 
 ########################

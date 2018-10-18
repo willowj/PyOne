@@ -220,8 +220,9 @@ def upload_local():
 @admin.route('/checkChunk', methods=['POST'])
 def checkChunk():
     md5=request.form.get('fileMd5')
+    fileName=request.form.get('name')
     chunk=request.form.get('chunk',0,type=int)
-    filename = './upload/{}-{}'.format(md5, chunk)
+    filename = './upload/{}-{}'.format(fileName, chunk)
     if os.path.exists(filename):
         exists=True
     else:
@@ -237,7 +238,7 @@ def mergeChunks():
     with open(u'./upload/{}'.format(fileName), 'wb') as target_file:  # 创建新文件
         while True:
             try:
-                filename = './upload/{}-{}'.format(md5, chunk)
+                filename = './upload/{}-{}'.format(fileName, chunk)
                 source_file = open(filename, 'rb')  # 按序打开每个分片
                 target_file.write(source_file.read())  # 读取分片内容写入新文件
                 source_file.close()
@@ -251,8 +252,9 @@ def mergeChunks():
 @admin.route('/recv_upload', methods=['POST'])
 def recv_upload():  # 接收前端上传的一个分片
     md5=request.form.get('fileMd5')
+    name=request.form.get('name')
     chunk_id=request.form.get('chunk',0,type=int)
-    filename = '{}-{}'.format(md5,chunk_id)
+    filename = '{}-{}'.format(name,chunk_id)
     upload_file = request.files['file']
     upload_file.save('./upload/{}'.format(filename))
     return jsonify({'upload_part':True})
