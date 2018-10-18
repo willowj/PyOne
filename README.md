@@ -1,11 +1,6 @@
 # PyOne - 基于Python的onedrive文件本地化浏览系统,使用MongoDB缓存文件
 
 
-## 说明 ##
-1. 写PyOne更多的是为了自己的个性化需求，不具有通用性，这个版本基本完全照抄了oneindex的功能
-2. 因为是为了自己的个性化需求，因此PyOne不会经常更新
-3. PyOne适合Python程序猿进行二开
-
 ## 适用onedrive版本 ##
 1. 个人版
 2. onedrive商业版
@@ -24,6 +19,7 @@
         - **删除onedrive文件**
         - **直接在后台给文件夹添加`.password`和`README`和`HEAD`**
         - **直接在后台编辑文本文件**。
+        - **上传本地文件至onedrive**
 
 ## 适用环境 ##
 1. linux环境（推荐centos7）
