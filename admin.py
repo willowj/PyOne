@@ -211,6 +211,78 @@ def edit():
     content=_remote_content(fileid)
     return render_template('admin/edit.html',content=content,fileid=fileid,name=name,language=language)
 
+###本地上传文件只onedrive，通过服务器中转
+@admin.route('/upload_local',methods=['POST','GET'])
+def upload_local():
+    remote_folder=request.args.get('path')
+    return render_template('admin/upload_local.html',remote_folder=remote_folder)
+
+@admin.route('/checkChunk', methods=['POST'])
+def checkChunk():
+    md5=request.form.get('fileMd5')
+    chunk=request.form.get('chunk',0,type=int)
+    filename = './upload/{}-{}'.format(md5, chunk)
+    if os.path.exists(filename):
+        exists=True
+    else:
+        exists=False
+    return jsonify({'ifExist':exists})
+
+
+@admin.route('/mergeChunks', methods=['POST'])
+def mergeChunks():
+    fileName=request.form.get('fileName')
+    md5=request.form.get('fileMd5')
+    chunk = 0  # 分片序号
+    with open(u'./upload/{}'.format(fileName), 'wb') as target_file:  # 创建新文件
+        while True:
+            try:
+                filename = './upload/{}-{}'.format(md5, chunk)
+                source_file = open(filename, 'rb')  # 按序打开每个分片
+                target_file.write(source_file.read())  # 读取分片内容写入新文件
+                source_file.close()
+            except IOError as msg:
+                break
+            chunk += 1
+            os.remove(filename)  # 删除该分片，节约空间
+    return jsonify({'upload':True})
+
+
+@admin.route('/recv_upload', methods=['POST'])
+def recv_upload():  # 接收前端上传的一个分片
+    md5=request.form.get('fileMd5')
+    chunk_id=request.form.get('chunk',0,type=int)
+    filename = '{}-{}'.format(md5,chunk_id)
+    upload_file = request.files['file']
+    upload_file.save('./upload/{}'.format(filename))
+    return jsonify({'upload_part':True})
+
+
+@admin.route('/to_one',methods=['GET'])
+def server_to_one():
+    filename=request.args.get('filename').encode('utf-8')
+    remote_folder=request.args.get('remote_folder').encode('utf-8')
+    if remote_folder!='/':
+        remote_folder=remote_folder+'/'
+    local_dir=os.path.join(config_dir,'upload')
+    filepath=urllib.unquote(os.path.join(local_dir,filename))
+    _upload_session=Upload_for_server(filepath,remote_folder)
+    def read_status():
+        while 1:
+            try:
+                msg=_upload_session.next()['status']
+                yield "data:" + msg + "\n\n"
+            except Exception as e:
+                msg='end'
+                yield "data:" + msg + "\n\n"
+                os.remove(filepath)
+                break
+    return Response(read_status(), mimetype= 'text/event-stream')
+
+
+###本地上传文件只onedrive，通过服务器中转
+
+
 
 @admin.route('/setFile',methods=["GET","POST"])
 @admin.route('/setFile/<filename>',methods=["GET","POST"])
@@ -248,7 +320,6 @@ def setFile(filename=None):
     if fid!=False:
         return redirect(url_for('admin.edit',fileid=fid))
     return render_template('admin/setpass.html',path=path,filename=filename)
-
 
 
 @admin.route('/delete',methods=["POST"])

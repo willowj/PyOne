@@ -19,14 +19,14 @@ import StringIO
 from dateutil.parser import parse
 from Queue import Queue
 from threading import Thread
+from redis import Redis
 from config import *
-from run import *
 from pymongo import MongoClient,ASCENDING,DESCENDING
 ######mongodb
 client = MongoClient('localhost',27017)
 db=client.two
 items=db.items
-
+rd=Redis(host='localhost',port=6379)
 
 #######授权链接
 LoginUrl=BaseAuthUrl+'/common/oauth2/v2.0/authorize?response_type=code\
@@ -478,16 +478,22 @@ def _upload(filepath,remote_path): #remote_path like 'share/share.mp4'
         try:
             if data.get('error'):
                 print(data.get('error').get('message'))
-                return False
-            elif data.get('@microsoft.graph.downloadUrl'):
-                return data
+                yield {'status':'upload fail!'}
+                break
+            elif r.status_code==201 or r.status_code==200:
+                AddResource(data)
+                yield {'status':'upload success!'}
+                break
             else:
                 print(data)
-                return False
+                yield {'status':'upload fail!'}
+                break
         except Exception as e:
             trytime+=1
             print('error to opreate _upload("{}","{}"), try times {},error:{}'.format(filepath,remote_path,trytime,e))
+            yield {'status':'upload fail! retry!'}
         if trytime>3:
+            yield {'status':'upload fail! touch max retry time(3)'}
             break
 
 def _upload_part(uploadUrl, filepath, offset, length,trytime=1):
@@ -507,7 +513,7 @@ def _upload_part(uploadUrl, filepath, offset, length,trytime=1):
     try:
         r=requests.put(uploadUrl,headers=headers,data=filebin)
         data=json.loads(r.content)
-        if data.get('@microsoft.graph.downloadUrl'):
+        if r.status_code==201 or r.status_code==200:
             print(u'{} upload success!'.format(filepath))
             return {'status':'success','msg':'all upload success','code':0,'info':data}
         elif r.status_code==202:
@@ -526,12 +532,13 @@ def _upload_part(uploadUrl, filepath, offset, length,trytime=1):
                         ,'sys_msg':data.get('error').get('message')
                         ,'code':3}
     except Exception as e:
+        print('error to opreate _upload_part("{}","{}","{}","{}"), try times {},reason:{}'.format(uploadUrl, filepath, offset, length,trytime,e))
         trytime+=1
-        print('error to opreate _upload_part("{}","{}","{}","{}"), try times {}'.format(uploadUrl, filepath, offset, length,trytime))
         if trytime<=3:
             return {'status':'fail','msg':'please retry','code':2,'trytime':trytime,'sys_msg':''}
         else:
             return {'status':'fail','msg':'retry times limit','code':3,'sys_msg':''}
+
 
 def _GetAllFile(parent_id="",parent_path="",filelist=[]):
     for f in db.items.find({'parent':parent_id}):
@@ -573,7 +580,8 @@ def AddResource(data):
                 item['name']=fdata.get('name')
                 item['id']=fdata.get('id')
                 item['size']=humanize.naturalsize(fdata.get('size'), gnu=True)
-                item['lastModtime']=date_to_char(parse(fdata.get('lastModifiedDateTime')))
+                item['size_order']=fdata.get('size')
+                item['lastModtime']=date_to_char(parse(fdata['lastModifiedDateTime']))
                 item['grandid']=idx
                 item['parent']=pid
                 items.insert_one(item)
@@ -584,9 +592,29 @@ def AddResource(data):
     item['name']=data.get('name')
     item['id']=data.get('id')
     item['size']=humanize.naturalsize(data.get('size'), gnu=True)
+    item['size_order']=data.get('size')
     item['lastModtime']=date_to_char(parse(data.get('lastModifiedDateTime')))
     item['grandid']=grandid
     item['parent']=parent_id
+    if grand_path=='':
+        path=convert2unicode(data['name'])
+    else:
+        path=grand_path.replace(self.share_path,'',1)+'/'+convert2unicode(data['name'])
+    if path.startswith('/') and path!='/':
+        path=path[1:]
+    if path=='':
+        path=convert2unicode(data['name'])
+    item['path']=path
+    if GetExt(data['name']) in ['bmp','jpg','jpeg','png','gif']:
+        item['order']=3
+        key1='name:{}'.format(data['id'])
+        key2='path:{}'.format(data['id'])
+        rd.set(key1,data['name'])
+        rd.set(key2,path)
+    elif data['name']=='.password':
+        item['order']=1
+    else:
+        item['order']=2
     items.insert_one(item)
 
 
@@ -616,28 +644,63 @@ def UploadSession(uploadUrl, filepath):
     length=327680*10
     offset=0
     trytime=1
+    filesize=_filesize(filepath)
     while 1:
         result=_upload_part(uploadUrl, filepath, offset, length,trytime=trytime)
         code=result['code']
         #上传完成
         if code==0:
-            return result['info']
+            AddResource(result['info'])
+            yield {'status':'upload success!'}
+            break
         #分片上传成功
         elif code==1:
             trytime=1
             offset=result['offset']
+            per=round((float(offset)/filesize)*100,1)
+            yield {'status':'partition upload success! {}%'.format(per)}
         #错误，重试
         elif code==2:
             if result['sys_msg']=='The request has been throttled':
                 print(result['sys_msg']+' ; wait for 1800s')
+                yield {'status':'The request has been throttled! wait for 1800s'}
                 time.sleep(1800)
             offset=offset
             trytime=result['trytime']
+            yield {'status':'partition upload fail! retry!'}
         #重试超过3次，放弃
         elif code==3:
-            return False
+            yield {'status':'partition upload fail! touch max retry times!'}
+            break
 
 
+
+def Upload_for_server(filepath,remote_path=None):
+    token=GetToken()
+    headers={'Authorization':'bearer {}'.format(token),'Content-Type':'application/json'}
+    if remote_path is None:
+        remote_path=os.path.basename(filepath)
+    if remote_path.endswith('/'):
+        remote_path=os.path.join(remote_path,os.path.basename(filepath))
+    if not remote_path.startswith('/'):
+        remote_path='/'+remote_path
+    print('local file path:{}, remote file path:{}'.format(filepath,remote_path))
+    if _filesize(filepath)<1024*1024*3.25:
+        for msg in _upload(filepath,remote_path):
+            yield msg
+    else:
+        session_data=CreateUploadSession(remote_path)
+        if session_data==False:
+            yield {'status':'file exists!'}
+        else:
+            if session_data.get('uploadUrl'):
+                uploadUrl=session_data.get('uploadUrl')
+                for msg in UploadSession(uploadUrl,filepath):
+                    yield msg
+            else:
+                print(session_data.get('error').get('msg'))
+                print('create upload session fail! {}'.format(remote_path))
+                yield {'status':'create upload session fail!'}
 
 def Upload(filepath,remote_path=None):
     token=GetToken()
@@ -649,26 +712,21 @@ def Upload(filepath,remote_path=None):
     if not remote_path.startswith('/'):
         remote_path='/'+remote_path
     if _filesize(filepath)<1024*1024*3.25:
-        result=_upload(filepath,remote_path)
-        if result==False:
-            print(u'{} upload fail!'.format(filepath))
-        else:
-            print(u'{} upload success!'.format(filepath))
-            AddResource(result)
+        for msg in _upload(filepath,remote_path):
+            1
     else:
         session_data=CreateUploadSession(remote_path)
         if session_data==False:
-            print('file exists')
+            return {'status':'file exists!'}
         else:
             if session_data.get('uploadUrl'):
                 uploadUrl=session_data.get('uploadUrl')
-                data=UploadSession(uploadUrl,filepath)
-                if data!=False:
-                    AddResource(data)
+                for msg in UploadSession(uploadUrl,filepath):
+                    1
             else:
-                print(session_data)
+                print(session_data.get('error').get('msg'))
                 print('create upload session fail! {}'.format(remote_path))
-                return False
+                return {'status':'create upload session fail!'}
 
 
 class MultiUpload(Thread):

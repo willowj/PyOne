@@ -9,7 +9,6 @@ import random
 import markdown
 from function import *
 from config import *
-from redis import Redis
 from flask_caching import Cache
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
@@ -35,7 +34,6 @@ limiter = Limiter(
     default_limits=["200/minute", "50/second"],
 )
 
-rd=Redis(host='localhost',port=6379)
 
 ################################################################################
 ###################################功能函数#####################################
@@ -383,7 +381,7 @@ def before_request():
         ua="null"
     if sum([i.lower() in ua.lower() for i in bad_ua])>0:
         return redirect('http://www.baidu.com')
-    print '{}:{}:{}'.format(request.endpoint,ip,ua)
+    # print '{}:{}:{}'.format(request.endpoint,ip,ua)
     referrer=request.referrer if request.referrer is not None else 'no-referrer'
 
 @app.route('/<path:path>',methods=['POST','GET'])
