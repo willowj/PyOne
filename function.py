@@ -599,7 +599,7 @@ def AddResource(data):
     if grand_path=='':
         path=convert2unicode(data['name'])
     else:
-        path=grand_path.replace(self.share_path,'',1)+'/'+convert2unicode(data['name'])
+        path=grand_path.replace(share_path,'',1)+'/'+convert2unicode(data['name'])
     if path.startswith('/') and path!='/':
         path=path[1:]
     if path=='':

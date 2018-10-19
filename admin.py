@@ -184,7 +184,7 @@ def edit():
         try:
             r=requests.put(url,headers=headers,data=content,timeout=10)
             data=json.loads(r.content)
-            if data.get('@microsoft.graph.downloadUrl'):
+            if data.get('id'):
                 info['status']=0
                 info['msg']='修改成功'
                 rd.delete('{}:content'.format(fileid))
@@ -198,7 +198,8 @@ def edit():
             else:
                 info['status']=0
                 info['msg']=data.get('error').get('message')
-        except:
+        except Exception as e:
+            print e
             info['status']=0
             info['msg']='修改超时'
         return jsonify(info)
@@ -304,16 +305,19 @@ def setFile(filename=None):
         try:
             r=requests.put(url,headers=headers,data=content,timeout=10)
             data=json.loads(r.content)
-            AddResource(data)
-            if data.get('@microsoft.graph.downloadUrl'):
+            if data.get('id'):
+                AddResource(data)
                 info['status']=0
                 info['msg']='添加成功'
-                key='has_item$#$#$#$#{}$#$#$#$#{}'.format(path,name)
+                if path.startswith('/') and path!='/':
+                    path=path[1:]
+                key='has_item$#$#$#$#{}$#$#$#$#{}'.format(path,filename)
+                print key
                 rd.delete(key)
             else:
                 info['status']=0
                 info['msg']=data.get('error').get('message')
-        except:
+        except Exception as e:
             info['status']=0
             info['msg']='超时'
         return jsonify(info)
