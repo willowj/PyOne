@@ -282,7 +282,6 @@ def server_to_one():
                 break
     return Response(read_status(), mimetype= 'text/event-stream')
 
-
 ###本地上传文件只onedrive，通过服务器中转
 
 
@@ -345,6 +344,33 @@ def delete():
         else:
             infos['fail']+=1
     return jsonify(infos)
+
+
+@admin.route('/add_folder',methods=['POST'])
+def AddFolder():
+    folder_name=request.form.get('folder_name')
+    grand_path=request.args.get('path')
+    if grand_path=='' or grand_path is None:
+        grand_path='/'
+    else:
+        if grand_path.startswith('/'):
+            grand_path=grand_path[1:]
+    result=CreateFolder(folder_name,grand_path)
+    return jsonify({'result':result})
+
+@admin.route('/move_file',methods=['POST'])
+def MoveFileToNewFolder():
+    fileid=request.form.get('fileid')
+    new_folder_path=request.form.get('new_folder_path')
+    if new_folder_path=='' or new_folder_path is None:
+        new_folder_path='/'
+    else:
+        if new_folder_path.startswith('/'):
+            new_folder_path=new_folder_path[1:]
+    result=MoveFile(fileid,new_folder_path)
+    return jsonify({'result':result})
+
+
 
 
 

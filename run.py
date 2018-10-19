@@ -168,23 +168,6 @@ def GetDownloadUrl(id):
     return downloadUrl
 
 
-def GetName(id):
-    key='name:{}'.format(id)
-    if rd.exists(key):
-        return rd.get(key)
-    else:
-        item=items.find_one({'id':id})
-        rd.set(key,item['name'])
-        return item['name']
-
-def GetPath(id):
-    key='path:{}'.format(id)
-    if rd.exists(key):
-        return rd.get(key)
-    else:
-        item=items.find_one({'id':id})
-        rd.set(key,item['path'])
-        return item['path']
 
 # @cache.memoize(timeout=60*5)
 def GetReadMe(path):

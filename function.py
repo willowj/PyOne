@@ -49,6 +49,24 @@ def get_value(key):
         value=re.findall('{}="(.*)"'.format(key),f.read())[0]
     return value
 
+def GetName(id):
+    key='name:{}'.format(id)
+    if rd.exists(key):
+        return rd.get(key)
+    else:
+        item=items.find_one({'id':id})
+        rd.set(key,item['name'])
+        return item['name']
+
+def GetPath(id):
+    key='path:{}'.format(id)
+    if rd.exists(key):
+        return rd.get(key)
+    else:
+        item=items.find_one({'id':id})
+        rd.set(key,item['path'])
+        return item['path']
+
 
 ################################################################################
 ###################################授权函数#####################################
@@ -375,10 +393,12 @@ class GetItemThread(Thread):
 
 
     def GetItemByPath(self,path):
-        if path=='':
-            path='/'
         app_url=GetAppUrl()
         token=GetToken()
+        if path=='' or path=='/':
+            url=app_url+u'v1.0/me/drive/root/'
+        if path=='/':
+            url=app_url+u'v1.0/me/drive/root:{}:/'.format(path)
         header={'Authorization': 'Bearer {}'.format(token)}
         url=app_url+u'v1.0/me/drive/root:{}:/'.format(path)
         r=requests.get(url,headers=header)
@@ -392,6 +412,20 @@ class GetItemThread(Thread):
         r=requests.get(url,headers=header)
         data=json.loads(r.content)
         return data
+
+def GetRootid():
+    key='rootid'
+    if rd.exists(key):
+        return rd.get(key)
+    else:
+        app_url=GetAppUrl()
+        token=GetToken()
+        url=app_url+u'v1.0/me/drive/root/'
+        header={'Authorization': 'Bearer {}'.format(token)}
+        r=requests.get(url,headers=header)
+        data=json.loads(r.content)
+        rd.set(key,data['id'],3600)
+        return data['id']
 
 def UpdateFile(renew='all'):
     if renew=='all':
@@ -820,6 +854,84 @@ def DeleteRemoteFile(fileid):
         return False
 
 ########################
+def CreateFolder(folder_name,grand_path):
+    app_url=GetAppUrl()
+    token=GetToken()
+    if grand_path=='' or grand_path is None or grand_path=='/':
+        url=app_url+'v1.0/me/drive/root/children'
+        parent_id=''
+        grandid=0
+    else:
+        parent=items.find_one({'path':grand_path})
+        parent_id=parent['id']
+        grandid=parent['grandid']+1
+        url=app_url+'v1.0/me/drive/items/{}/children'.format(parent['id'])
+    headers={'Authorization':'bearer {}'.format(token),'Content-Type':'application/json'}
+    payload={
+      "name": folder_name,
+      "folder": {},
+      "@microsoft.graph.conflictBehavior": "rename"
+    }
+    r=requests.post(url,headers=headers,data=json.dumps(payload))
+    data=json.loads(r.content)
+    if data.get('id'):
+        #插入数据
+        item={}
+        item['type']='folder'
+        item['name']=data.get('name')
+        item['id']=data.get('id')
+        item['size']=humanize.naturalsize(data.get('size'), gnu=True)
+        item['size_order']=data.get('size')
+        item['lastModtime']=date_to_char(parse(data.get('lastModifiedDateTime')))
+        item['grandid']=grandid
+        item['parent']=parent_id
+        if grand_path=='' or grand_path is None or grand_path=='/':
+            path=convert2unicode(data['name'])
+        else:
+            path=grand_path.replace(share_path,'',1)+'/'+convert2unicode(data['name'])
+        if path.startswith('/') and path!='/':
+            path=path[1:]
+        item['path']=path
+        item['order']=2
+        items.insert_one(item)
+        return True
+    else:
+        print(data.get('error').get('msg'))
+        return False
+
+def MoveFile(fileid,new_folder_path):
+    app_url=GetAppUrl()
+    token=GetToken()
+    #GetRootid
+    if new_folder_path=='' or new_folder_path is None or new_folder_path=='/':
+        folder_id=GetRootid()
+        parent=''
+        grandid=0
+        path=GetName(fileid)
+    else:
+        parent_item=items.find_one({'path':new_folder_path})
+        folder_id=parent_item['id']
+        parent=parent_item['id']
+        grandid=parent_item['grandid']+1
+        path=parent_item['path']+'/'+GetName(fileid)
+    url=app_url+'v1.0/me/drive/items/{}'.format(fileid)
+    headers={'Authorization':'bearer {}'.format(token),'Content-Type':'application/json'}
+    payload={
+      "parentReference": {
+        "id": folder_id
+      },
+      "name": GetName(fileid)
+    }
+    r=requests.patch(url,headers=headers,data=json.dumps(payload))
+    data=json.loads(r.content)
+    if data.get('id'):
+        new_value={'parent':parent,'grandid':grandid,'path':path}
+        items.find_one_and_update({'id':fileid},{'$set':new_value})
+        return True
+    else:
+        print(data.get('error').get('msg'))
+        return False
+
 def CheckTimeOut(fileid):
     app_url=GetAppUrl()
     token=GetToken()
@@ -835,7 +947,6 @@ def CheckTimeOut(fileid):
             print '{}\'s gone, status:{}'.format(time.time()-start_time,r.status_code)
             if r.status_code==404:
                 break
-
 
 def RemoveRepeatFile():
     """
