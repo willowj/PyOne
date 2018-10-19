@@ -311,7 +311,6 @@ def setFile(filename=None):
                 if path.startswith('/') and path!='/':
                     path=path[1:]
                 key='has_item$#$#$#$#{}$#$#$#$#{}'.format(path,filename)
-                print key
                 rd.delete(key)
             else:
                 info['status']=0
@@ -338,6 +337,11 @@ def delete():
     infos['delete']=0
     infos['fail']=0
     for id in ids:
+        file=items.find_one({'id':id})
+        name=file['name']
+        path=file['path'].replace('/'+name,'').replace(name,'')
+        key='has_item$#$#$#$#{}$#$#$#$#{}'.format(path,name)
+        rd.delete(key)
         status=DeleteRemoteFile(id)
         if status:
             infos['delete']+=1
