@@ -85,7 +85,7 @@
           </div>
 </div>
 <script>
-  var fileMd5;
+    var fileMd5;
     var fileSuffix;
     var $list=$("#thelist table>tbody");
     var state = 'pending';//初始按钮状态
@@ -101,6 +101,7 @@
         //时间点1：所有分块进行上传之前调用此函数
         beforeSendFile : function(file) {
             var deferred = WebUploader.Deferred();
+            var fileName=file.name;
             //1、计算文件的唯一标记，用于断点续传
             (new WebUploader.Uploader()).md5File(file, 0, 10 * 1024 * 1024)
                     .progress(function(percentage) {
@@ -121,6 +122,7 @@
                 url : "{{url_for('admin.checkChunk')}}",
                 data : {
                     //文件唯一标记
+                    name:fileName,
                     fileMd5 : fileMd5,
                     //当前分块下标
                     chunk : block.chunk,
@@ -181,7 +183,7 @@
                 auto : false,
                 //开启分片上传
                 chunked : true,
-                chunkSize : 10 * 1024 * 1024,
+                chunkSize : 4 * 1024 * 1024,
 
                 // accept : {
                 //     extensions : 'csv,doc,docx,odp,ods,odt,pot,potm,potx,pps,ppsx,ppsxm,ppt,pptm,pptx,rtf,xls,xlsx,bmp,jpg,jpeg,png,gif,mp4,webm,avi,mpg,mpeg,rm,rmvb,mov,wmv,mkv,asf,avi mpg,mpeg,rm,rmvb,mov,wmv,mkv,asf,ogg,mp3,wav,exe,iso,txt,md,rst',

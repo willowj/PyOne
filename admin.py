@@ -118,8 +118,8 @@ def setting():
 @admin.route('/upload',methods=["POST","GET"])
 def upload():
     if request.method=='POST':
-        local=request.form.get('local')
-        remote=request.form.get('remote')
+        local=request.form.get('local').encode('utf-8')
+        remote=request.form.get('remote').encode('utf-8')
         if not os.path.exists(local):
             flash('本地目录/文件不存在')
             return redirect(url_for('admin.upload'))
@@ -221,9 +221,9 @@ def upload_local():
 @admin.route('/checkChunk', methods=['POST'])
 def checkChunk():
     md5=request.form.get('fileMd5')
-    fileName=request.form.get('name')
+    fileName=request.form.get('name').encode('utf-8')
     chunk=request.form.get('chunk',0,type=int)
-    filename = './upload/{}-{}'.format(fileName, chunk)
+    filename = u'./upload/{}-{}'.format(fileName, chunk)
     if os.path.exists(filename):
         exists=True
     else:
@@ -233,13 +233,13 @@ def checkChunk():
 
 @admin.route('/mergeChunks', methods=['POST'])
 def mergeChunks():
-    fileName=request.form.get('fileName')
+    fileName=request.form.get('fileName').encode('utf-8')
     md5=request.form.get('fileMd5')
     chunk = 0  # 分片序号
     with open(u'./upload/{}'.format(fileName), 'wb') as target_file:  # 创建新文件
         while True:
             try:
-                filename = './upload/{}-{}'.format(fileName, chunk)
+                filename = u'./upload/{}-{}'.format(fileName, chunk)
                 source_file = open(filename, 'rb')  # 按序打开每个分片
                 target_file.write(source_file.read())  # 读取分片内容写入新文件
                 source_file.close()
@@ -253,11 +253,11 @@ def mergeChunks():
 @admin.route('/recv_upload', methods=['POST'])
 def recv_upload():  # 接收前端上传的一个分片
     md5=request.form.get('fileMd5')
-    name=request.form.get('name')
+    name=request.form.get('name').encode('utf-8')
     chunk_id=request.form.get('chunk',0,type=int)
     filename = '{}-{}'.format(name,chunk_id)
     upload_file = request.files['file']
-    upload_file.save('./upload/{}'.format(filename))
+    upload_file.save(u'./upload/{}'.format(filename))
     return jsonify({'upload_part':True})
 
 
