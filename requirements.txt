@@ -4,7 +4,7 @@ redis
 pymongo
 gunicorn
 humanize
-python-dateutil
+python_dateutil
 supervisor
 requests
 markdown
