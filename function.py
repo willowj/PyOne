@@ -927,6 +927,14 @@ def MoveFile(fileid,new_folder_path):
     if data.get('id'):
         new_value={'parent':parent,'grandid':grandid,'path':path}
         items.find_one_and_update({'id':fileid},{'$set':new_value})
+        file=items.find_one({'id':fileid})
+        filename=file['name']
+        if file['parent']=='':
+            path='/'
+        else:
+            path=items.find_one({'id':file['parent']})['path']
+        key='has_item$#$#$#$#{}$#$#$#$#{}'.format(path,filename)
+        rd.delete(key)
         return True
     else:
         print(data.get('error').get('msg'))

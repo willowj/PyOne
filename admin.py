@@ -339,7 +339,11 @@ def delete():
     for id in ids:
         file=items.find_one({'id':id})
         name=file['name']
-        path=file['path'].replace('/'+name,'').replace(name,'')
+        # path=file['path'].replace('/'+name,'').replace(name,'')
+        if file['parent']=='':
+            path='/'
+        else:
+            path=items.find_one({'id':file['parent']})['path']
         key='has_item$#$#$#$#{}$#$#$#$#{}'.format(path,name)
         rd.delete(key)
         status=DeleteRemoteFile(id)
