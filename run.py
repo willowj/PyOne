@@ -258,7 +258,7 @@ def _remote_content(fileid):
 # @cache.memoize(timeout=60)
 def has_item(path,name):
     if items.count()==0:
-        return False
+        return False,False,False
     key='has_item$#$#$#$#{}$#$#$#$#{}'.format(path,name)
     if rd.exists(key):
         values=rd.get(key)
