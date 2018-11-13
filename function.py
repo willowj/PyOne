@@ -515,6 +515,7 @@ def _upload(filepath,remote_path): #remote_path like 'share/share.mp4'
                 yield {'status':'upload fail!'}
                 break
             elif r.status_code==201 or r.status_code==200:
+                print('upload {} success!'.format(filepath))
                 AddResource(data)
                 yield {'status':'upload success!'}
                 break

@@ -282,10 +282,9 @@ def server_to_one():
                 break
     return Response(read_status(), mimetype= 'text/event-stream')
 
+
+
 ###本地上传文件只onedrive，通过服务器中转
-
-
-
 @admin.route('/setFile',methods=["GET","POST"])
 @admin.route('/setFile/<filename>',methods=["GET","POST"])
 def setFile(filename=None):
@@ -347,6 +346,7 @@ def delete():
         key='has_item$#$#$#$#{}$#$#$#$#{}'.format(path,name)
         rd.delete(key)
         status=DeleteRemoteFile(id)
+        status=False
         if status:
             infos['delete']+=1
         else:
