@@ -346,7 +346,6 @@ def delete():
         key='has_item$#$#$#$#{}$#$#$#$#{}'.format(path,name)
         rd.delete(key)
         status=DeleteRemoteFile(id)
-        status=False
         if status:
             infos['delete']+=1
         else:
