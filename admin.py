@@ -401,6 +401,8 @@ def login():
         password1=request.form.get('password')
         if password1==password:
             session['login']='true'
+            if len(os.listdir(os.path.join(config_dir,'data')))<=1:
+                return redirect(url_for('admin.install',step=0,user='A'))
             return redirect(url_for('admin.setting'))
         else:
             return render_template('admin/login.html')
@@ -418,9 +420,6 @@ def reload():
     subprocess.Popen(cmd,shell=True)
     flash('正在重启网站...如果更改了分享目录，请更新缓存')
     return redirect(url_for('admin.setting'))
-
-
-
 
 ###########################################安装
 @admin.route('/install',methods=['POST','GET'])
@@ -454,11 +453,12 @@ def install():
                 token=ReFreshToken(refresh_token,user)
                 with open(os.path.join(config_dir,'data/{}_token.json'.format(user)),'w') as f:
                     json.dump(token,f,ensure_ascii=False)
-                return make_response('<h1>授权成功!<a href="/">点击进入首页</a><br>请在后台另开一个ssh窗口，运行：<pre>python function.py UpdateFile</pre>进行更新数据操作</h1>')
+                return make_response('<h1>授权成功!<a href="/#">点击进入首页</a><br>请在后台另开一个ssh窗口，运行：<pre>python function.py UpdateFile</pre>进行更新数据操作</h1>')
             else:
                 return jsonify(Atoken)
     step=request.args.get('step',type=int)
     user=request.args.get('user','A')
     resp=render_template('admin/install_0.html',step=step,cur_user=user)
     return resp
+
 
