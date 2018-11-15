@@ -499,18 +499,18 @@ def show(fileid,user):
             url = 'https://view.officeapps.live.com/op/view.aspx?src='+urllib.quote(downloadUrl)
             return redirect(url)
         elif ext in ['bmp','jpg','jpeg','png','gif']:
-            return render_template('show/image.html',url=url,path=path)
+            return render_template('show/image.html',url=url,path=path,cur_user=user)
         elif ext in ['mp4','webm']:
-            return render_template('show/video.html',url=url,path=path)
+            return render_template('show/video.html',url=url,path=path,cur_user=user)
         elif ext in ['mp4','webm','avi','mpg', 'mpeg', 'rm', 'rmvb', 'mov', 'wmv', 'mkv', 'asf']:
-            return render_template('show/video2.html',url=url,path=path)
+            return render_template('show/video2.html',url=url,path=path,cur_user=user)
         elif ext in ['avi','mpg', 'mpeg', 'rm', 'rmvb', 'mov', 'wmv', 'mkv', 'asf']:
-            return render_template('show/video2.html',url=url,path=path)
+            return render_template('show/video2.html',url=url,path=path,cur_user=user)
         elif ext in ['ogg','mp3','wav']:
-            return render_template('show/audio.html',url=url,path=path)
+            return render_template('show/audio.html',url=url,path=path,cur_user=user)
         elif CodeType(ext) is not None:
             content=_remote_content(fileid,user)
-            return render_template('show/code.html',content=content,url=url,language=CodeType(ext),path=path)
+            return render_template('show/code.html',content=content,url=url,language=CodeType(ext),path=path,cur_user=user)
         else:
             downloadUrl=GetDownloadUrl(fileid,user)
             return redirect(downloadUrl)
