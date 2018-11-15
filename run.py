@@ -289,10 +289,10 @@ def has_item(path,name):
                     fid=items.find_one({'grandid':0,'name':name,'user':user})['id']
                     item=_remote_content(fid,user).strip()
             else:
-                route=path.split('/')
+                route=n_path[1:].split('/')
                 if name=='.password':
                     for idx,r in enumerate(route):
-                        p='/'.join(route[:idx+1])
+                        p=user+':/'+'/'.join(route[:idx+1])
                         f=items.find_one({'path':p})
                         pid=f['id']
                         data=items.find_one({'name':name,'parent':pid})
@@ -310,8 +310,9 @@ def has_item(path,name):
                         item=_remote_content(fid,user).strip()
         except:
             item=False
-        rd.set(key,'{}########{}########{}'.format(item,fid,cur))
+        #rd.set(key,'{}########{}########{}'.format(item,fid,cur))
         return item,fid,cur
+
 
 
 def verify_pass_before(path):
