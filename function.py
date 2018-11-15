@@ -406,6 +406,7 @@ def GetRootid(user='A'):
 def UpdateFile(renew='all'):
     if renew=='all':
         items.remove()
+        rd.flushdb()
         for user,item in od_users.items():
             if item.get('client_id')!='':
                 share_path='{}:{}'.format(user,item['share_path'])
