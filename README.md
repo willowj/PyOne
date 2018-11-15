@@ -39,10 +39,10 @@
 ## 更新源码步骤 ##
 - PyOne旧版本升级到3.0：**请重装！！！**
 - PyOne3.0内小版本更新：
-    1. 先将data目录和config.py复制出去
-    2. 删除原来的PyOne源码
-    3. 重新git clone一份PyOne源码
-    4. 将原来的data目录替换新源码的data目录，原来的config.py替换新源码的config.py
+    1. 拉最新代码
+    ```
+    git pull
+    ```
     5. 重新安装依赖，看是否有新增的依赖包：
     ```
     pip install -r requirements.txt
