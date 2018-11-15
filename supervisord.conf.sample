@@ -28,7 +28,4 @@ command = gunicorn -k eventlet -b 0.0.0.0:34567 run:app
 directory = /root/PyOne
 autorestart = true
 
-[program:online]
-command = gunicorn -k eventlet -b 0.0.0.0:34568 run:app
-directory = /root/vv2
-autorestart = true
+
