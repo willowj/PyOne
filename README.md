@@ -1,5 +1,6 @@
 # PyOne - 基于Python的onedrive文件本地化浏览系统,使用MongoDB缓存文件
 
+## PyOne3.0版本更新！！！支持多网盘绑定
 
 ## 适用onedrive版本 ##
 1. 个人版
@@ -23,6 +24,7 @@
         - **上传本地文件至onedrive**(2018.10.18更新）
         - **支持创建文件夹**(2018.10.19更新）
         - **支持移动文件（仅限单文件）**(2018.10.19更新）
+4. **支持绑定多网盘！！！**（2018.11.15更新）
 
 ## 适用环境 ##
 1. linux环境（推荐centos7）
@@ -32,25 +34,27 @@
 **推荐预先安装宝塔，再进行安装**
 
 ## 安装教程 ##
-请转移到我的博客查看[安装教程](https://abbeyok.com/?p=70)
+请转移到我的博客查看[安装教程](https://www.abbeyok.com/?p=174)
 
 ## 更新源码步骤 ##
-1. 先将data目录和config.py复制出去
-2. 删除原来的PyOne源码
-3. 重新git clone一份PyOne源码
-4. 将原来的data目录替换新源码的data目录，原来的config.py替换新源码的config.py
-5. 重新安装依赖，看是否有新增的依赖包：
-```
-pip install -r requirements.txt
-```
-6. 重启网站：
-```
-supervisorctl -c supervisord.conf restart pyone
-```
-7. 最好更新一下文件缓存：
-```
-python function.py UpdateFile
-```
+- PyOne旧版本升级到3.0：**请重装！！！**
+- PyOne3.0内小版本更新：
+    1. 先将data目录和config.py复制出去
+    2. 删除原来的PyOne源码
+    3. 重新git clone一份PyOne源码
+    4. 将原来的data目录替换新源码的data目录，原来的config.py替换新源码的config.py
+    5. 重新安装依赖，看是否有新增的依赖包：
+    ```
+    pip install -r requirements.txt
+    ```
+    6. 重启网站：
+    ```
+    supervisorctl -c supervisord.conf restart pyone
+    ```
+    7. 最好更新一下文件缓存：
+    ```
+    python function.py UpdateFile
+    ```
 
 ## 提供安装服务 ##
 [点击购买](https://iofaka.com/?gid=4)
