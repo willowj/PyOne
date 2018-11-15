@@ -310,7 +310,7 @@ def has_item(path,name):
                         item=_remote_content(fid,user).strip()
         except:
             item=False
-        #rd.set(key,'{}########{}########{}'.format(item,fid,cur))
+        rd.set(key,'{}########{}########{}'.format(item,fid,cur))
         return item,fid,cur
 
 
