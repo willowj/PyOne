@@ -430,7 +430,7 @@ def install():
         if step==1:
             client_secret=request.form.get('client_secret')
             client_id=request.form.get('client_id')
-            redirect_uri='https://auth.3pp.me'
+            redirect_uri='https://auth.pyone.me'
             set('client_secret',client_secret,user)
             set('client_id',client_id,user)
             login_url=LoginUrl.format(client_id=client_id,redirect_uri=redirect_uri)
