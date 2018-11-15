@@ -342,10 +342,11 @@ def has_verify(path):
 
 
 def path_list(path):
-    if path.split(':')=='':
+    path=urllib.unquote(path)
+    if path.split(':',1)=='':
         plist=[path+'/']
     else:
-        user,n_path=path.split(':')
+        user,n_path=path.split(':',1)
         if n_path.startswith('/'):
             n_path=n_path[1:]
         if n_path.endswith('/'):

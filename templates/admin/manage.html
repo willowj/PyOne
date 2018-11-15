@@ -44,7 +44,7 @@ a:hover {
                     {%if idx==len(path_list(path))-1%}
                         <a href="{{url_for('admin.manage',path=cur_user+':/')}}">{{p|replace(cur_user+':/','')|replace(cur_user+':','')}}</a>
                     {%else%}
-                        <a href="{{url_for('admin.manage',path='/'.join(path_list(path[:idx+1])))}}">{{p|replace(cur_user+':/','')|replace(cur_user+':','')}}</a>
+                        <a href="{{url_for('admin.manage',path='/'.join(path_list(path)[:idx+1]))}}">{{p|replace(cur_user+':/','')|replace(cur_user+':','')}}</a>
                     {%endif%}
                 {%endfor%}
             {%endif%}
@@ -80,7 +80,7 @@ a:hover {
                         <i class="mdui-icon material-icons">arrow_upward</i> 返回上一层
                     </a>
                     {%else%}
-                    <a href="{{url_for('admin.manage',path='/'.join(path_list(path))[:-1])|safe}}">
+                    <a href="{{url_for('admin.manage',path='/'.join(path_list(path)[:-1]))|safe}}">
                         <i class="mdui-icon material-icons">arrow_upward</i> 返回上一层
                     </a>
                     {%endif%}
