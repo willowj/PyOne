@@ -42,12 +42,13 @@ def convert2unicode(string):
 
 def get_value(key,user='A'):
     allow_key=['client_secret','client_id']
+    print('get user {}\'s {}'.format(user,key))
     if key not in allow_key:
         return u'禁止获取'
     config_path=os.path.join(config_dir,'config.py')
     with open(config_path,'r') as f:
         text=f.read()
-    kv=re.findall('"{}":{{[\w\W]*?}}'.format(user),text)[0]
+    kv=re.findall('"{}":{{[\w\W]*}}'.format(user),text)[0]
     value=re.findall('"{}":"(.*?)"'.format(key),kv)[0]
     return value
 
