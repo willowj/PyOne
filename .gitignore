@@ -113,6 +113,5 @@ dmypy.json
 # PyOne config_file
 config.py
 AppUrl
-Atoken.json
-token.json
+*.json
 supervisord.conf
