@@ -445,7 +445,7 @@ def index(path='A:/'):
             return resp
     if password!=False:
         if (not request.cookies.get(md5_p) or request.cookies.get(md5_p)!=password) and has_verify_==False:
-            return render_template('password.html',path=path)
+            return render_template('password.html',path=path,cur_user=user)
     readme,ext_r=GetReadMe(path)
     head,ext_d=GetHead(path)
     #设置cookies
