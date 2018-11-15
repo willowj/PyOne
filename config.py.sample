@@ -20,7 +20,7 @@ title="PyOne"
 tj_code=""""""
 
 #onedrive api设置
-redirect_uri='https://auth.3pp.me/' #不要修改！
+redirect_uri='https://auth.pyone.me/' #不要修改！
 BaseAuthUrl='https://login.microsoftonline.com'
 app_url=u'https://graph.microsoft.com/'
 
