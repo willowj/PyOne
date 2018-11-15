@@ -354,8 +354,6 @@ def path_list(path):
         plist=['{}:/{}'.format(user,plist[0])]+plist[1:]
     return plist
 
-
-
 def get_od_user():
     config_path=os.path.join(config_dir,'config.py')
     with open(config_path,'r') as f:
