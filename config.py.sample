@@ -1,0 +1,50 @@
+#-*- coding=utf-8 -*-
+import os
+
+#限制调用域名
+allow_site=[u'no-referrer']
+
+#######源码目录
+config_dir="/home/centos/PyOne"
+data_dir=os.path.join(config_dir,'data')
+
+#下载链接过期时间
+downloadUrl_timeout="300"
+
+#后台密码设置
+password="pyone210210"
+
+#网站名称
+title="资源整合"
+
+tj_code="""<script src="https://s19.cnzz.com/z_stat.php?id=1274508765&web_id=1274508765" language="JavaScript"></script>"""
+
+#onedrive api设置
+redirect_uri='https://auth.3pp.me/' #不要修改！
+BaseAuthUrl='https://login.microsoftonline.com'
+app_url=u'https://graph.microsoft.com/'
+
+od_users={
+    "A":{
+        "client_id":"d7d69676-b925-4714-a9bd-2200e3972179",
+        "client_secret":"cpmRN8154|-jfmmNMMVI3*:",
+        "share_path":"/日剧",
+        "other_name":"日日香",
+        "order":1
+    },
+    "B":{
+        "client_id":"32489f67-d11d-4dc9-9352-ed7e95916d6c",
+        "client_secret":"sakUNW#iiyxQLDM01186={=",
+        "share_path":"/",
+        "other_name":"网盘2区",
+        "order":2
+    },
+    "C":{
+        "client_id":"",
+        "client_secret":"",
+        "share_path":"/",
+        "other_name":"网盘3区",
+        "order":3
+    }
+}
+

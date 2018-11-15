@@ -19,8 +19,8 @@ eventlet.monkey_patch()
 admin = Blueprint('admin', __name__,url_prefix='/admin')
 
 ############功能函数
-def set(key,value):
-    allow_key=['title','share_path','downloadUrl_timeout','allow_site','password','client_secret','client_id','tj_code']
+def set(key,value,user='A'):
+    allow_key=['title','downloadUrl_timeout','allow_site','password','client_secret','client_id','share_path','other_name','tj_code']
     if key not in allow_key:
         return u'禁止修改'
     print 'set {}:{}'.format(key,value)
@@ -28,29 +28,24 @@ def set(key,value):
     with open(config_path,'r') as f:
         old_text=f.read()
     with open(config_path,'w') as f:
-        if len(re.findall(key,old_text))>0:
-            if key=='allow_site':
-                value=value.split(',')
-                new_text=re.sub('{}=.*'.format(key),'{}={}'.format(key,value),old_text)
-            elif key=='tj_code':
-                new_text=re.sub('{}=.*'.format(key),'{}="""{}"""'.format(key,value),old_text)
-            else:
-                new_text=re.sub('{}=.*'.format(key),'{}="{}"'.format(key,value),old_text)
+        if key in ['client_secret','client_id','share_path','other_name']:
+            old_kv=re.findall('"{}":{{[\w\W]*?}}'.format(user),old_text)[0]
+            new_kv=re.sub('"{}":.*?,'.format(key),'"{}":"{}",'.format(key,value),old_kv)
+            new_text=old_text.replace(old_kv,new_kv)
+        elif key=='allow_site':
+            value=value.split(',')
+            new_text=re.sub('{}=.*'.format(key),'{}={}'.format(key,value),old_text)
+        elif key=='tj_code':
+            new_text=re.sub('{}=.*'.format(key),'{}="""{}"""'.format(key,value),old_text)
         else:
-            if key=='allow_site':
-                value=value.split(',')
-                new_text=old_text+'\n\n{}={}'.format(key,value)
-            elif key=='tj_code':
-                new_text=re.sub('{}=.*'.format(key),'{}="""{}"""'.format(key,value),old_text)
-            else:
-                new_text=old_text+'\n\n{}="{}"'.format(key,value)
+            new_text=re.sub('{}=.*'.format(key),'{}="{}"'.format(key,value),old_text)
         f.write(new_text)
 
 
 ############视图函数
 @admin.before_request
 def before_request():
-    if request.endpoint.startswith('admin') and request.endpoint!='admin.login' and request.endpoint!='admin.install' and session.get('login') is None:
+    if request.endpoint.startswith('admin') and request.endpoint!='admin.login' and session.get('login') is None: #and request.endpoint!='admin.install'
         return redirect(url_for('admin.login'))
 
 
@@ -65,13 +60,11 @@ def web_console():
     if action in ['UploadDir','Upload']:
         local=urllib.unquote(request.args.get('local'))
         remote=urllib.unquote(request.args.get('remote'))
-        cmd=["python","-u",os.path.join(config_dir,'function.py'),action,local,remote]
+        user=urllib.unquote(request.args.get('user'))
+        cmd=["python","-u",os.path.join(config_dir,'function.py'),action,local,remote,user]
     elif action=='UpdateFile':
-        dir_=request.args.get('dir')
-        if dir_=='/':
-            cmd=["python","-u",os.path.join(config_dir,'function.py'),action]
-        else:
-            cmd=["python","-u",os.path.join(config_dir,'function.py'),'Dir',dir_]
+        type_=request.args.get('type')
+        cmd=["python","-u",os.path.join(config_dir,'function.py'),'UpdateFile',type_]
     else:
         cmd=["python","-u",os.path.join(config_dir,'function.py'),action]
     p = g.run(cmd)
@@ -89,7 +82,6 @@ def web_console():
 def setting():
     if request.method=='POST':
         title=request.form.get('title','PyOne')
-        share_path=request.form.get('share_path','/')
         downloadUrl_timeout=request.form.get('downloadUrl_timeout',5*60)
         allow_site=request.form.get('allow_site','no-referrer')
         tj_code=request.form.get('tj_code','')
@@ -104,10 +96,16 @@ def setting():
             new_password=password1
         set('title',title)
         set('downloadUrl_timeout',downloadUrl_timeout)
-        set('share_path',share_path)
         set('allow_site',allow_site)
         set('tj_code',tj_code)
         set('password',new_password)
+        ####网盘信息处理
+        for k,v in request.form.to_dict().items():
+            if 'share_path' in k or 'other_name' in k:
+                user=re.findall('\[(.*?)\]',k)[0]
+                key=re.findall('(.*)\[',k)[0]
+                print('setting {}\'s {}\'s value {}'.format(user,key,v))
+                set(key,v,user)
         reload()
         return render_template('admin/setting.html')
     return render_template('admin/setting.html')
@@ -118,6 +116,7 @@ def setting():
 @admin.route('/upload',methods=["POST","GET"])
 def upload():
     if request.method=='POST':
+        user=request.form.get('user').encode('utf-8')
         local=request.form.get('local').encode('utf-8')
         remote=request.form.get('remote').encode('utf-8')
         if not os.path.exists(local):
@@ -127,7 +126,7 @@ def upload():
             action='Upload'
         else:
             action='UploadDir'
-        return render_template('admin/upload.html',remote=remote,local=local,action=action)
+        return render_template('admin/upload.html',remote=remote,local=local,action=action,user=user)
     return render_template('admin/upload.html')
 
 
@@ -135,8 +134,8 @@ def upload():
 @admin.route('/cache',methods=["POST","GET"])
 def cache():
     if request.method=='POST':
-        dir_=request.form.get('dir')
-        return render_template('admin/cache.html',dir=dir_,action='UpdateFile')
+        type=request.form.get('type')
+        return render_template('admin/cache.html',type=type,action='UpdateFile')
     return render_template('admin/cache.html')
 
 
@@ -144,11 +143,10 @@ def cache():
 def manage():
     if request.method=='POST':
         pass
-    path=urllib.unquote(request.args.get('path','/'))
-    if path=='':
-        path='/'
-    if path!='/' and path.startswith('/'):
-        path=re.sub('^/+','',path)
+    path=urllib.unquote(request.args.get('path','A:/'))
+    user,n_path=path.split(':')
+    if n_path=='':
+        path=':'.join([user,'/'])
     page=request.args.get('page',1,type=int)
     image_mode=request.args.get('image_mode')
     sortby=request.args.get('sortby')
@@ -165,7 +163,9 @@ def manage():
         order=order
     resp,total = FetchData(path=path,page=page,per_page=50,sortby=sortby,order=order)
     pagination=Pagination(query=None,page=page, per_page=50, total=total, items=None)
-    resp=make_response(render_template('admin/manage.html',pagination=pagination,items=resp,path=path,sortby=sortby,order=order,endpoint='admin.manage'))
+    if path.split(':',1)[-1]=='/':
+        path=':'.join([path.split(':',1)[0],''])
+    resp=make_response(render_template('admin/manage.html',pagination=pagination,items=resp,path=path,sortby=sortby,order=order,cur_user=user,endpoint='admin.manage'))
     resp.set_cookie('admin_sortby',str(sortby))
     resp.set_cookie('admin_order',str(order))
     return resp
@@ -175,9 +175,10 @@ def manage():
 def edit():
     if request.method=='POST':
         fileid=request.form.get('fileid')
+        user=request.form.get('user')
         content=request.form.get('content').encode('utf-8')
         info={}
-        token=GetToken()
+        token=GetToken(user=user)
         app_url=GetAppUrl()
         headers={'Authorization':'bearer {}'.format(token)}
         url=app_url+'v1.0/me/drive/items/{}/content'.format(fileid)
@@ -193,6 +194,9 @@ def edit():
                 path=file['path'].replace('/'+name,'').replace(name,'')
                 if path=='':
                     path='/'
+                if not path.startswith('/'):
+                    path='/'+path
+                path='{}:{}'.format(user,path)
                 key='has_item$#$#$#$#{}$#$#$#$#{}'.format(path,name)
                 rd.delete(key)
             else:
@@ -204,19 +208,20 @@ def edit():
             info['msg']='修改超时'
         return jsonify(info)
     fileid=request.args.get('fileid')
+    user=request.args.get('user')
     name=GetName(fileid)
     ext=name.split('.')[-1]
     language=CodeType(ext)
     if language is None:
         language='Text'
-    content=_remote_content(fileid)
-    return render_template('admin/edit.html',content=content,fileid=fileid,name=name,language=language)
+    content=_remote_content(fileid,user)
+    return render_template('admin/edit.html',content=content,fileid=fileid,name=name,language=language,cur_user=user)
 
 ###本地上传文件只onedrive，通过服务器中转
 @admin.route('/upload_local',methods=['POST','GET'])
 def upload_local():
-    remote_folder=request.args.get('path')
-    return render_template('admin/upload_local.html',remote_folder=remote_folder)
+    user,remote_folder=request.args.get('path').split(':')
+    return render_template('admin/upload_local.html',remote_folder=remote_folder,cur_user=user)
 
 @admin.route('/checkChunk', methods=['POST'])
 def checkChunk():
@@ -263,13 +268,14 @@ def recv_upload():  # 接收前端上传的一个分片
 
 @admin.route('/to_one',methods=['GET'])
 def server_to_one():
+    user=request.args.get('user')
     filename=request.args.get('filename').encode('utf-8')
     remote_folder=request.args.get('remote_folder').encode('utf-8')
     if remote_folder!='/':
         remote_folder=remote_folder+'/'
     local_dir=os.path.join(config_dir,'upload')
     filepath=urllib.unquote(os.path.join(local_dir,filename))
-    _upload_session=Upload_for_server(filepath,remote_folder)
+    _upload_session=Upload_for_server(filepath,remote_folder,user)
     def read_status():
         while 1:
             try:
@@ -290,13 +296,14 @@ def server_to_one():
 def setFile(filename=None):
     if request.method=='POST':
         path=request.form.get('path')
+        user,n_path=path.split(':')
         filename=request.form.get('filename')
-        if not path.startswith('/'):
-            path='/'+path
-        remote_file=os.path.join(path,filename)
+        if not n_path.startswith('/'):
+            n_path='/'+n_path
+        remote_file=os.path.join(n_path,filename)
         content=request.form.get('content').encode('utf-8')
         info={}
-        token=GetToken()
+        token=GetToken(user=user)
         app_url=GetAppUrl()
         headers={'Authorization':'bearer {}'.format(token)}
         url=app_url+'v1.0/me/drive/items/root:{}:/content'.format(remote_file)
@@ -304,11 +311,9 @@ def setFile(filename=None):
             r=requests.put(url,headers=headers,data=content,timeout=10)
             data=json.loads(r.content)
             if data.get('id'):
-                AddResource(data)
+                AddResource(data,user)
                 info['status']=0
                 info['msg']='添加成功'
-                if path.startswith('/') and path!='/':
-                    path=path[1:]
                 key='has_item$#$#$#$#{}$#$#$#$#{}'.format(path,filename)
                 rd.delete(key)
             else:
@@ -319,15 +324,17 @@ def setFile(filename=None):
             info['msg']='超时'
         return jsonify(info)
     path=urllib.unquote(request.args.get('path'))
+    user,n_path=path.split(':')
     _,fid,i=has_item(path,filename)
     if fid!=False:
-        return redirect(url_for('admin.edit',fileid=fid))
-    return render_template('admin/setpass.html',path=path,filename=filename)
+        return redirect(url_for('admin.edit',fileid=fid,user=user))
+    return render_template('admin/setpass.html',path=path,filename=filename,cur_user=user)
 
 
 @admin.route('/delete',methods=["POST"])
 def delete():
     ids=request.form.get('id')
+    user=request.form.get('user')
     if ids is None:
         return jsonify({'msg':u'请选择要删除的文件','status':0})
     ids=ids.split('##')
@@ -343,9 +350,14 @@ def delete():
             path='/'
         else:
             path=items.find_one({'id':file['parent']})['path']
+        if not path.startswith('/'):
+            path='/'+path
+        path='{}:{}'.format(user,path)
         key='has_item$#$#$#$#{}$#$#$#$#{}'.format(path,name)
         rd.delete(key)
-        status=DeleteRemoteFile(id)
+        kc='{}:content'.format(id)
+        rd.delete(kc)
+        status=DeleteRemoteFile(id,user)
         if status:
             infos['delete']+=1
         else:
@@ -356,25 +368,27 @@ def delete():
 @admin.route('/add_folder',methods=['POST'])
 def AddFolder():
     folder_name=request.form.get('folder_name')
-    grand_path=request.args.get('path')
+    path=request.args.get('path')
+    user,grand_path=path.split(':')
     if grand_path=='' or grand_path is None:
         grand_path='/'
     else:
         if grand_path.startswith('/'):
             grand_path=grand_path[1:]
-    result=CreateFolder(folder_name,grand_path)
+    result=CreateFolder(folder_name,grand_path,user)
     return jsonify({'result':result})
 
 @admin.route('/move_file',methods=['POST'])
 def MoveFileToNewFolder():
     fileid=request.form.get('fileid')
+    user=request.form.get('user')
     new_folder_path=request.form.get('new_folder_path')
     if new_folder_path=='' or new_folder_path is None:
         new_folder_path='/'
     else:
         if new_folder_path.startswith('/'):
             new_folder_path=new_folder_path[1:]
-    result=MoveFile(fileid,new_folder_path)
+    result=MoveFile(fileid,new_folder_path,user)
     return jsonify({'result':result})
 
 
@@ -402,7 +416,7 @@ def logout():
 def reload():
     cmd='supervisorctl -c {} restart pyone'.format(os.path.join(config_dir,'supervisord.conf'))
     subprocess.Popen(cmd,shell=True)
-    flash('正在重启网站...')
+    flash('正在重启网站...如果更改了分享目录，请更新缓存')
     return redirect(url_for('admin.setting'))
 
 
@@ -411,18 +425,17 @@ def reload():
 ###########################################安装
 @admin.route('/install',methods=['POST','GET'])
 def install():
-    if items.count()>0 or os.path.exists(os.path.join(config_dir,'data/token.json')):
-        return redirect('/')
     if request.method=='POST':
         step=request.form.get('step',type=int)
+        user=request.form.get('user')
         if step==1:
             client_secret=request.form.get('client_secret')
             client_id=request.form.get('client_id')
             redirect_uri='https://auth.3pp.me'
-            set('client_secret',client_secret)
-            set('client_id',client_id)
+            set('client_secret',client_secret,user)
+            set('client_id',client_id,user)
             login_url=LoginUrl.format(client_id=client_id,redirect_uri=redirect_uri)
-            return render_template('admin/install_1.html',client_secret=client_secret,client_id=client_id,login_url=login_url)
+            return render_template('admin/install_1.html',client_secret=client_secret,client_id=client_id,login_url=login_url,cur_user=user)
         else:
             client_secret=request.form.get('client_secret')
             client_id=request.form.get('client_id')
@@ -435,18 +448,17 @@ def install():
             r=requests.post(url,data=data,headers=headers)
             Atoken=json.loads(r.text)
             if Atoken.get('access_token'):
-                with open(os.path.join(config_dir,'data/Atoken.json'),'w') as f:
+                with open(os.path.join(config_dir,'data/{}_Atoken.json'.format(user)),'w') as f:
                     json.dump(Atoken,f,ensure_ascii=False)
-                app_url=GetAppUrl()
                 refresh_token=Atoken.get('refresh_token')
-                with open(os.path.join(config_dir,'data/AppUrl'),'w') as f:
-                    f.write(app_url)
-                token=ReFreshToken(refresh_token)
-                with open(os.path.join(config_dir,'data/token.json'),'w') as f:
+                token=ReFreshToken(refresh_token,user)
+                with open(os.path.join(config_dir,'data/{}_token.json'.format(user)),'w') as f:
                     json.dump(token,f,ensure_ascii=False)
                 return make_response('<h1>授权成功!<a href="/">点击进入首页</a><br>请在后台另开一个ssh窗口，运行：<pre>python function.py UpdateFile</pre>进行更新数据操作</h1>')
             else:
                 return jsonify(Atoken)
-    resp=render_template('admin/install_0.html',step=1)
+    step=request.args.get('step',type=int)
+    user=request.args.get('user','A')
+    resp=render_template('admin/install_0.html',step=step,cur_user=user)
     return resp
 

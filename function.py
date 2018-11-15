@@ -24,7 +24,7 @@ from config import *
 from pymongo import MongoClient,ASCENDING,DESCENDING
 ######mongodb
 client = MongoClient('localhost',27017)
-db=client.two
+db=client.three
 items=db.items
 rd=Redis(host='localhost',port=6379)
 
@@ -40,13 +40,15 @@ headers={'User-Agent':'ISV|PyOne|PyOne/2.0'}
 def convert2unicode(string):
     return string.encode('utf-8')
 
-def get_value(key):
+def get_value(key,user='A'):
     allow_key=['client_secret','client_id']
     if key not in allow_key:
         return u'禁止获取'
     config_path=os.path.join(config_dir,'config.py')
     with open(config_path,'r') as f:
-        value=re.findall('{}="(.*)"'.format(key),f.read())[0]
+        text=f.read()
+    kv=re.findall('"{}":{{[\w\W]*?}}'.format(user),text)[0]
+    value=re.findall('"{}":"(.*?)"'.format(key),kv)[0]
     return value
 
 def GetName(id):
@@ -86,9 +88,9 @@ def open_json(filepath):
                     return token
     return token
 
-def ReFreshToken(refresh_token):
-    client_id=get_value('client_id')
-    client_secret=get_value('client_secret')
+def ReFreshToken(refresh_token,user='A'):
+    client_id=get_value('client_id',user)
+    client_secret=get_value('client_secret',user)
     headers['Content-Type']='application/x-www-form-urlencoded'
     data=ReFreshData.format(client_id=client_id,redirect_uri=urllib.quote(redirect_uri),client_secret=client_secret,refresh_token=refresh_token)
     url=OAuthUrl
@@ -96,22 +98,23 @@ def ReFreshToken(refresh_token):
     return json.loads(r.text)
 
 
-def GetToken(Token_file='token.json'):
+def GetToken(Token_file='token.json',user='A'):
+    Token_file='{}_{}'.format(user,Token_file)
     if os.path.exists(os.path.join(data_dir,Token_file)):
         token=open_json(os.path.join(data_dir,Token_file))
         try:
             if time.time()>int(token.get('expires_on')):
                 print 'token timeout'
                 refresh_token=token.get('refresh_token')
-                token=ReFreshToken(refresh_token)
+                token=ReFreshToken(refresh_token,user)
                 if token.get('access_token'):
                     with open(os.path.join(data_dir,Token_file),'w') as f:
                         json.dump(token,f,ensure_ascii=False)
         except:
-            with open(os.path.join(data_dir,'Atoken.json'),'r') as f:
+            with open(os.path.join(data_dir,'{}_Atoken.json'.format(user)),'r') as f:
                 Atoken=json.load(f)
             refresh_token=Atoken.get('refresh_token')
-            token=ReFreshToken(refresh_token)
+            token=ReFreshToken(refresh_token,user)
             token['expires_on']=str(time.time()+3599)
             if token.get('access_token'):
                     with open(os.path.join(data_dir,Token_file),'w') as f:
@@ -122,27 +125,7 @@ def GetToken(Token_file='token.json'):
 
 
 def GetAppUrl():
-    global app_url
-    if os.path.exists(os.path.join(data_dir,'AppUrl')):
-        with open(os.path.join(data_dir,'AppUrl'),'r') as f:
-            app_url=f.read().strip()
-        return app_url
-    else:
-        # if od_type=='business':
-        #     token=GetToken(Token_file='Atoken.json')
-        #     print 'token:',token
-        #     if token:
-        #         header={'Authorization': 'Bearer {}'.format(token)}
-        #         url='https://api.office.com/discovery/v1.0/me/services'
-        #         r=requests.get(url,headers=header)
-        #         retdata=json.loads(r.text)
-        #         print retdata
-        #         if retdata.get('value'):
-        #             return retdata.get('value')[0]['serviceResourceId']
-        #     return False
-        # else:
-        #     return app_url
-        return app_url
+    return 'https://graph.microsoft.com/'
 
 ################################################################################
 ###############################onedrive操作函数#################################
@@ -156,82 +139,23 @@ def GetExt(name):
 def date_to_char(date):
     return date.strftime('%Y/%m/%d')
 
-def Dir(path=u'/'):
+def Dir(path=u'A:/'):
     app_url=GetAppUrl()
-    if path=='/':
+    user,n_path=path.split(':')
+    print('update {}\'s file'.format(user))
+    if n_path=='/':
         BaseUrl=app_url+u'v1.0/me/drive/root/children?expand=thumbnails'
         # items.remove()
         queue=Queue()
         # queue.put(dict(url=BaseUrl,grandid=grandid,parent=parent,trytime=1))
-        g=GetItemThread(queue)
+        g=GetItemThread(queue,user)
         g.GetItem(BaseUrl)
         queue=g.queue
         if queue.qsize()==0:
             return
         tasks=[]
         for i in range(min(5,queue.qsize())):
-            t=GetItemThread(queue)
-            t.start()
-            tasks.append(t)
-        for t in tasks:
-            t.join()
-        RemoveRepeatFile()
-    else:
-        grandid=0
-        parent_id=''
-        parent=None
-        if path.endswith('/'):
-            path=path[:-1]
-        if not path.startswith('/'):
-            path='/'+path
-        if items.find_one({'grandid':0,'type':'folder'}):
-            for idx,p in enumerate(path[1:].split('/')):
-                if parent_id=='':
-                    parent=items.find_one({'name':p,'grandid':idx})
-                    parent_id=parent['id']
-                else:
-                    parent=items.find_one({'name':p,'grandid':idx,'parent':parent_id})
-                    parent_id=parent['id']
-                # items.delete_many({'parent':parent_id})
-            grandid=idx+1
-        path=urllib.quote(path)
-        BaseUrl=app_url+u'v1.0/me/drive/root:{}:/children?expand=thumbnails'.format(path)
-        checkUrl=app_url+u'v1.0/me/drive/root:{}:/'.format(path)
-        queue=Queue()
-        # queue.put(dict(url=BaseUrl,grandid=grandid,parent=parent,trytime=1))
-        g=GetItemThread(queue)
-        # g.GetItem(BaseUrl,grandid,parent_id,1)
-        # queue=g.queue
-        # if queue.qsize()==0:
-        #     return
-        if parent:
-            item_remote=g.GetItemByUrl(checkUrl)
-            if parent['size_order']==item_remote['size']:
-                return
-        tasks=[]
-        for i in range(min(10,queue.qsize())):
-            t=GetItemThread(queue)
-            t.start()
-            tasks.append(t)
-        for t in tasks:
-            t.join()
-        RemoveRepeatFile()
-
-def Dir_all(path=u'/'):
-    app_url=GetAppUrl()
-    if path=='/':
-        BaseUrl=app_url+u'v1.0/me/drive/root/children?expand=thumbnails'
-        items.remove()
-        queue=Queue()
-        # queue.put(dict(url=BaseUrl,grandid=grandid,parent=parent,trytime=1))
-        g=GetItemThread(queue)
-        g.GetItem(BaseUrl)
-        queue=g.queue
-        if queue.qsize()==0:
-            return
-        tasks=[]
-        for i in range(min(5,queue.qsize())):
-            t=GetItemThread(queue)
+            t=GetItemThread(queue,user)
             t.start()
             tasks.append(t)
         for t in tasks:
@@ -240,32 +164,77 @@ def Dir_all(path=u'/'):
     else:
         grandid=0
         parent=''
-        if path.endswith('/'):
-            path=path[:-1]
-        if not path.startswith('/'):
-            path='/'+path
-        if items.find_one({'grandid':0,'type':'folder'}):
-            parent_id=0
-            for idx,p in enumerate(path[1:].split('/')):
-                if parent_id==0:
-                    parent_id=items.find_one({'name':p,'grandid':idx})['id']
-                else:
-                    parent_id=items.find_one({'name':p,'grandid':idx,'parent':parent_id})['id']
-                items.delete_many({'parent':parent_id})
-            grandid=idx+1
-            parent=parent_id
-        path=urllib.quote(path)
-        BaseUrl=app_url+u'v1.0/me/drive/root:{}:/children?expand=thumbnails'.format(path)
+        if n_path.endswith('/'):
+            n_path=n_path[:-1]
+        if not n_path.startswith('/'):
+            n_path='/'+n_path
+        n_path=urllib.quote(n_path)
+        BaseUrl=app_url+u'v1.0/me/drive/root:{}:/children?expand=thumbnails'.format(n_path)
         queue=Queue()
         # queue.put(dict(url=BaseUrl,grandid=grandid,parent=parent,trytime=1))
-        g=GetItemThread(queue)
+        g=GetItemThread(queue,user)
         g.GetItem(BaseUrl,grandid,parent,1)
         queue=g.queue
         if queue.qsize()==0:
             return
         tasks=[]
         for i in range(min(10,queue.qsize())):
-            t=GetItemThread(queue)
+            t=GetItemThread(queue,user)
+            t.start()
+            tasks.append(t)
+        for t in tasks:
+            t.join()
+        RemoveRepeatFile()
+
+def Dir_all(path=u'A:/'):
+    app_url=GetAppUrl()
+    user,n_path=path.split(':')
+    print('update {}\'s {} file'.format(user,n_path))
+    if n_path=='/':
+        BaseUrl=app_url+u'v1.0/me/drive/root/children?expand=thumbnails'
+        items.remove({'user':user})
+        queue=Queue()
+        g=GetItemThread(queue,user)
+        g.GetItem(BaseUrl)
+        queue=g.queue
+        if queue.qsize()==0:
+            return
+        tasks=[]
+        for i in range(min(5,queue.qsize())):
+            t=GetItemThread(queue,user)
+            t.start()
+            tasks.append(t)
+        for t in tasks:
+            t.join()
+        RemoveRepeatFile()
+    else:
+        grandid=0
+        parent=''
+        if n_path.endswith('/'):
+            n_path=n_path[:-1]
+        if not n_path.startswith('/'):
+            n_path='/'+n_path
+        if items.find_one({'grandid':0,'type':'folder','user':user}):
+            parent_id=0
+            for idx,p in enumerate(n_path[1:].split('/')):
+                if parent_id==0:
+                    parent_id=items.find_one({'name':p,'grandid':idx,'user':user})['id']
+                else:
+                    parent_id=items.find_one({'name':p,'grandid':idx,'parent':parent_id})['id']
+                items.delete_many({'parent':parent_id})
+            grandid=idx+1
+            parent=parent_id
+        n_path=urllib.quote(n_path)
+        BaseUrl=app_url+u'v1.0/me/drive/root:{}:/children?expand=thumbnails'.format(n_path)
+        queue=Queue()
+        g=GetItemThread(queue,user)
+        g.GetItem(BaseUrl,grandid,parent,1)
+        queue=g.queue
+        if queue.qsize()==0:
+            return
+        tasks=[]
+        for i in range(min(10,queue.qsize())):
+            t=GetItemThread(queue,user)
             t.start()
             tasks.append(t)
         for t in tasks:
@@ -273,9 +242,11 @@ def Dir_all(path=u'/'):
         RemoveRepeatFile()
 
 class GetItemThread(Thread):
-    def __init__(self,queue):
+    def __init__(self,queue,user):
         super(GetItemThread,self).__init__()
         self.queue=queue
+        self.user=user
+        share_path=od_users.get(user).get('share_path')
         if share_path=='/':
             self.share_path=share_path
         else:
@@ -303,7 +274,7 @@ class GetItemThread(Thread):
 
     def GetItem(self,url,grandid=0,parent='',trytime=1):
         app_url=GetAppUrl()
-        token=GetToken()
+        token=GetToken(user=self.user)
         print(u'getting files from url {}'.format(url))
         header={'Authorization': 'Bearer {}'.format(token)}
         try:
@@ -326,6 +297,7 @@ class GetItemThread(Thread):
                         else:
                             items.delete_one({'id':value['id']})
                             item['type']='folder'
+                            item['user']=self.user
                             item['order']=0
                             item['name']=convert2unicode(value['name'])
                             item['id']=convert2unicode(value['id'])
@@ -343,6 +315,7 @@ class GetItemThread(Thread):
                                 path=path[1:]
                             if path=='':
                                 path=convert2unicode(value['name'])
+                            path='{}:/{}'.format(self.user,path)
                             item['path']=path
                             subfodler=items.insert_one(item)
                             if value.get('folder').get('childCount')==0:
@@ -364,7 +337,9 @@ class GetItemThread(Thread):
                                 path=path[1:]
                             if path=='':
                                 path=convert2unicode(value['name'])
+                            path='{}:/{}'.format(self.user,path)
                             item['path']=path
+                            item['user']=self.user
                             item['name']=convert2unicode(value['name'])
                             item['id']=convert2unicode(value['id'])
                             item['size']=humanize.naturalsize(value['size'], gnu=True)
@@ -394,7 +369,7 @@ class GetItemThread(Thread):
 
     def GetItemByPath(self,path):
         app_url=GetAppUrl()
-        token=GetToken()
+        token=GetToken(user=self.user)
         if path=='' or path=='/':
             url=app_url+u'v1.0/me/drive/root/'
         if path=='/':
@@ -407,19 +382,19 @@ class GetItemThread(Thread):
 
     def GetItemByUrl(self,url):
         app_url=GetAppUrl()
-        token=GetToken()
+        token=GetToken(user=self.user)
         header={'Authorization': 'Bearer {}'.format(token)}
         r=requests.get(url,headers=header)
         data=json.loads(r.content)
         return data
 
-def GetRootid():
-    key='rootid'
+def GetRootid(user='A'):
+    key='{}:rootid'.format(user)
     if rd.exists(key):
         return rd.get(key)
     else:
         app_url=GetAppUrl()
-        token=GetToken()
+        token=GetToken(user=user)
         url=app_url+u'v1.0/me/drive/root/'
         header={'Authorization': 'Bearer {}'.format(token)}
         r=requests.get(url,headers=header)
@@ -430,14 +405,20 @@ def GetRootid():
 def UpdateFile(renew='all'):
     if renew=='all':
         items.remove()
-        Dir_all(share_path)
+        for user,item in od_users.items():
+            if item.get('client_id')!='':
+                share_path='{}:{}'.format(user,item['share_path'])
+                Dir_all(share_path)
     else:
-        Dir(share_path)
+        for user,item in od_users.items():
+            if item.get('client_id')!='':
+                share_path='{}:{}'.format(user,item['share_path'])
+                Dir(share_path)
     print('update file success!')
 
 
-def FileExists(filename):
-    token=GetToken()
+def FileExists(filename,user='A'):
+    token=GetToken(user=user)
     headers={'Authorization':'bearer {}'.format(token),'Content-Type':'application/json'}
     search_url=app_url+"v1.0/me/drive/root/search(q='{}')".format(filename)
     r=requests.get(search_url,headers=headers)
@@ -447,8 +428,8 @@ def FileExists(filename):
     else:
         return True
 
-def FileInfo(fileid):
-    token=GetToken()
+def FileInfo(fileid,user='A'):
+    token=GetToken(user=user)
     headers={'Authorization':'bearer {}'.format(token),'Content-Type':'application/json'}
     search_url=app_url+"v1.0/me/drive/items/{}".format(fileid)
     r=requests.get(search_url,headers=headers)
@@ -501,8 +482,8 @@ def _file_content(path,offset,length):
 
 
 
-def _upload(filepath,remote_path): #remote_path like 'share/share.mp4'
-    token=GetToken()
+def _upload(filepath,remote_path,user='A'): #remote_path like 'share/share.mp4'
+    token=GetToken(user=user)
     headers={'Authorization':'bearer {}'.format(token)}
     url=app_url+'v1.0/me/drive/root:'+urllib.quote(remote_path)+':/content'
     r=requests.put(url,headers=headers,data=open(filepath,'rb'))
@@ -516,7 +497,7 @@ def _upload(filepath,remote_path): #remote_path like 'share/share.mp4'
                 break
             elif r.status_code==201 or r.status_code==200:
                 print('upload {} success!'.format(filepath))
-                AddResource(data)
+                AddResource(data,user)
                 yield {'status':'upload success!'}
                 break
             else:
@@ -589,7 +570,7 @@ def _GetAllFile(parent_id="",parent_path="",filelist=[]):
     return filelist
 
 
-def AddResource(data):
+def AddResource(data,user='A'):
     #检查父文件夹是否在数据库，如果不在则获取添加
     grand_path=data.get('parentReference').get('path').replace('/drive/root:','')
     if grand_path=='':
@@ -625,6 +606,7 @@ def AddResource(data):
     item={}
     item['type']='file'
     item['name']=data.get('name')
+    item['user']=user
     item['id']=data.get('id')
     item['size']=humanize.naturalsize(data.get('size'), gnu=True)
     item['size_order']=data.get('size')
@@ -653,8 +635,8 @@ def AddResource(data):
     items.insert_one(item)
 
 
-def CreateUploadSession(path):
-    token=GetToken()
+def CreateUploadSession(path,user='A'):
+    token=GetToken(user=user)
     headers={'Authorization':'bearer {}'.format(token),'Content-Type':'application/json'}
     url=app_url+'v1.0/me/drive/root:'+urllib.quote(path)+':/createUploadSession'
     data={
@@ -674,8 +656,7 @@ def CreateUploadSession(path):
         print('error to opreate CreateUploadSession("{}"),reason {}'.format(path,e))
         return False
 
-def UploadSession(uploadUrl, filepath):
-    token=GetToken()
+def UploadSession(uploadUrl, filepath,user):
     length=327680*10
     offset=0
     trytime=1
@@ -685,7 +666,7 @@ def UploadSession(uploadUrl, filepath):
         code=result['code']
         #上传完成
         if code==0:
-            AddResource(result['info'])
+            AddResource(result['info'],user)
             yield {'status':'upload success!'}
             break
         #分片上传成功
@@ -710,8 +691,8 @@ def UploadSession(uploadUrl, filepath):
 
 
 
-def Upload_for_server(filepath,remote_path=None):
-    token=GetToken()
+def Upload_for_server(filepath,remote_path=None,user='A'):
+    token=GetToken(user=user)
     headers={'Authorization':'bearer {}'.format(token),'Content-Type':'application/json'}
     if remote_path is None:
         remote_path=os.path.basename(filepath)
@@ -721,24 +702,24 @@ def Upload_for_server(filepath,remote_path=None):
         remote_path='/'+remote_path
     print('local file path:{}, remote file path:{}'.format(filepath,remote_path))
     if _filesize(filepath)<1024*1024*3.25:
-        for msg in _upload(filepath,remote_path):
+        for msg in _upload(filepath,remote_path,user):
             yield msg
     else:
-        session_data=CreateUploadSession(remote_path)
+        session_data=CreateUploadSession(remote_path,user)
         if session_data==False:
             yield {'status':'file exists!'}
         else:
             if session_data.get('uploadUrl'):
                 uploadUrl=session_data.get('uploadUrl')
-                for msg in UploadSession(uploadUrl,filepath):
+                for msg in UploadSession(uploadUrl,filepath,user):
                     yield msg
             else:
                 print(session_data.get('error').get('msg'))
                 print('create upload session fail! {}'.format(remote_path))
                 yield {'status':'create upload session fail!'}
 
-def Upload(filepath,remote_path=None):
-    token=GetToken()
+def Upload(filepath,remote_path=None,user='A'):
+    token=GetToken(user=user)
     headers={'Authorization':'bearer {}'.format(token),'Content-Type':'application/json'}
     if remote_path is None:
         remote_path=os.path.basename(filepath)
@@ -747,16 +728,16 @@ def Upload(filepath,remote_path=None):
     if not remote_path.startswith('/'):
         remote_path='/'+remote_path
     if _filesize(filepath)<1024*1024*3.25:
-        for msg in _upload(filepath,remote_path):
+        for msg in _upload(filepath,remote_path,user):
             1
     else:
-        session_data=CreateUploadSession(remote_path)
+        session_data=CreateUploadSession(remote_path,user)
         if session_data==False:
             return {'status':'file exists!'}
         else:
             if session_data.get('uploadUrl'):
                 uploadUrl=session_data.get('uploadUrl')
-                for msg in UploadSession(uploadUrl,filepath):
+                for msg in UploadSession(uploadUrl,filepath,user):
                     1
             else:
                 print(session_data.get('error').get('msg'))
@@ -765,17 +746,18 @@ def Upload(filepath,remote_path=None):
 
 
 class MultiUpload(Thread):
-    def __init__(self,waiting_queue):
+    def __init__(self,waiting_queue,user):
         super(MultiUpload,self).__init__()
         self.queue=waiting_queue
+        self.user=user
 
     def run(self):
         while not self.queue.empty():
             localpath,remote_dir=self.queue.get()
-            Upload(localpath,remote_dir)
+            Upload(localpath,remote_dir,self.user)
 
 
-def UploadDir(local_dir,remote_dir,threads=5):
+def UploadDir(local_dir,remote_dir,user,threads=5):
     print(u'geting file from dir {}'.format(local_dir))
     localfiles=list_all_files(local_dir)
     print(u'get {} files from dir {}'.format(len(localfiles),local_dir))
@@ -827,7 +809,7 @@ def UploadDir(local_dir,remote_dir,threads=5):
     print "start upload files 5s later"
     time.sleep(5)
     for i in range(min(threads,queue.qsize())):
-        t=MultiUpload(queue)
+        t=MultiUpload(queue,user)
         t.start()
         tasks.append(t)
     for t in tasks:
@@ -841,9 +823,9 @@ def UploadDir(local_dir,remote_dir,threads=5):
 def DeleteLocalFile(fileid):
     items.remove({'id':fileid})
 
-def DeleteRemoteFile(fileid):
+def DeleteRemoteFile(fileid,user='A'):
     app_url=GetAppUrl()
-    token=GetToken()
+    token=GetToken(user=user)
     headers={'Authorization':'bearer {}'.format(token)}
     url=app_url+'v1.0/me/drive/items/'+fileid
     r=requests.delete(url,headers=headers)
@@ -855,15 +837,16 @@ def DeleteRemoteFile(fileid):
         return False
 
 ########################
-def CreateFolder(folder_name,grand_path):
+def CreateFolder(folder_name,grand_path,user='A'):
     app_url=GetAppUrl()
-    token=GetToken()
+    token=GetToken(user=user)
     if grand_path=='' or grand_path is None or grand_path=='/':
         url=app_url+'v1.0/me/drive/root/children'
         parent_id=''
         grandid=0
     else:
-        parent=items.find_one({'path':grand_path})
+        path='{}:/{}'.format(user,grand_path)
+        parent=items.find_one({'path':path})
         parent_id=parent['id']
         grandid=parent['grandid']+1
         url=app_url+'v1.0/me/drive/items/{}/children'.format(parent['id'])
@@ -877,8 +860,10 @@ def CreateFolder(folder_name,grand_path):
     data=json.loads(r.content)
     if data.get('id'):
         #插入数据
+        share_path=od_users.get(user).get('share_path')
         item={}
         item['type']='folder'
+        item['user']=user
         item['name']=data.get('name')
         item['id']=data.get('id')
         item['size']=humanize.naturalsize(data.get('size'), gnu=True)
@@ -890,27 +875,29 @@ def CreateFolder(folder_name,grand_path):
             path=convert2unicode(data['name'])
         else:
             path=grand_path.replace(share_path,'',1)+'/'+convert2unicode(data['name'])
-        if path.startswith('/') and path!='/':
-            path=path[1:]
+        if not path.startswith('/'):
+            path='/'+path
+        path='{}:{}'.format(user,path)
         item['path']=path
-        item['order']=2
+        item['order']=0
         items.insert_one(item)
         return True
     else:
         print(data.get('error').get('msg'))
         return False
 
-def MoveFile(fileid,new_folder_path):
+def MoveFile(fileid,new_folder_path,user='A'):
     app_url=GetAppUrl()
-    token=GetToken()
+    token=GetToken(user=user)
     #GetRootid
     if new_folder_path=='' or new_folder_path is None or new_folder_path=='/':
-        folder_id=GetRootid()
+        folder_id=GetRootid(user)
         parent=''
         grandid=0
         path=GetName(fileid)
     else:
-        parent_item=items.find_one({'path':new_folder_path})
+        path='{}:/{}'.format(user,new_folder_path)
+        parent_item=items.find_one({'path':path})
         folder_id=parent_item['id']
         parent=parent_item['id']
         grandid=parent_item['grandid']+1

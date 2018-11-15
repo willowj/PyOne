@@ -10,7 +10,7 @@
     <div class="mdui-typo">
         <h4>步骤1：绑定账号，获取code</h4>
     </div>
-      
+
     <div class="mdui-typo">
         <h4>步骤2：输入code，结束绑定</h4>
     <a href="{{login_url}}" class="mdui-btn mdui-color-theme-accent mdui-ripple mdui-float-right" target="_blank">1. 绑定账号</a>
@@ -21,6 +21,7 @@
              <input type="text" type="text" class="mdui-textfield-input" name="code" required"/>
              <div class="mdui-textfield-error">code不能为空</div>
          </div>
+         <input type="hidden" name="user" value="{{cur_user}}">
          <input type="hidden" name="step" value="2">
          <input type="hidden" name="client_id" value="{{client_id}}">
          <input type="hidden" name="client_secret" value="{{client_secret}}">
@@ -32,7 +33,7 @@
      <div class="mdui-typo">
         <h4>示例，如何操作</h4>
     <img src="https://i.loli.net/2018/09/23/5ba7342b84ed5.png">
-    </div>                                                                              
-                                                                                                 
+    </div>
+
 </div>
 {%endblock content%}

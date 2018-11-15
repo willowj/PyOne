@@ -298,8 +298,8 @@
         map.remove(id);
     });
 
-    function upload_to_one(id,filename,remote_folder){
-        var source = new EventSource("{{url_for('admin.server_to_one')|safe}}?filename="+filename+"&remote_folder="+remote_folder);
+    function upload_to_one(id,filename,remote_folder,user){
+        var source = new EventSource("{{url_for('admin.server_to_one')|safe}}?filename="+filename+"&remote_folder="+remote_folder+"&user={{cur_user}}");
         source.onmessage = function(event) {
           if(event.data=='end'){
               source.close();

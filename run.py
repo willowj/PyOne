@@ -1,3 +1,4 @@
+
 #-*- coding=utf-8 -*-
 from flask import Flask,render_template,redirect,abort,make_response,jsonify,request,url_for,Response
 from flask_sqlalchemy import Pagination
@@ -43,23 +44,24 @@ def md5(string):
     a.update(string.encode(encoding='utf-8'))
     return a.hexdigest()
 
-def GetTotal(path):
+def GetTotal(path='A:/'):
     key='total:{}'.format(path)
     if rd.exists(key):
         return int(rd.get(key))
     else:
-        if path=='/':
+        user,n_path=path.split(':')
+        if n_path=='/':
             total=items.find({'grandid':0}).count()
         else:
             f=items.find_one({'path':path})
             pid=f['id']
             total=items.find({'parent':pid}).count()
-            rd.set(key,total,300)
+        rd.set(key,total,300)
         return total
 
 
 # @cache.memoize(timeout=60*5)
-def FetchData(path='/',page=1,per_page=50,sortby='lastModtime',order='desc',dismiss=False):
+def FetchData(path='A:/',page=1,per_page=50,sortby='lastModtime',order='desc',dismiss=False):
     path=urllib.unquote(path)
     resp=[]
     if sortby not in ['lastModtime','type','size','name']:
@@ -71,8 +73,9 @@ def FetchData(path='/',page=1,per_page=50,sortby='lastModtime',order='desc',dism
     else:
         order=ASCENDING
     try:
-        if path=='/':
-            data=items.find({'grandid':0}).collation({"locale": "zh", 'numericOrdering':True})\
+        user,n_path=path.split(':')
+        if n_path=='/':
+            data=items.find({'grandid':0,'user':user}).collation({"locale": "zh", 'numericOrdering':True})\
                 .sort([('order',ASCENDING),(sortby,order)])\
                 .limit(per_page).skip((page-1)*per_page)
             for d in data:
@@ -115,9 +118,9 @@ def FetchData(path='/',page=1,per_page=50,sortby='lastModtime',order='desc',dism
     return resp,total
 
 @cache.memoize(timeout=60*5)
-def _thunbnail(id):
+def _thunbnail(id,user):
     app_url=GetAppUrl()
-    token=GetToken()
+    token=GetToken(user=user)
     headers={'Authorization':'bearer {}'.format(token),'Content-type':'application/json'}
     url=app_url+'v1.0/me/drive/items/{}/thumbnails/0?select=large'.format(id)
     r=requests.get(url,headers=headers)
@@ -128,13 +131,13 @@ def _thunbnail(id):
         return False
 
 @cache.memoize(timeout=60*5)
-def _getdownloadurl(id):
+def _getdownloadurl(id,user):
     app_url=GetAppUrl()
-    token=GetToken()
+    token=GetToken(user=user)
     filename=GetName(id)
     ext=filename.split('.')[-1]
     if ext in ['webm','avi','mpg', 'mpeg', 'rm', 'rmvb', 'mov', 'wmv', 'mkv', 'asf']:
-        downloadUrl=_thunbnail(id)
+        downloadUrl=_thunbnail(id,user)
         downloadUrl=downloadUrl.replace('thumbnail','videomanifest')+'&part=index&format=dash&useScf=True&pretranscode=0&transcodeahead=0'
         return downloadUrl
     else:
@@ -147,12 +150,12 @@ def _getdownloadurl(id):
         else:
             return False
 
-def GetDownloadUrl(id):
+def GetDownloadUrl(id,user):
     if rd.exists('downloadUrl2:{}'.format(id)):
         downloadUrl,ftime=rd.get('downloadUrl2:{}'.format(id)).split('####')
         if time.time()-int(ftime)>=600:
             # print('{} downloadUrl expired!'.format(id))
-            downloadUrl=_getdownloadurl(id)
+            downloadUrl=_getdownloadurl(id,user)
             ftime=int(time.time())
             k='####'.join([downloadUrl,str(ftime)])
             rd.set('downloadUrl2:{}'.format(id),k)
@@ -161,7 +164,7 @@ def GetDownloadUrl(id):
             downloadUrl=downloadUrl
     else:
         # print('first time get downloadUrl from {}'.format(id))
-        downloadUrl=_getdownloadurl(id)
+        downloadUrl=_getdownloadurl(id,user)
         ftime=int(time.time())
         k='####'.join([downloadUrl,str(ftime)])
         rd.set('downloadUrl2:{}'.format(id),k)
@@ -240,12 +243,12 @@ def file_ico(item):
 
   return "insert_drive_file";
 
-def _remote_content(fileid):
+def _remote_content(fileid,user):
     kc='{}:content'.format(fileid)
     if rd.exists(kc):
         return rd.get(kc)
     else:
-        downloadUrl=GetDownloadUrl(fileid)
+        downloadUrl=GetDownloadUrl(fileid,user)
         if downloadUrl:
             r=requests.get(downloadUrl)
             r.encoding='utf-8'
@@ -280,10 +283,11 @@ def has_item(path,name):
         if name=='.password':
             dz=True
         try:
-            if path=='/':
-                if items.find_one({'grandid':0,'name':name}):
-                    fid=items.find_one({'grandid':0,'name':name})['id']
-                    item=_remote_content(fid).strip()
+            user,n_path=path.split(':')
+            if n_path=='/':
+                if items.find_one({'grandid':0,'name':name,'user':user}):
+                    fid=items.find_one({'grandid':0,'name':name,'user':user})['id']
+                    item=_remote_content(fid,user).strip()
             else:
                 route=path.split('/')
                 if name=='.password':
@@ -294,7 +298,7 @@ def has_item(path,name):
                         data=items.find_one({'name':name,'parent':pid})
                         if data:
                             fid=data['id']
-                            item=_remote_content(fid).strip()
+                            item=_remote_content(fid,user).strip()
                             if idx==len(route)-1:
                                 cur=True
                 else:
@@ -303,7 +307,7 @@ def has_item(path,name):
                     data=items.find_one({'name':name,'parent':pid})
                     if data:
                         fid=data['id']
-                        item=_remote_content(fid).strip()
+                        item=_remote_content(fid,user).strip()
         except:
             item=False
         rd.set(key,'{}########{}########{}'.format(item,fid,cur))
@@ -337,14 +341,52 @@ def has_verify(path):
 
 
 def path_list(path):
-    if path=='/':
-        return [path]
-    if path.startswith('/'):
-        path=path[1:]
-    if path.endswith('/'):
-        path=path[:-1]
-    plist=path.split('/')
+    if path.split(':')=='':
+        plist=[path+'/']
+    else:
+        user,n_path=path.split(':')
+        if n_path.startswith('/'):
+            n_path=n_path[1:]
+        if n_path.endswith('/'):
+            n_path=n_path[:-1]
+        plist=n_path.split('/')
+        plist=['{}:/{}'.format(user,plist[0])]+plist[1:]
     return plist
+
+
+
+def get_od_user():
+    config_path=os.path.join(config_dir,'config.py')
+    with open(config_path,'r') as f:
+        text=f.read()
+    users=json.loads(re.findall('od_users=([\w\W]*})',text)[0])
+    ret=[]
+    for user,value in users.items():
+        if value.get('client_id')!='':
+            #userid,username,endpoint,sharepath,order,
+            ret.append(
+                    (
+                        user,
+                        value.get('other_name'),
+                        '/{}:'.format(user),
+                        value.get('share_path'),
+                        value.get('order')
+                    )
+                )
+        else:
+            ret.append(
+                    (
+                        user,
+                        '添加网盘',
+                        url_for('admin.install',step=0,user=user),
+                        value.get('share_path'),
+                        value.get('order')
+                    )
+                )
+    ret=sorted(ret,key=lambda x:x[-1],reverse=False)
+    return ret
+
+
 
 
 ################################################################################
@@ -370,23 +412,26 @@ def before_request():
 @app.route('/<path:path>',methods=['POST','GET'])
 @app.route('/',methods=['POST','GET'])
 @limiter.limit("200/minute;50/second")
-def index(path='/'):
+def index(path='A:/'):
     if path=='favicon.ico':
         return redirect('https://onedrive.live.com/favicon.ico')
     if items.count()==0:
-        if not os.path.exists(os.path.join(config_dir,'data/token.json')):
-            return redirect(url_for('admin.install',step=0))
+        if not os.path.exists(os.path.join(config_dir,'data/.install')):
+            return redirect(url_for('admin.install',step=0,user='A'))
         else:
             #subprocess.Popen('python {} UpdateFile'.format(os.path.join(config_dir,'function.py')),shell=True)
             return make_response('<h1>正在更新数据！如果您是网站管理员，请在后台运行命令：python function.py UpdateFile</h1>')
     #参数
+    user,n_path=path.split(':')
+    if n_path=='':
+        path=':'.join([user,'/'])
     page=request.args.get('page',1,type=int)
     image_mode=request.args.get('image_mode')
     sortby=request.args.get('sortby')
     order=request.args.get('order')
     resp,total = FetchData(path=path,page=page,per_page=50,sortby=sortby,order=order,dismiss=True)
     if total=='files':
-        return show(resp['id'])
+        return show(resp['id'],user)
     #是否有密码
     password,_,cur=has_item(path,'.password')
     md5_p=md5(path)
@@ -422,6 +467,8 @@ def index(path='/'):
     #参数
     resp,total = FetchData(path=path,page=page,per_page=50,sortby=sortby,order=order,dismiss=True)
     pagination=Pagination(query=None,page=page, per_page=50, total=total, items=None)
+    if path.split(':',1)[-1]=='/':
+        path=':'.join([path.split(':',1)[0],''])
     resp=make_response(render_template('index.html'
                     ,pagination=pagination
                     ,items=resp
@@ -433,21 +480,22 @@ def index(path='/'):
                     ,ext_d=ext_d
                     ,sortby=sortby
                     ,order=order
+                    ,cur_user=user
                     ,endpoint='.index'))
     resp.set_cookie('image_mode',str(image_mode))
     resp.set_cookie('sortby',str(sortby))
     resp.set_cookie('order',str(order))
     return resp
 
-@app.route('/file/<fileid>')
-def show(fileid):
+@app.route('/file/<user>/<fileid>')
+def show(fileid,user):
     name=GetName(fileid)
     ext=name.split('.')[-1].lower()
     path=GetPath(fileid)
     if request.method=='POST':
         url=request.url.replace(':80','').replace(':443','')
         if ext in ['csv','doc','docx','odp','ods','odt','pot','potm','potx','pps','ppsx','ppsxm','ppt','pptm','pptx','rtf','xls','xlsx']:
-            downloadUrl=GetDownloadUrl(fileid)
+            downloadUrl=GetDownloadUrl(fileid,user)
             url = 'https://view.officeapps.live.com/op/view.aspx?src='+urllib.quote(downloadUrl)
             return redirect(url)
         elif ext in ['bmp','jpg','jpeg','png','gif']:
@@ -461,18 +509,18 @@ def show(fileid):
         elif ext in ['ogg','mp3','wav']:
             return render_template('show/audio.html',url=url,path=path)
         elif CodeType(ext) is not None:
-            content=_remote_content(fileid)
+            content=_remote_content(fileid,user)
             return render_template('show/code.html',content=content,url=url,language=CodeType(ext),path=path)
         else:
-            downloadUrl=GetDownloadUrl(fileid)
+            downloadUrl=GetDownloadUrl(fileid,user)
             return redirect(downloadUrl)
     else:
         if 'no-referrer' in allow_site:
-            downloadUrl=GetDownloadUrl(fileid)
+            downloadUrl=GetDownloadUrl(fileid,user)
             resp=redirect(downloadUrl)
             return resp
         elif sum([i in referrer for i in allow_site])>0:
-            downloadUrl=GetDownloadUrl(fileid)
+            downloadUrl=GetDownloadUrl(fileid,user)
             return redirect(downloadUrl)
         else:
             return abort(404)
@@ -504,8 +552,9 @@ app.jinja_env.globals['re']=re
 app.jinja_env.globals['file_ico']=file_ico
 app.jinja_env.globals['title']=title
 app.jinja_env.globals['tj_code']=tj_code if tj_code is not None else ''
+app.jinja_env.globals['get_od_user']=get_od_user
 app.jinja_env.globals['allow_site']=','.join(allow_site)
-app.jinja_env.globals['share_path']=share_path
+# app.jinja_env.globals['share_path']=od_users.get('A').get('share_path')
 app.jinja_env.globals['downloadUrl_timeout']=downloadUrl_timeout
 ################################################################################
 #####################################启动#######################################

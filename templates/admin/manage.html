@@ -25,6 +25,31 @@ a:hover {
     <h1> 文件管理 <small>仅支持更新/编辑文编；支持删除文件</small></h1>
 </div>
 <div class="mdui-table-fluid">
+    <div class="mdui-appbar mdui-appbar-scroll-hide">
+        <div class="mdui-tab mdui-color-theme" mdui-tab>
+            {%for user in get_od_user()%}
+            {%if user[1]!='添加网盘'%}
+                <a href="{{url_for('admin.manage',path=user[0]+':/')}}" class="mdui-ripple mdui-ripple-white{%if cur_user==user[0]%} mdui-tab-active{%endif%}" id="{{user[0]}}">
+                    <i class="mdui-icon material-icons">&#xe2bf;</i>
+                    <label>{{user[1]}}</label>
+                </a>
+            {%endif%}
+            {%endfor%}
+         </div>
+        <div class="mdui-toolbar nexmoe-item">
+            <a href="/">{{cur_user}}</a>
+            {%if path%}
+                {%for idx,p in enumerate(path_list(path))%}
+                    <i class="mdui-icon material-icons mdui-icon-dark" style="margin:0;">chevron_right</i>
+                    {%if idx==len(path_list(path))-1%}
+                        <a href="{{url_for('admin.manage',path=cur_user+':/')}}">{{p|replace(cur_user+':/','')|replace(cur_user+':','')}}</a>
+                    {%else%}
+                        <a href="{{url_for('admin.manage',path='/'.join(path_list(path)[:idx+1]))}}">{{p|replace(cur_user+':/','')|replace(cur_user+':','')}}</a>
+                    {%endif%}
+                {%endfor%}
+            {%endif%}
+        </div>
+    </div>
     <table class="mdui-table mdui-table-selectable">
         <thead>
             <tr>
@@ -46,13 +71,19 @@ a:hover {
             </tr>
         </thead>
         <tbody>
-            {%if path!='/'%}
+            {%if path.split(':')[-1]!=''%}
             <tr>
                 <td></td>
                 <td>
-                    <a href="{{url_for('admin.manage',path='/'.join(path_list(path)[:-1]))|safe}}">
-                            <i class="mdui-icon material-icons">arrow_upward</i> 返回上一层
-                        </a>
+                    {%if '/'.join(path_list(path)[:-1])==''%}
+                    <a href="{{url_for('admin.manage',path=cur_user+':/')|safe}}">
+                        <i class="mdui-icon material-icons">arrow_upward</i> 返回上一层
+                    </a>
+                    {%else%}
+                    <a href="{{url_for('admin.manage',path='/'.join(path_list(path))[:-1])|safe}}">
+                        <i class="mdui-icon material-icons">arrow_upward</i> 返回上一层
+                    </a>
+                    {%endif%}
                 </td>
                 <td></td>
                 <td></td>
@@ -67,9 +98,9 @@ a:hover {
                     </label>
                 </td>
                 <td>
-                    <a href="{{url_for('admin.manage',path=os.path.join(path,data['name']))|safe}}" class="mdui-list-item">
-                              <i class="mdui-icon material-icons">folder_open</i> {{data['name']}}
-                            </a>
+                    <a href="{{url_for('admin.manage',path=path+'/'+data['name'])|safe}}" class="mdui-list-item">
+                      <i class="mdui-icon material-icons">folder_open</i> {{data['name']}}
+                    </a>
                 </td>
                 <td>{{data['lastModtime']}}</td>
                 <td>
@@ -86,9 +117,9 @@ a:hover {
                     </label>
                 </td>
                 <td class="file">
-                    <a href="{{url_for('index',path=path+'/'+data['name'])}}" target="_blank" class="mdui-list-item">
-                              <i class="mdui-icon material-icons">{{file_ico(data)}}</i> {{data['name']}}
-                          </a>
+                    <a href="{{url_for('index',path=path+'/'+data['name'])|safe}}" target="_blank" class="mdui-list-item">
+                          <i class="mdui-icon material-icons">{{file_ico(data)}}</i> {{data['name']}}
+                      </a>
                 </td>
                 <td>{{data['lastModtime']}}</td>
                 <td>
@@ -142,7 +173,7 @@ function delAllProduct() {
     }
     var cks = document.getElementsByName("choice");
     var str = "";
-    //拼接所有的图书id
+    //拼接所有id
     for (var i = 0; i < cks.length; i++) {
         if (cks[i].checked) {
             str += cks[i].value + "##";
@@ -155,7 +186,7 @@ function delAllProduct() {
         type: "POST",
         url: "{{url_for('admin.delete')}}",
         dataType: 'json',
-        data: { id: str },
+        data: { id: str,user:"{{cur_user}}" },
         beforeSend: function(xhr) {
             var index = layer.load(2, {
                 shade: [0.1, '#fff'] //0.1透明度的白色背景
@@ -185,7 +216,7 @@ function delProduct(id) {
         type: "POST",
         url: "{{url_for('admin.delete')}}",
         dataType: 'json',
-        data: { id: id },
+        data: { id: id ,user:"{{cur_user}}"},
         beforeSend: function(xhr) {
             var index = layer.load(2, {
                 shade: [0.1, '#fff'] //0.1透明度的白色背景
@@ -208,7 +239,7 @@ function delProduct(id) {
 }
 
 function editFile(id) {
-    window.open("{{url_for('admin.edit')}}?fileid=" + id, '_blank');
+    window.open("{{url_for('admin.edit')}}?fileid=" + id+"&user={{cur_user}}", '_blank');
 }
 
 function setPasswd(path) {
@@ -237,7 +268,7 @@ function moveProduct(fileid){
         $.ajax({
                 type: "POST",
                 url: "{{url_for('admin.MoveFileToNewFolder')}}",
-                data: { fileid: fileid,new_folder_path:value },
+                data: { fileid: fileid,new_folder_path:value,user:"{{cur_user}}" },
                 async: false,//使用同步的方式,true为异步方式
                 dataType: "json",
                 beforeSend: function(xhr) {

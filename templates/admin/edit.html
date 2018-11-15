@@ -39,7 +39,7 @@
               type: "POST",
               url: "{{url_for('admin.edit')}}",
               dataType:'json',
-              data: {fileid:fileid,content:content},
+              data: {fileid:fileid,content:content,user:"{{cur_user}}"},
               beforeSend:function(xhr){
                   var index = layer.load(2, {
                     shade: [0.1,'#fff'] //0.1透明度的白色背景

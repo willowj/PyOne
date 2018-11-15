@@ -20,9 +20,13 @@
                     <div class="mdui-col-sm-2 mdui-text-right">{{ macros.Arraw(name='文件类型',cur_type='type',sortby=sortby,order=order,path=path) }}</div>
                     <div class="mdui-col-sm-2 mdui-text-right">{{ macros.Arraw(name='大小',cur_type='size',sortby=sortby,order=order,path=path) }}</div>
                 </li>
-                {%if path!='/'%}
+                {%if path.split(':')[-1]!=''%}
                 <li class="mdui-list-item mdui-ripple">
-                    <a href="{{url_for('.index',path='/'.join(path_list(path)[:-1]))}}">
+                    {%if '/'.join(path_list(path)[:-1])==''%}
+                    <a href="{{url_for('.index',path=cur_user+':/')|safe}}">
+                    {%else%}
+                    <a href="{{url_for('.index',path='/'.join(path_list(path)[:-1]))|safe}}">
+                    {%endif%}
                         <div class="mdui-col-xs-12 mdui-col-sm-7">
                             <i class="mdui-icon material-icons">arrow_upward</i> 返回上一层
                         </div>
@@ -46,10 +50,10 @@
                     </li>
                     {%else%}
                         <li class="mdui-list-item file mdui-ripple">
-                            <a href="{{url_for('.index',path=path+'/'+data['name'])}}" target="_blank">
+                            <a href="{{url_for('.index',path=path+'/'+data['name'])|safe}}" target="_blank">
                                 {%if image_mode==1%}
                                     {%if file_ico(data)=='image'%}
-                                        <img class="mdui-img-fluid" src="{{url_for('.show',fileid=data['id'])}}"/>
+                                        <img class="mdui-img-fluid" src="{{url_for('.show',fileid=data['id'],user=cur_user)}}"/>
                                     {%else%}
                                         <div class="mdui-col-xs-8 mdui-col-sm-5 mdui-text-truncate">
                                             <i class="mdui-icon material-icons">{{file_ico(data)}}</i> {{data['name']}}
