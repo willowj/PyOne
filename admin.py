@@ -296,6 +296,8 @@ def server_to_one():
 def setFile(filename=None):
     if request.method=='POST':
         path=request.form.get('path')
+        if path.split(':')[-1]=='':
+            path=path.split(':')[0]+':/'
         user,n_path=path.split(':')
         filename=request.form.get('filename')
         if not n_path.startswith('/'):
@@ -324,6 +326,8 @@ def setFile(filename=None):
             info['msg']='超时'
         return jsonify(info)
     path=urllib.unquote(request.args.get('path'))
+    if path.split(':')[-1]=='':
+        path=path.split(':')[0]+':/'
     user,n_path=path.split(':')
     _,fid,i=has_item(path,filename)
     if fid!=False:
