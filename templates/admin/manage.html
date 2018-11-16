@@ -186,7 +186,7 @@ function delAllProduct() {
     }
 
     //去掉字符串末尾的‘&’
-    str = str.substring(0, str.length - 1);
+    str = str.substring(0, str.length - 2);
     $.ajax({
         type: "POST",
         url: "{{url_for('admin.delete')}}",

@@ -343,6 +343,7 @@ def delete():
     infos['delete']=0
     infos['fail']=0
     for id in ids:
+        print 'delete {}'.format(id)
         file=items.find_one({'id':id})
         name=file['name']
         # path=file['path'].replace('/'+name,'').replace(name,'')
