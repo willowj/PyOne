@@ -456,7 +456,7 @@ def install():
                 token=ReFreshToken(refresh_token,user)
                 with open(os.path.join(config_dir,'data/{}_token.json'.format(user)),'w') as f:
                     json.dump(token,f,ensure_ascii=False)
-                return make_response('<h1>授权成功!<a href="/#">点击进入首页</a><br>请在后台另开一个ssh窗口，运行：<pre>python function.py UpdateFile</pre>进行更新数据操作</h1>')
+                return make_response('<h1>授权成功!<a href="/?init=1">点击进入首页</a><br>请在后台另开一个ssh窗口，运行：<pre>python function.py UpdateFile</pre>进行更新数据操作</h1>')
             else:
                 return jsonify(Atoken)
     step=request.args.get('step',type=int)
