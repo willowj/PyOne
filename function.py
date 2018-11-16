@@ -42,7 +42,7 @@ def convert2unicode(string):
 
 def get_value(key,user='A'):
     allow_key=['client_secret','client_id']
-    print('get user {}\'s {}'.format(user,key))
+    #print('get user {}\'s {}'.format(user,key))
     if key not in allow_key:
         return u'禁止获取'
     config_path=os.path.join(config_dir,'config.py')
@@ -575,15 +575,16 @@ def _GetAllFile(parent_id="",parent_path="",filelist=[]):
 def AddResource(data,user='A'):
     #检查父文件夹是否在数据库，如果不在则获取添加
     grand_path=data.get('parentReference').get('path').replace('/drive/root:','')
+    share_path=od_users.get(user).get('share_path')
     if grand_path=='':
         parent_id=''
         grandid=0
     else:
-        g=GetItemThread(Queue())
+        g=GetItemThread(Queue(),user)
         parent_id=data.get('parentReference').get('id')
         grandid=len(data.get('parentReference').get('path').replace('/drive/root:','').split('/'))-1
         grand_path=grand_path[1:]
-        parent_path=''
+        parent_path='/'
         pid=''
         for idx,p in enumerate(grand_path.split('/')):
             parent=items.find_one({'name':p,'grandid':idx,'parent':pid})
@@ -593,8 +594,12 @@ def AddResource(data,user='A'):
             else:
                 parent_path='/'.join([parent_path,p])
                 fdata=g.GetItemByPath(parent_path)
+                path=user+':/'+parent_path.replace('///','/')
+                path=path.replace('///','/').replace('//','/')
                 item={}
                 item['type']='folder'
+                item['user']=user
+                item['order']=0
                 item['name']=fdata.get('name')
                 item['id']=fdata.get('id')
                 item['size']=humanize.naturalsize(fdata.get('size'), gnu=True)
@@ -602,6 +607,7 @@ def AddResource(data,user='A'):
                 item['lastModtime']=date_to_char(parse(fdata['lastModifiedDateTime']))
                 item['grandid']=idx
                 item['parent']=pid
+                item['path']=path
                 items.insert_one(item)
                 pid=fdata.get('id')
     #插入数据
@@ -623,7 +629,7 @@ def AddResource(data,user='A'):
         path=path[1:]
     if path=='':
         path=convert2unicode(data['name'])
-    item['path']=path
+    item['path']=user+':/'+path
     if GetExt(data['name']) in ['bmp','jpg','jpeg','png','gif']:
         item['order']=3
         key1='name:{}'.format(data['id'])
