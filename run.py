@@ -1,4 +1,3 @@
-
 #-*- coding=utf-8 -*-
 from flask import Flask,render_template,redirect,abort,make_response,jsonify,request,url_for,Response
 from flask_sqlalchemy import Pagination

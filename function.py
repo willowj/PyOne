@@ -101,15 +101,16 @@ def ReFreshToken(refresh_token,user='A'):
 
 def GetToken(Token_file='token.json',user='A'):
     Token_file='{}_{}'.format(user,Token_file)
-    if os.path.exists(os.path.join(data_dir,Token_file)):
-        token=open_json(os.path.join(data_dir,Token_file))
+    token_path=os.path.join(data_dir,Token_file)
+    if os.path.exists(token_path):
+        token=open_json(token_path)
         try:
-            if time.time()>int(token.get('expires_on')):
+            if time.time()>float(token.get('expires_on')):
                 print 'token timeout'
                 refresh_token=token.get('refresh_token')
                 token=ReFreshToken(refresh_token,user)
                 if token.get('access_token'):
-                    with open(os.path.join(data_dir,Token_file),'w') as f:
+                    with open(token_path,'w') as f:
                         json.dump(token,f,ensure_ascii=False)
         except:
             with open(os.path.join(data_dir,'{}_Atoken.json'.format(user)),'r') as f:
@@ -118,11 +119,12 @@ def GetToken(Token_file='token.json',user='A'):
             token=ReFreshToken(refresh_token,user)
             token['expires_on']=str(time.time()+3599)
             if token.get('access_token'):
-                    with open(os.path.join(data_dir,Token_file),'w') as f:
+                    with open(token_path,'w') as f:
                         json.dump(token,f,ensure_ascii=False)
         return token.get('access_token')
     else:
         return False
+
 
 
 def GetAppUrl():
@@ -722,9 +724,8 @@ def Upload_for_server(filepath,remote_path=None,user='A'):
                 for msg in UploadSession(uploadUrl,filepath,user):
                     yield msg
             else:
-                print(session_data.get('error').get('msg'))
-                print('create upload session fail! {}'.format(remote_path))
-                yield {'status':'create upload session fail!'}
+                print('user:{} create upload session fail! {},{}'.format(user,remote_path,session_data.get('error').get('message')))
+                yield {'status':'user:{};create upload session fail!{}'.format(user,session_data.get('error').get('message'))}
 
 def Upload(filepath,remote_path=None,user='A'):
     token=GetToken(user=user)
