@@ -10,7 +10,7 @@
     <div class="mdui-typo">
       <h4 class="doc-article-title">
         填入<code>client_id</code>和<code>client_secret</code>,
-        <a href="https://apps.dev.microsoft.com/?referrer=https%3a%2f%2fdeveloper.microsoft.com%2fzh-cn%2fgraph%2fquick-start#/quickstart/graphIO?publicClientSupport=false&appName=PyOne&redirectUrl=https:%2F%2Fauth.pyone.me&allowImplicitFlow=false&ru=https:%2F%2Fdeveloper.microsoft.com%2Fzh-cn%2Fgraph%2Fquick-start%3FappID%3D_appId_%26appName%3D_appName_%26redirectUrl%3Dhttps:%2F%2Fauth.pyone.me%26platform%3Doption-php" target="_blank" class="mdui-btn mdui-color-theme-accent mdui-ripple"><i class="mdui-icon material-icons">&#xe89e;</i> 获取应用ID和机密(分两个页面显示，请注意保存)</a>
+        <a href="https://apps.dev.microsoft.com/?referrer=https%3a%2f%2fdeveloper.microsoft.com%2fzh-cn%2fgraph%2fquick-start#/quickstart/graphIO?publicClientSupport=false&appName=PyOne&redirectUrl={{redirectUrl}}&allowImplicitFlow=false&ru=https:%2F%2Fdeveloper.microsoft.com%2Fzh-cn%2Fgraph%2Fquick-start%3FappID%3D_appId_%26appName%3D_appName_%26redirectUrl%3D{{redirectUrl}}%26platform%3Doption-php" target="_blank" class="mdui-btn mdui-color-theme-accent mdui-ripple"><i class="mdui-icon material-icons">&#xe89e;</i> 获取应用ID和机密(分两个页面显示，请注意保存)</a>
       </h4>
     </div>
 
@@ -37,12 +37,12 @@
     </form>
     <div class="mdui-typo">
         <h4>示例，分别获取client_secret和client_id</h4>
-    <p>1. 首先获取应用ID（client_id)</p>
-    <p>2. 然后登陆：<a href="https://apps.dev.microsoft.com/">https://apps.dev.microsoft.com/</a>，查到第一步获取的client_id，并进入相关应用</p>
-    <p>3. 点击<b><font color="red">生成新密码</font></b>，获取一个新client_secret</p>
-    <img src="http://wx3.sinaimg.cn/large/0060lm7Tly1fvja29hmx2j31ca0edt9u.jpg">
-    <img src="http://wx3.sinaimg.cn/large/0060lm7Tly1fwck4k4zmxj30zs05smxc.jpg">
-    <img src="http://wx1.sinaimg.cn/large/0060lm7Tly1fwck4k5phaj30zg0hjdhf.jpg">
+    <p>0. 先登录一次<a href="https://apps.dev.microsoft.com/">https://apps.dev.microsoft.com/</a></p>
+    <p>1. 然后点击上方按钮获取应用机密（client_secret)，填写到第二栏</p>
+    <p>2. 在刚才获取应用机密（client_secret)的页面，点击<code>知道了，返回到快速启动</code>，会出现错误，查看网址栏，找到<B>appID</B>这一个参数，将<B>appID</B>复制到上方第一栏</p>
+    <p>3. 填写完上方两个参数，继续下一步</p>
+    <img src="http://wx4.sinaimg.cn/large/0060lm7Tly1fxa6f6j93bj30yf0anmy5.jpg">
+    <img src="http://wx1.sinaimg.cn/large/0060lm7Tly1fxa6f6jj1uj30zu0mimz8.jpg">
     </div>
 
 

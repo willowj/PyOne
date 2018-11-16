@@ -461,7 +461,7 @@ def install():
                 return jsonify(Atoken)
     step=request.args.get('step',type=int)
     user=request.args.get('user','A')
-    resp=render_template('admin/install_0.html',step=step,cur_user=user)
+    resp=render_template('admin/install_0.html',step=step,cur_user=user,redirectUrl=redirect_uri)
     return resp
 
 
