@@ -134,7 +134,7 @@ def _getdownloadurl(id,user):
     app_url=GetAppUrl()
     token=GetToken(user=user)
     filename=GetName(id)
-    ext=filename.split('.')[-1]
+    ext=filename.split('.')[-1].lower()
     if ext in ['webm','avi','mpg', 'mpeg', 'rm', 'rmvb', 'mov', 'wmv', 'mkv', 'asf']:
         downloadUrl=_thunbnail(id,user)
         downloadUrl=downloadUrl.replace('thumbnail','videomanifest')+'&part=index&format=dash&useScf=True&pretranscode=0&transcodeahead=0'
@@ -208,7 +208,7 @@ def GetHead(path):
 
 
 def CanEdit(filename):
-    ext=filename.split('.')[-1]
+    ext=filename.split('.')[-1].lower()
     if ext in ["html","htm","php","css","go","java","js","json","txt","sh","md",".password"]:
         return True
     else:
