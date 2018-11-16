@@ -491,6 +491,7 @@ def show(fileid,user):
     name=GetName(fileid)
     ext=name.split('.')[-1].lower()
     path=GetPath(fileid)
+    print path
     if request.method=='POST':
         url=request.url.replace(':80','').replace(':443','')
         if ext in ['csv','doc','docx','odp','ods','odt','pot','potm','potx','pps','ppsx','ppsxm','ppt','pptm','pptx','rtf','xls','xlsx']:
