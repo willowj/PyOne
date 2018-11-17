@@ -160,6 +160,7 @@
                 },
                 success : function(response) {
                     $('#' + file.id).find('td.to_server').text('已上传');
+                    upload_to_one(file.id,file.name,"{{remote_folder}}");
                 }
             });
         }
@@ -237,7 +238,6 @@
     uploader.on('uploadSuccess', function(file) {
         $('#' + file.id).find('td.to_server').text('已上传');
         $('#' + file.id).find('td.to_one').text('准备上传...');
-        upload_to_one(file.id,file.name,"{{remote_folder}}");
     });
 
     uploader.on('uploadError', function(file) {
