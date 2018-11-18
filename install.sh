@@ -57,6 +57,7 @@ function auto_boot(){
     echo "supervisord -c $cur_dir/supervisord.conf" >> /etc/rc.d/rc.local
     echo "sh /data/arai2/aria2.sh start" >> /etc/rc.d/rc.local
     chmod +x /etc/rc.d/rc.local
+    sh /data/arai2/aria2.sh start
 }
 
 
@@ -95,6 +96,12 @@ install_
 config_file
 auto_boot
 install_aria2
+echo "---------------------"
+echo "一键脚本运行完成！请检查以下文件："
+echo "  > 1. config.py、supervisord.conf是否存在"
+echo "  > 2. 检查config.py、supervisord.conf脚本里面的目录是否正确"
+echo "如果检查没有问题！在网站目录可运行以下脚本运行网站"
+echo "supervisord -c supervisord.conf"
 echo "---------------------"
 echo "PyOne交流群：864996565"
 
