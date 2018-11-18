@@ -1,0 +1,352 @@
+{%extends 'admin/layout.html'%} {%block content%}
+<link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/webuploader/0.1.1/webuploader.css">
+<script src="https://cdn.jsdelivr.net/npm/webuploader@0.1.8/dist/webuploader.min.js"></script>
+<script type="text/javascript" src="/static/js/hashmap.js"></script>
+<style type="text/css">
+.placeholder {
+    min-height: 350px;
+    padding-top: 178px;
+    text-align: center;
+    background: center 93px no-repeat;
+    color: #cccccc;
+    font-size: 18px;
+    position: relative;
+}
+
+.placeholder .webuploader-pick {
+    font-size: 18px;
+    background: #00b7ee;
+    border-radius: 3px;
+    line-height: 44px;
+    padding: 0 30px;
+    *width: 120px;
+    color: #fff;
+    display: inline-block;
+    margin: 0 auto 20px auto;
+    cursor: pointer;
+    box-shadow: 0 1px 1px rgba(0, 0, 0, 0.1);
+}
+
+.placeholder .webuploader-pick-hover {
+    background: #00a2d4;
+}
+
+.placeholder .flashTip {
+    color: #666666;
+    font-size: 12px;
+    position: absolute;
+    width: 100%;
+    text-align: center;
+    bottom: 20px;
+}
+.placeholder .flashTip a {
+    color: #0785d1;
+    text-decoration: none;
+}
+.placeholder .flashTip a:hover {
+    text-decoration: underline;
+}
+
+</style>
+<div class="mdui-container-fluid">
+    <div class="mdui-typo">
+        <h1> 离线下载 <small>远程文件->服务器->onedrive</small></h1>
+    </div>
+    <div class="mdui-toolbar mdui-color-theme">
+      <button class="mdui-btn mdui-btn-icon" onclick="AddLink()" mdui-tooltip="{{'{'}}content: '添加任务'{{'}'}}"><i class="mdui-icon material-icons">&#xe250;</i></button>
+    </div>
+    <div class="mdui-panel" mdui-panel>
+            <div class="mdui-panel-item">
+              <div class="mdui-panel-item-header">
+                <div class="mdui-panel-item-title">离线下载列表</div>
+              </div>
+              <div class="mdui-panel-item-body mdui-panel-item-open">
+                <div class="mdui-table-fluid">
+                    <table class="mdui-table">
+                      <caption>进行中任务</caption>
+                        <thead>
+                            <tr>
+                                <th>链接</th>
+                                <th>文件名称</th>
+                                <th>文件大小</th>
+                                <th>服务器下载状态</th>
+                                <th>onedrive上传状态</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="active">
+                        </tbody>
+                    </table>
+                </div>
+                <br>
+                <hr>
+                <br>
+                <div class="mdui-table-fluid">
+                    <table class="mdui-table">
+                      <caption>失败任务</caption>
+                        <thead>
+                            <tr>
+                                <th>链接</th>
+                                <th>文件名称</th>
+                                <th>文件大小</th>
+                                <th>服务器下载状态</th>
+                                <th>onedrive上传状态</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="fail">
+                        </tbody>
+                    </table>
+                </div>
+                <br>
+                <hr>
+                <br>
+                <div class="mdui-table-fluid">
+                    <table class="mdui-table">
+                      <caption>成功任务</caption>
+                        <thead>
+                            <tr>
+                                <th>链接</th>
+                                <th>文件名称</th>
+                                <th>文件大小</th>
+                                <th>服务器下载状态</th>
+                                <th>onedrive上传状态</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="success">
+                        </tbody>
+                    </table>
+                </div>
+              </div>
+            </div>
+          </div>
+</div>
+<script>
+function pause(gid){
+    var defer = $.Deferred();
+    $.ajax({
+        type: "POST",
+        url: "{{url_for('admin.RPCserver')}}",
+        data: { action:'pause',gid:gid },
+        cache: false, //使用同步的方式,true为异步方式
+        dataType: "json",
+        success: function(data) {
+            defer.resolve(data);
+            alert(data['result'][0]['msg']);
+            defer.promise();
+        }
+    });
+}
+function unpause(gid){
+    var defer = $.Deferred();
+    $.ajax({
+        type: "POST",
+        url: "{{url_for('admin.RPCserver')}}",
+        data: { action:'unpause',gid:gid },
+        cache: false, //使用同步的方式,true为异步方式
+        dataType: "json",
+        success: function(data) {
+            defer.resolve(data);
+            alert(data['result'][0]['msg']);
+            defer.promise();
+        }
+    });
+}
+function remove(gid){
+    var defer = $.Deferred();
+    $.ajax({
+        type: "POST",
+        url: "{{url_for('admin.RPCserver')}}",
+        data: { action:'remove',gid:gid },
+        cache: false, //使用同步的方式,true为异步方式
+        dataType: "json",
+        success: function(data) {
+            defer.resolve(data);
+            alert(data['result'][0]['msg']);
+            defer.promise();
+        }
+    });
+}
+function restart(gid){
+    var defer = $.Deferred();
+    $.ajax({
+        type: "POST",
+        url: "{{url_for('admin.RPCserver')}}",
+        data: { action:'restart',gid:gid },
+        cache: false, //使用同步的方式,true为异步方式
+        dataType: "json",
+        success: function(data) {
+            defer.resolve(data);
+            alert(data['result'][0]['msg']);
+            defer.promise();
+        }
+    });
+}
+
+function AddLink() {
+    layer.prompt({
+            formType: 2,
+            title: '请输入下载链接（一行一个）',
+            maxlength:10000
+        },
+        function(value, index, elem) {
+            layer.close(index);
+            var defer = $.Deferred();
+            $.ajax({
+                type: "POST",
+                url: "{{url_for('admin.off_download')}}",
+                data: { grand_path: "{{grand_path}}", urls: value, user: "{{cur_user}}" },
+                // async: false, //使用同步的方式,true为异步方式
+                dataType: "json",
+                beforeSend: function(xhr) {
+                    var index2 = layer.load(2, {
+                        shade: [0.1, '#fff'] //0.1透明度的白色背景
+                    });
+                },
+                success: function(data) {
+                    defer.resolve(data);
+                    if (data.status) {
+                        alert('添加任务成功！');
+                    } else {
+                        alert(status);
+                    }
+                    window.location.reload();
+                },
+                complete: function(xhr) {
+                    defer.promise();
+                    $('#layui-layer-shade1').remove();
+                }
+            });
+        });
+}
+
+function tellActive() {
+    var defer = $.Deferred();
+    $.ajax({
+        type: "POST",
+        url: "{{url_for('admin.RPCserver')}}",
+        data: { action:'tellActive' },
+        cache: false, //使用同步的方式,true为异步方式
+        // async: false, //使用同步的方式,true为异步方式
+        dataType: "json",
+        success: function(data) {
+            defer.resolve(data);
+            if (data.code==1) {
+                $('#active').empty();
+                for (var i = 0; i <= data.result.length - 1; i++) {
+                    t=data.result[i];
+                    html='<tr>';
+                    html+='<td>'+t['downloadUrl'].substr(0,20)+'</td>';
+                    html+='<td>'+t['name']+'</td>';
+                    html+='<td>'+t['size']+'</td>';
+                    html+='<td>'+t['down_status']+'</td>';
+                    html+='<td>'+t['up_status']+'</td>';
+                    //active -- >pause/unpause/remove
+                    if(t['down_status']=='暂停下载'){
+                        html+='<td>'+'<button class="mdui-btn mdui-btn-icon" onclick="unpause(\''+t['gid']+'\')" mdui-tooltip="{content: \'开始任务\'}"><i class="mdui-icon material-icons">&#xe037;</i></button> '+'<button class="mdui-btn mdui-btn-icon" onclick="remove(\''+t['gid']+'\')" mdui-tooltip="{content: \'删除任务\'}"><i class="mdui-icon material-icons">&#xe872;</i></button>'+'</td>';
+                    }
+                    else{
+                        html+='<td>'+'<button class="mdui-btn mdui-btn-icon" onclick="pause(\''+t['gid']+'\')" mdui-tooltip="{content: \'暂停任务\'}"><i class="mdui-icon material-icons">&#xe047;</i></button> '+'<button class="mdui-btn mdui-btn-icon" onclick="remove(\''+t['gid']+'\')" mdui-tooltip="{content: \'删除任务\'}"><i class="mdui-icon material-icons">&#xe872;</i></button>'+'</td>';
+                    }
+                    html+='</tr>';
+                    $('#active').append(html);
+                }
+            } else {
+                alert(data.msg);
+            }
+        },
+        complete:function(){
+            defer.promise();
+            tellFail();
+        }
+    });
+}
+
+function tellFail() {
+    var defer = $.Deferred();
+    $.ajax({
+        type: "POST",
+        url: "{{url_for('admin.RPCserver')}}",
+        data: { action:'tellFail' },
+        cache: false, //使用同步的方式,true为异步方式
+        // async: false, //使用同步的方式,true为异步方式
+        dataType: "json",
+        success: function(data) {
+            defer.resolve(data);
+            if (data.code==1) {
+                $('#fail').empty();
+                for (var i = 0; i <= data.result.length - 1; i++) {
+                    t=data.result[i];
+                    html='<tr>';
+                    html+='<td>'+t['downloadUrl'].substr(0,20)+'</td>';
+                    html+='<td>'+t['name']+'</td>';
+                    html+='<td>'+t['size']+'</td>';
+                    html+='<td>'+t['down_status']+'</td>';
+                    html+='<td>'+t['up_status']+'</td>';
+                    //fail -- > restart
+                    html+='<td>'+'<button class="mdui-btn mdui-btn-icon" onclick="restart(\''+t['gid']+'\')" mdui-tooltip="{content: \'重新开始\'}"><i class="mdui-icon material-icons">&#xe863;</i></button> '+'<button class="mdui-btn mdui-btn-icon" onclick="remove(\''+t['gid']+'\')" mdui-tooltip="{content: \'删除任务\'}"><i class="mdui-icon material-icons">&#xe872;</i></button>'+'</td>';
+                    html+='</tr>';
+                    $('#fail').append(html);
+                }
+            } else {
+                alert(data.msg);
+            }
+        },
+        complete:function(){
+            defer.promise();
+            tellSuccess();
+        }
+    });
+}
+
+function tellSuccess() {
+    var defer = $.Deferred();
+    $.ajax({
+        type: "POST",
+        url: "{{url_for('admin.RPCserver')}}",
+        data: { action:'tellSuccess' },
+        cache: false, 
+        // async: false, 
+        dataType: "json",
+        success: function(data) {
+             defer.resolve(data);
+            $('#success').empty();
+            if (data.code==1) {
+                for (var i = 0; i <= data.result.length - 1; i++) {
+                    t=data.result[i];
+                    html='<tr>';
+                    html+='<td>'+t['downloadUrl'].substr(0,20)+'</td>';
+                    html+='<td>'+t['name']+'</td>';
+                    html+='<td>'+t['size']+'</td>';
+                    html+='<td>'+t['down_status']+'</td>';
+                    html+='<td>'+t['up_status']+'</td>';
+                    //success -- > remove
+                    html+='<td>'+'<button class="mdui-btn mdui-btn-icon" onclick="remove(\''+t['gid']+'\')" mdui-tooltip="{content: \'删除任务\'}"><i class="mdui-icon material-icons">&#xe872;</i></button>'+'</td>';
+                    html+='</tr>';
+                    $('#success').append(html);
+                }
+            } else {
+                alert(data.msg);
+            }
+        },
+        complete: function(){
+            defer.promise();
+        }
+    });
+}
+function Refresh(){
+    tellActive();
+}
+var interval_id=null;
+function AutoRefresh(){
+    if (interval_id){
+        window.clearInterval(interval_id);
+    }
+    interval_id = window.setInterval(function(){
+        Refresh();
+    },2000);
+}
+AutoRefresh();
+</script>
+{%endblock content%}

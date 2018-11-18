@@ -16,16 +16,19 @@ import shutil
 import base64
 import humanize
 import StringIO
+import subprocess
 from dateutil.parser import parse
 from Queue import Queue
 from threading import Thread
 from redis import Redis
 from config import *
+from aria2 import PyAria2
 from pymongo import MongoClient,ASCENDING,DESCENDING
 ######mongodb
 client = MongoClient('localhost',27017)
 db=client.three
 items=db.items
+down_db=db.down_db
 rd=Redis(host='localhost',port=6379)
 
 #######授权链接
@@ -631,7 +634,8 @@ def AddResource(data,user='A'):
         path=path[1:]
     if path=='':
         path=convert2unicode(data['name'])
-    item['path']=user+':/'+path
+    path=user+':/'+path
+    item['path']=path
     if GetExt(data['name']) in ['bmp','jpg','jpeg','png','gif']:
         item['order']=3
         key1='name:{}'.format(data['id'])
@@ -648,7 +652,7 @@ def AddResource(data,user='A'):
 def CreateUploadSession(path,user='A'):
     token=GetToken(user=user)
     headers={'Authorization':'bearer {}'.format(token),'Content-Type':'application/json'}
-    url=app_url+'v1.0/me/drive/root:'+urllib.quote(path)+':/createUploadSession'
+    url=app_url+u'v1.0/me/drive/root:{}:/createUploadSession'.format(urllib.quote(path.encode('utf8')))
     data={
           "item": {
             "@microsoft.graph.conflictBehavior": "rename",
@@ -677,29 +681,27 @@ def UploadSession(uploadUrl, filepath,user):
         #上传完成
         if code==0:
             AddResource(result['info'],user)
-            yield {'status':'upload success!'}
+            yield {'status':'upload success!','uploadUrl':uploadUrl}
             break
         #分片上传成功
         elif code==1:
             trytime=1
             offset=result['offset']
             per=round((float(offset)/filesize)*100,1)
-            yield {'status':'partition upload success! {}%'.format(per)}
+            yield {'status':'partition upload success! {}%'.format(per),'uploadUrl':uploadUrl}
         #错误，重试
         elif code==2:
             if result['sys_msg']=='The request has been throttled':
                 print(result['sys_msg']+' ; wait for 1800s')
-                yield {'status':'The request has been throttled! wait for 1800s'}
+                yield {'status':'The request has been throttled! wait for 1800s','uploadUrl':uploadUrl}
                 time.sleep(1800)
             offset=offset
             trytime=result['trytime']
-            yield {'status':'partition upload fail! retry!'}
+            yield {'status':'partition upload fail! retry!','uploadUrl':uploadUrl}
         #重试超过3次，放弃
         elif code==3:
-            yield {'status':'partition upload fail! touch max retry times!'}
+            yield {'status':'partition upload fail! touch max retry times!','uploadUrl':uploadUrl}
             break
-
-
 
 def Upload_for_server(filepath,remote_path=None,user='A'):
     token=GetToken(user=user)
@@ -726,6 +728,48 @@ def Upload_for_server(filepath,remote_path=None,user='A'):
             else:
                 print('user:{} create upload session fail! {},{}'.format(user,remote_path,session_data.get('error').get('message')))
                 yield {'status':'user:{};create upload session fail!{}'.format(user,session_data.get('error').get('message'))}
+
+def ContinueUpload(filepath,uploadUrl,user):
+    headers={'Content-Type':'application/json'}
+    r=requests.get(uploadUrl,headers=headers)
+    data=json.loads(r.text)
+    offset=data.get('nextExpectedRanges')[0].split('-')[0]
+    expires_on=time.mktime(parse(data.get('expirationDateTime')).timetuple())
+    if time.time()>expires_on:
+        yield 'alright expired!'
+    else:
+        length=327680*10
+        trytime=1
+        filesize=_filesize(filepath)
+        while 1:
+            result=_upload_part(uploadUrl, filepath, offset, length,trytime=trytime)
+            code=result['code']
+            #上传完成
+            if code==0:
+                AddResource(result['info'],user)
+                yield {'status':'upload success!'}
+                break
+            #分片上传成功
+            elif code==1:
+                trytime=1
+                offset=result['offset']
+                per=round((float(offset)/filesize)*100,1)
+                yield {'status':'partition upload success! {}%'.format(per)}
+            #错误，重试
+            elif code==2:
+                if result['sys_msg']=='The request has been throttled':
+                    print(result['sys_msg']+' ; wait for 1800s')
+                    yield {'status':'The request has been throttled! wait for 1800s'}
+                    time.sleep(1800)
+                offset=offset
+                trytime=result['trytime']
+                yield {'status':'partition upload fail! retry!'}
+            #重试超过3次，放弃
+            elif code==3:
+                yield {'status':'partition upload fail! touch max retry times!'}
+                break
+
+
 
 def Upload(filepath,remote_path=None,user='A'):
     token=GetToken(user=user)
@@ -991,6 +1035,255 @@ def RemoveRepeatFile():
     except Exception as e:
         print(e)
         return
+
+def get_aria2():
+    try:
+        p=PyAria2()
+        return p,True
+    except Exception as e:
+        return e,False
+
+
+def parse_result(data):
+    j=json.loads(data)
+    print js
+    try:
+        return j[0]['result']['status']
+    except Exception as e:
+        print e
+        return False
+
+def download_and_upload(url,remote_dir,user,gid=None):
+    p,status=get_aria2()
+    down_path=os.path.join(config_dir,'upload')
+    #重新下载
+    if gid is not None:
+        task=down_db.find_one({'gid':gid})
+        if task is None:
+            return False
+        new_value={}
+        new_value['up_status']=u'待机'
+        new_value['status']=1
+        down_db.find_one_and_update({'gid':gid},{'$set':new_value})
+    else:
+        cur_order=down_db.count()
+        option={"dir":down_path,"split":"16","max-connection-per-server":"8","seed-ratio":"0","header":["User-Agent:Transmission/2.77"]}
+        item={}
+        gid=json.loads(p.addUri(url,option))[0]["result"]
+        item['gid']=gid
+        a=json.loads(p.tellStatus(gid))[0]["result"]
+        if 'magnet:?xt=' in url:
+            name=re.findall('magnet:\?xt=urn:btih:(.{,40})',url)[0]+'.torrent'
+            localpath=os.path.join(down_path,name)
+        else:
+            name=a['files'][0]['path'].replace(down_path+'/','').replace(down_path,'').replace(down_path[:-1],'')
+            localpath=a['files'][0]['path']
+        item['name']=name
+        item['localpath']=localpath
+        item['downloadUrl']=url
+        item['user']=user
+        item['remote_dir']=remote_dir
+        item['uploadUrl']=''
+        item['size']=humanize.naturalsize(a['totalLength'], gnu=True)
+        item['down_status']=u'{}%'.format(round(float(a['completedLength'])/(float(a['totalLength'])+0.1)*100,0))
+        item['up_status']=u'待机'
+        item['status']=1
+        down_db.insert_one(item)
+    while 1:
+        a=json.loads(p.tellStatus(gid))[0]["result"]
+        if a.get('followedBy'):
+            old_status={}
+            old_status['status']=0
+            old_status['up_status']=u'磁力文件，无需上传'
+            down_db.find_one_and_update({'gid':gid},{'$set':old_status})
+            magnet=re.findall('magnet:\?xt=urn:btih:(.{,40})',down_db.find_one({'gid':gid})['downloadUrl'])[0]+'.torrent'
+            old_path=os.path.join(down_path,magnet)
+            try:
+                os.remove(old_path)
+            except:
+                print("删除种子文件失败")
+            gid=a.get('followedBy')[0]
+            aa=json.loads(p.tellStatus(gid))[0]["result"]
+            for file in aa['files']:
+                new_item={}
+                new_item['gid']=gid
+                new_item['name']=file['path'].replace(down_path+'/','').replace(down_path,'').replace(down_path[:-1],'')
+                new_item['localpath']=file['path']
+                new_item['downloadUrl']=aa['infoHash']
+                new_item['user']=user
+                new_item['remote_dir']=remote_dir
+                new_item['uploadUrl']=''
+                new_item['size']=humanize.naturalsize(file['length'], gnu=True)
+                new_item['down_status']=u'{}%'.format(round(float(file['completedLength'])/(float(file['length'])+0.1)*100,0))
+                new_item['up_status']=u'待机'
+                new_item['status']=1
+                down_db.insert_one(new_item)
+            a=json.loads(p.tellStatus(gid))[0]["result"]
+        name=a['files'][0]['path'].replace(down_path+'/','').replace(down_path,'').replace(down_path[:-1],'')
+        new_value={'down_status':u'{}%'.format(round(float(a['completedLength'])/(float(a['totalLength'])+0.1)*100,0))}
+        new_value['name']=name
+        new_value['size']=humanize.naturalsize(a['totalLength'], gnu=True)
+        new_value['localpath']=a['files'][0]['path']
+        if a['status']=='complete' or (a['completedLength']==a['totalLength'] and int(a['totalLength'])!=0):
+            new_value['up_status']=u'准备上传'
+            down_db.update_many({'gid':gid},{'$set':new_value})
+            upload_status(gid,remote_dir,user)
+            break
+        elif a['status']=='active' or a['status']=='waiting':
+            time.sleep(1)
+            down_db.update_many({'gid':gid},{'$set':new_value})
+        else:
+            print('下载出错')
+            new_value['down_status']=u'下载出错'
+            new_value['status']=-1
+            print new_value
+            down_db.update_many({'gid':gid},{'$set':new_value})
+            break
+
+def upload_status(gid,remote_dir,user):
+    items=down_db.find({'gid':gid})
+    for item in items:
+        localpath=item['localpath']
+        if not remote_dir.endswith('/'):
+            remote_dir=remote_dir+'/'
+        if not os.path.exists(localpath):
+            new_value={}
+            new_value['up_status']=u'本地文件不存在。检查：{}'.format(localpath)
+            new_value['status']=-1
+            down_db.find_one_and_update({'_id':item['_id']},{'$set':new_value})
+            return
+        _upload_session=Upload_for_server(localpath,remote_dir,user)
+        while 1:
+            try:
+                new_value={}
+                data=_upload_session.next()
+                msg=data['status']
+                """
+                partition upload success
+                The request has been throttled!
+                partition upload fail! retry
+                partition upload fail!
+                file exists
+                create upload session fail
+                """
+                if 'partition upload success' in msg:
+                    new_value['up_status']=msg
+                    new_value['uploadUrl']=data.get('uploadUrl')
+                    new_value['status']=1
+                elif 'The request has been throttled' in msg:
+                    new_value['up_status']='api受限！智能等待30分钟'
+                    new_value['status']=0
+                elif 'partition upload fail! retry' in msg:
+                    new_value['up_status']='上传失败，等待重试'
+                    new_value['status']=1
+                elif 'partition upload fail' in msg:
+                    new_value['up_status']='上传失败，已经超过重试次数'
+                    new_value['status']=-1
+                    down_db.find_one_and_update({'_id':item['_id']},{'$set':new_value})
+                    break
+                elif 'file exists' in msg:
+                    new_value['up_status']='远程文件已存在'
+                    new_value['status']=-1
+                    down_db.find_one_and_update({'_id':item['_id']},{'$set':new_value})
+                    break
+                elif 'create upload session fail' in msg:
+                    new_value['up_status']='创建实例失败！'
+                    new_value['status']=-1
+                    down_db.find_one_and_update({'_id':item['_id']},{'$set':new_value})
+                    break
+                else:
+                    new_value['up_status']='上传成功！'
+                    new_value['status']=0
+                    down_db.find_one_and_update({'_id':item['_id']},{'$set':new_value})
+                    os.remove(localpath)
+                    break
+                down_db.find_one_and_update({'_id':item['_id']},{'$set':new_value})
+            except Exception as e:
+                print(e)
+                break
+
+
+def get_tasks(status):
+    tasks=down_db.find({'status':status})
+    result=[]
+    for t in tasks:
+        info={}
+        info['gid']=t['gid']
+        info['name']=t['name']
+        info['downloadUrl']=t['downloadUrl']
+        info['size']=t['size']
+        info['down_status']=t['down_status']
+        info['up_status']=t['up_status']
+        info['status']=t['status']
+        result.append(info)
+    return result
+
+def Aria2Method(action,**kwargs):
+    p,status=get_aria2()
+    if not status:
+        return {'status':False,'msg':p}
+    if action in ['pause','unpause']:
+        for gid in kwargs['gids']:
+            eval('p.{}("{}")'.format(action,gid))
+    elif action in ['pauseAll','unpauseAll']:
+        eval('p.{}()'.format(action))
+    elif action in ['remove','removeAll']:
+        for gid in kwargs['gids']:
+            p.forceRemove(gid)
+    elif action=='restart':
+        for gid in kwargs['gids']:
+            p.unpause(gid)
+
+def DBMethod(action,**kwargs):
+    retdata={}
+    if action in ['pause','unpause','pauseAll','unpauseAll']:
+        result=[]
+        for gid in kwargs['gids']:
+            info={'gid':gid}
+            task=down_db.find_one({'gid':gid})
+            if task['down_status']=='100.0%':
+                info['msg']='文件下载完成！无法更改上传状态'
+            elif task['down_status']=='下载出错':
+                info['msg']='失败任务只能重启'
+            else:
+                new_value={}
+                if action in ['pauseAll','pause']:
+                    new_value['down_status']='暂停下载'
+                else:
+                    new_value['down_status']='开始下载'
+                down_db.find_one_and_update({'gid':gid},{'$set':new_value})
+                info['msg']='更改状态成功'
+            result.append(info)
+    elif action in ['remove','removeAll']:
+        result=[]
+        for gid in kwargs['gids']:
+            info={'gid':gid}
+            task=down_db.find_one({'gid':gid})
+            if task['down_status']=='100.0%' and 'partition upload success' in task['up_status']:
+                info['msg']='正在上传的任务，无法更改状态'
+            else:
+                down_db.remove(info)
+                info['msg']='删除任务成功'
+            try:
+                os.remove(task['localpath'])
+            except:
+                print('未能成功删除本地文件')
+                info['msg']='删除任务成功。但是未能成功删除本地文件'
+            result.append(info)
+    elif action=='restart':
+        result=[]
+        for gid in kwargs['gids']:
+            info={'gid':gid}
+            new_value={'status':1}
+            down_db.find_one_and_update({'gid':gid},{'$set':new_value})
+            info['msg']='更改状态成功'
+            cmd=u'python {} download_and_upload "{}" "{}" {} {}'.format(os.path.join(config_dir,'function.py'),1,1,1,gid)
+            print cmd
+            subprocess.Popen(cmd,shell=True)
+            result.append(info)
+    retdata['result']=result
+    return retdata
+
 
 
 if __name__=='__main__':

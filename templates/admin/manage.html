@@ -25,7 +25,7 @@ a:hover {
     <h1> 文件管理 <small>仅支持更新/编辑文编；支持删除文件</small></h1>
 </div>
 <div class="mdui-table-fluid">
-    <div class="mdui-appbar mdui-appbar-scroll-hide">
+    <div class="mdui-appbar">
         <div class="mdui-tab mdui-color-theme" mdui-tab>
             {%for user in get_od_user()%}
                 {%if user[1]=='添加网盘'%}
@@ -41,6 +41,21 @@ a:hover {
                 {%endif%}
             {%endfor%}
          </div>
+         <div class="mdui-toolbar mdui-color-theme">
+           <span class="mdui-typo-title">工具栏</span>
+           <div class="mdui-toolbar-spacer"></div>
+           <button class="mdui-btn mdui-btn-icon" onclick="delAllProduct()" mdui-tooltip="{{'{'}}content: '删除'{{'}'}}"><i class="mdui-icon material-icons">&#xe872;</i></button>
+           <button class="mdui-btn mdui-btn-icon" onclick="setPasswd('{{path}}')" mdui-tooltip="{{'{'}}content: '设置密码'{{'}'}}"><i class="mdui-icon material-icons">&#xe32a;</i> </button>
+           <button class="mdui-btn mdui-btn-icon" onclick="setReadMe('{{path}}')" mdui-tooltip="{{'{'}}content: '设置README'{{'}'}}"><i class="mdui-icon material-icons">&#xe0d8;</i> </button>
+           <button class="mdui-btn mdui-btn-icon" onclick="setHead('{{path}}')" mdui-tooltip="{{'{'}}content: '设置HEAD'{{'}'}}"><i class="mdui-icon material-icons">&#xe89c;</i> </button>
+           <button class="mdui-btn mdui-btn-icon" onclick="uploadLocalFile('{{path}}')" mdui-tooltip="{{'{'}}content: '本地上传文件至onedrive'{{'}'}}"><i class="mdui-icon material-icons">&#xe2c3;</i> </button>
+           <button class="mdui-btn mdui-btn-icon" onclick="AddFolder('{{path}}')" mdui-tooltip="{{'{'}}content: '创建文件夹'{{'}'}}"><i class="mdui-icon material-icons">&#xe2cc;</i> </button>
+           <button class="mdui-btn mdui-btn-icon" onclick="OffDownload('{{path}}')" mdui-tooltip="{{'{'}}content: '离线下载'{{'}'}}"><i class="mdui-icon material-icons">&#xe2c4;</i> </button>
+         </div>
+    </div>
+    
+
+    <table class="mdui-table mdui-table-selectable">
         <div class="mdui-toolbar nexmoe-item">
             <a href="/">{{cur_user}}</a>
             {%if path%}
@@ -54,8 +69,6 @@ a:hover {
                 {%endfor%}
             {%endif%}
         </div>
-    </div>
-    <table class="mdui-table mdui-table-selectable">
         <thead>
             <tr>
                 <th class="mdui-table-cell-checkbox" id="SelectAll" style="width: 60px;">
@@ -66,12 +79,6 @@ a:hover {
                 <th>{{ macros.Admin_Arraw(name='文件',cur_type='name',sortby=sortby,order=order,path=path) }}</th>
                 <th>{{ macros.Admin_Arraw(name='修改时间',cur_type='lastModtime',sortby=sortby,order=order,path=path) }}</th>
                 <th>
-                    <button class="mdui-btn mdui-btn-icon" onclick="delAllProduct()" mdui-tooltip="{{'{'}}content: '删除'{{'}'}}"><i class="mdui-icon material-icons">&#xe872;</i></button>
-                    <button class="mdui-btn mdui-btn-icon" onclick="setPasswd('{{path}}')" mdui-tooltip="{{'{'}}content: '设置密码'{{'}'}}"><i class="mdui-icon material-icons">&#xe32a;</i> </button>
-                    <button class="mdui-btn mdui-btn-icon" onclick="setReadMe('{{path}}')" mdui-tooltip="{{'{'}}content: '设置README'{{'}'}}"><i class="mdui-icon material-icons">&#xe0d8;</i> </button>
-                    <button class="mdui-btn mdui-btn-icon" onclick="setHead('{{path}}')" mdui-tooltip="{{'{'}}content: '设置HEAD'{{'}'}}"><i class="mdui-icon material-icons">&#xe89c;</i> </button>
-                    <button class="mdui-btn mdui-btn-icon" onclick="uploadLocalFile('{{path}}')" mdui-tooltip="{{'{'}}content: '本地上传文件至onedrive'{{'}'}}"><i class="mdui-icon material-icons">&#xe2c3;</i> </button>
-                    <button class="mdui-btn mdui-btn-icon" onclick="AddFolder('{{path}}')" mdui-tooltip="{{'{'}}content: '创建文件夹'{{'}'}}"><i class="mdui-icon material-icons">&#xe2cc;</i> </button>
                 </th>
             </tr>
         </thead>
@@ -261,6 +268,10 @@ function setHead(path) {
 
 function uploadLocalFile(path) {
     window.open("{{url_for('admin.upload_local')}}?path=" + path, '_blank');
+}
+
+function OffDownload(path) {
+    window.open("{{url_for('admin.off_download')}}?path=" + path, '_blank');
 }
 
 function moveProduct(fileid){

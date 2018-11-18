@@ -1,6 +1,9 @@
 #-*- coding=utf-8 -*-
+import eventlet
+eventlet.monkey_patch()
 from flask import Flask,render_template,redirect,abort,make_response,jsonify,request,url_for,Response
 from flask_sqlalchemy import Pagination
+from werkzeug.contrib.fixers import ProxyFix
 import json
 from collections import OrderedDict
 import subprocess
@@ -16,9 +19,7 @@ from shelljob import proc
 import time
 import os
 import sys
-import eventlet
 
-eventlet.monkey_patch()
 
 reload(sys)
 sys.setdefaultencoding("utf-8")
@@ -26,6 +27,7 @@ sys.setdefaultencoding("utf-8")
 
 #######flask
 app=Flask(__name__)
+app.wsgi_app = ProxyFix(app.wsgi_app)
 app.secret_key=os.path.join(config_dir,'PyOne'+password)
 cache = Cache(app, config={'CACHE_TYPE': 'redis'})
 limiter = Limiter(
@@ -491,9 +493,9 @@ def show(fileid,user):
     name=GetName(fileid)
     ext=name.split('.')[-1].lower()
     path=GetPath(fileid)
-    print path
     if request.method=='POST':
         url=request.url.replace(':80','').replace(':443','')
+        print request.scheme
         if ext in ['csv','doc','docx','odp','ods','odt','pot','potm','potx','pps','ppsx','ppsxm','ppt','pptm','pptx','rtf','xls','xlsx']:
             downloadUrl=GetDownloadUrl(fileid,user)
             url = 'https://view.officeapps.live.com/op/view.aspx?src='+urllib.quote(downloadUrl)
@@ -556,6 +558,9 @@ app.jinja_env.globals['get_od_user']=get_od_user
 app.jinja_env.globals['allow_site']=','.join(allow_site)
 # app.jinja_env.globals['share_path']=od_users.get('A').get('share_path')
 app.jinja_env.globals['downloadUrl_timeout']=downloadUrl_timeout
+app.jinja_env.globals['ARIA2_HOST']=ARIA2_HOST
+app.jinja_env.globals['ARIA2_PORT']=ARIA2_PORT
+app.jinja_env.globals['ARIA2_SECRET']=ARIA2_SECRET
 ################################################################################
 #####################################启动#######################################
 ################################################################################

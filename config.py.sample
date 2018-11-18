@@ -20,9 +20,14 @@ title="PyOne"
 tj_code=""""""
 
 #onedrive api设置
-redirect_uri='https://auth.pyone.me/' #不要修改！
+redirect_uri="https://auth.pyone.me/" #不要修改！
 BaseAuthUrl='https://login.microsoftonline.com'
 app_url=u'https://graph.microsoft.com/'
+
+#aria2配置
+ARIA2_HOST="localhost"
+ARIA2_PORT=6800
+ARIA2_SECRET=""
 
 od_users={
     "A":{
