@@ -55,7 +55,7 @@ function auto_boot(){
     echo "6. 配置开机启动";
     cur_dir=`pwd`
     echo "supervisord -c $cur_dir/supervisord.conf" >> /etc/rc.d/rc.local
-    echo "sh /data/arai2/aria2.sh start" >> /etc/rc.d/rc.local
+    echo "sh /data/aria2/aria2.sh start" >> /etc/rc.d/rc.local
     chmod +x /etc/rc.d/rc.local
     # sh /data/arai2/aria2.sh start
 }
@@ -83,7 +83,18 @@ function install_aria2(){
     fi
 }
 
-
+#开放端口
+function open_port(){
+    if [ -e "/etc/sysconfig/iptables" ]
+        then
+            iptables -I INPUT -p tcp --dport 34567 -j ACCEPT
+            service iptables save
+            service iptables restart
+        else
+            firewall-cmd --zone=public --add-port=34567/tcp --permanent
+            firewall-cmd --reload
+        fi
+}
 
 
 
@@ -97,6 +108,7 @@ install_
 config_file
 auto_boot
 install_aria2
+open_port
 echo "---------------------------------------------------------------"
 echo "一键脚本运行完成！请检查以下文件："
 echo "  > 1. config.py、supervisord.conf是否存在！"
