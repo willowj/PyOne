@@ -79,6 +79,7 @@ function install_aria2(){
         sh install_aria2.sh
         echo "安装aria2完成"
         echo "如果已经成功安装，请到后台配置aria2信息"
+        cd ..
         rm -rf aria2_installer
     fi
 }
