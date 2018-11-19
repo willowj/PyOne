@@ -48,6 +48,9 @@ update_config
 supervisorctl -c supervisord.conf restart pyone
 echo "---------------------------------------------------------------"
 echo "更新完成！"
+echo "  > 1. 检查/data/aria2是否存在。"
+echo "  > 2. 检查aria2是否运行：pgrep 'aria2c'"
+echo "    如果aria2没有运行，运行：sh /data/aria2/aria2.sh start"
 echo "---------------------------------------------------------------"
 echo
 echo "PyOne交流群：864996565"
