@@ -115,6 +115,8 @@ def GetToken(Token_file='token.json',user='A'):
                 if token.get('access_token'):
                     with open(token_path,'w') as f:
                         json.dump(token,f,ensure_ascii=False)
+            else:
+                print token
         except:
             with open(os.path.join(data_dir,'{}_Atoken.json'.format(user)),'r') as f:
                 Atoken=json.load(f)
@@ -299,7 +301,36 @@ class GetItemThread(Thread):
                         folder=items.find_one({'id':value['id']})
                         if folder is not None:
                             if folder['size_order']==value['size']: #文件夹大小未变化，不更新
-                                print(u'path:{},origin size:{},current size:{}'.format(value['name'],folder['size_order'],value['size']))
+                                print(u'path:{},origin size:{},current size:{}--------no change'.format(value['name'],folder['size_order'],value['size']))
+                            else:
+                                items.delete_one({'id':value['id']})
+                                item['type']='folder'
+                                item['user']=self.user
+                                item['order']=0
+                                item['name']=convert2unicode(value['name'])
+                                item['id']=convert2unicode(value['id'])
+                                item['size']=humanize.naturalsize(value['size'], gnu=True)
+                                item['size_order']=int(value['size'])
+                                item['lastModtime']=date_to_char(parse(value['lastModifiedDateTime']))
+                                item['grandid']=grandid
+                                item['parent']=parent
+                                grand_path=value.get('parentReference').get('path').replace('/drive/root:','')
+                                if grand_path=='':
+                                    path=convert2unicode(value['name'])
+                                else:
+                                    path=grand_path.replace(self.share_path,'',1)+'/'+convert2unicode(value['name'])
+                                if path.startswith('/') and path!='/':
+                                    path=path[1:]
+                                if path=='':
+                                    path=convert2unicode(value['name'])
+                                path='{}:/{}'.format(self.user,path)
+                                item['path']=path
+                                subfodler=items.insert_one(item)
+                                if value.get('folder').get('childCount')==0:
+                                    continue
+                                else:
+                                    url=app_url+'v1.0/me'+value.get('parentReference').get('path')+'/'+value.get('name')+':/children?expand=thumbnails'
+                                    self.queue.put(dict(url=url,grandid=grandid+1,parent=item['id'],trytime=1))
                         else:
                             items.delete_one({'id':value['id']})
                             item['type']='folder'
