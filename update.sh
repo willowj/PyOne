@@ -22,10 +22,28 @@ function install_aria2(){
 }
 
 
-
+function update_config(){
+    num=`cat config.py | grep "ARIA2_HOST" | wc -l`
+    if [ $num == 0 ]; then
+        echo 'ARIA2_HOST="localhost"' >> config.py
+    fi
+    num=`cat config.py | grep "ARIA2_PORT" | wc -l`
+    if [ $num == 0 ]; then
+        echo 'ARIA2_PORT=6800' >> config.py
+    fi
+    num=`cat config.py | grep "ARIA2_SECRET" | wc -l`
+    if [ $num == 0 ]; then
+        echo 'ARIA2_SECRET=""' >> config.py
+    fi
+    num=`cat config.py | grep "ARIA2_SCHEME" | wc -l`
+    if [ $num == 0 ]; then
+        echo 'ARIA2_SCHEME="http"' >> config.py
+    fi
+}
 
 #执行
 install_aria2
+update_config
 supervisorctl -c supervisord.conf restart pyone
 echo "---------------------------------------------------------------"
 echo "更新完成！"

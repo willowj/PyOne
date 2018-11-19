@@ -20,7 +20,7 @@ admin = Blueprint('admin', __name__,url_prefix='/admin')
 
 ############功能函数
 def set(key,value,user='A'):
-    allow_key=['title','downloadUrl_timeout','allow_site','password','client_secret','client_id','share_path','other_name','tj_code','ARIA2_HOST','ARIA2_PORT','ARIA2_SECRET']
+    allow_key=['title','downloadUrl_timeout','allow_site','password','client_secret','client_id','share_path','other_name','tj_code','ARIA2_HOST','ARIA2_PORT','ARIA2_SECRET','ARIA2_SCHEME']
     if key not in allow_key:
         return u'禁止修改'
     print 'set {}:{}'.format(key,value)
@@ -88,6 +88,7 @@ def setting():
         ARIA2_HOST=request.form.get('ARIA2_HOST','localhost').replace('https://','').replace('http://','')
         ARIA2_PORT=request.form.get('ARIA2_PORT',6800)
         ARIA2_SECRET=request.form.get('ARIA2_SECRET','')
+        ARIA2_SCHEME=request.form.get('ARIA2_SCHEME','http')
         password1=request.form.get('password1')
         password2=request.form.get('password2')
         new_password=password
@@ -104,6 +105,7 @@ def setting():
         set('ARIA2_HOST',ARIA2_HOST)
         set('ARIA2_PORT',ARIA2_PORT)
         set('ARIA2_SECRET',ARIA2_SECRET)
+        set('ARIA2_SCHEME',ARIA2_SCHEME)
         set('password',new_password)
         ####网盘信息处理
         for k,v in request.form.to_dict().items():
@@ -496,7 +498,7 @@ def install():
                 token=ReFreshToken(refresh_token,user)
                 with open(os.path.join(config_dir,'data/{}_token.json'.format(user)),'w') as f:
                     json.dump(token,f,ensure_ascii=False)
-                return make_response('<h1>授权成功!<a href="/?t={}">点击进入首页</a><br>请在后台另开一个ssh窗口，运行：<pre>python function.py UpdateFile</pre>进行更新数据操作</h1>'.format(time.time()))
+                return make_response('<h1>授权成功!<a href="/?t={}">点击进入首页</a><br>请先在<B>后台-页面缓存</B>，运行更新数据操作<！/h1>'.format(time.time()))
             else:
                 return jsonify(Atoken)
     step=request.args.get('step',type=int)

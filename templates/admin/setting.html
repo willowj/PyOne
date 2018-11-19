@@ -39,6 +39,11 @@
               <div class="mdui-panel-item">
                 <div class="mdui-panel-item-header">点击配置</div>
                 <div class="mdui-panel-item-body">
+                  <h5>Aria2协议</h5>
+                  <select class="mdui-select" name="ARIA2_SCHEME" mdui-select>
+                    <option value="http"{%if ARIA2_SCHEME=='http'%} selected{%endif%}>http</option>
+                    <option value="https"{%if ARIA2_SCHEME=='https'%} selected{%endif%}>https</option>
+                  </select>
                   <h5>主机（默认localhost。如果不是本机的aria2，怎么下载到本机然后上传？？？）</h5>
                   <input class="mdui-textfield-input" type="text" readonly="readonly" name="ARIA2_HOST" placeholder="请输入aria2主机" value="{{ARIA2_HOST}}" />
                   <h5>端口</h5>

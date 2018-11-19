@@ -500,7 +500,6 @@ def show(fileid,user):
     path=GetPath(fileid)
     if request.method=='POST':
         url=request.url.replace(':80','').replace(':443','')
-        print request.scheme
         if ext in ['csv','doc','docx','odp','ods','odt','pot','potm','potx','pps','ppsx','ppsxm','ppt','pptm','pptx','rtf','xls','xlsx']:
             downloadUrl=GetDownloadUrl(fileid,user)
             url = 'https://view.officeapps.live.com/op/view.aspx?src='+urllib.quote(downloadUrl)
@@ -566,6 +565,7 @@ app.jinja_env.globals['downloadUrl_timeout']=downloadUrl_timeout
 app.jinja_env.globals['ARIA2_HOST']=ARIA2_HOST
 app.jinja_env.globals['ARIA2_PORT']=ARIA2_PORT
 app.jinja_env.globals['ARIA2_SECRET']=ARIA2_SECRET
+app.jinja_env.globals['ARIA2_SCHEME']=ARIA2_SCHEME
 ################################################################################
 #####################################启动#######################################
 ################################################################################

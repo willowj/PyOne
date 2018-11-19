@@ -28,6 +28,7 @@ app_url=u'https://graph.microsoft.com/'
 ARIA2_HOST="localhost"
 ARIA2_PORT=6800
 ARIA2_SECRET=""
+ARIA2_SCHEME="http"
 
 od_users={
     "A":{

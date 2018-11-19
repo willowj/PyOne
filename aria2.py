@@ -15,7 +15,8 @@ from config import *
 DEFAULT_HOST = ARIA2_HOST
 DEFAULT_PORT = ARIA2_PORT
 DEFAULT_SECRET = ARIA2_SECRET
-SERVER_URI_FORMAT = 'http://{}:{}/jsonrpc'
+DEFAULT_SCHEME = ARIA2_SCHEME
+SERVER_URI_FORMAT = DEFAULT_SCHEME+'://{}:{}/jsonrpc'
 
 class PyAria2(object):
 
