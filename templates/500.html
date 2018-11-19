@@ -1,0 +1,14 @@
+{%extends 'layout.html'%}
+{% import '_macro.html' as macros %}
+
+{%block content%}
+<h2>Opps....500错误！</h2>
+<h3>请检查盘符是否正确？</h3>
+<h3>如果你是站长，请通过后台手动运行网站，然后再次刷新本页面，查看ssh错误！</h3>
+<h3>站长自救办法：</h3>
+<h3>1. 清理redis缓存：</h3>
+<pre>
+    redis-cli
+    FLUSHALL
+</pre>
+{%endblock content%}

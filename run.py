@@ -410,6 +410,11 @@ def before_request():
     # print '{}:{}:{}'.format(request.endpoint,ip,ua)
     referrer=request.referrer if request.referrer is not None else 'no-referrer'
 
+@app.errorhandler(500)
+def page_not_found(e):
+    # note that we set the 500 status explicitly
+    return render_template('500.html'), 500
+
 @app.route('/<path:path>',methods=['POST','GET'])
 @app.route('/',methods=['POST','GET'])
 @limiter.limit("200/minute;50/second")

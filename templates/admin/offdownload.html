@@ -1,53 +1,4 @@
 {%extends 'admin/layout.html'%} {%block content%}
-<link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/webuploader/0.1.1/webuploader.css">
-<script src="https://cdn.jsdelivr.net/npm/webuploader@0.1.8/dist/webuploader.min.js"></script>
-<script type="text/javascript" src="/static/js/hashmap.js"></script>
-<style type="text/css">
-.placeholder {
-    min-height: 350px;
-    padding-top: 178px;
-    text-align: center;
-    background: center 93px no-repeat;
-    color: #cccccc;
-    font-size: 18px;
-    position: relative;
-}
-
-.placeholder .webuploader-pick {
-    font-size: 18px;
-    background: #00b7ee;
-    border-radius: 3px;
-    line-height: 44px;
-    padding: 0 30px;
-    *width: 120px;
-    color: #fff;
-    display: inline-block;
-    margin: 0 auto 20px auto;
-    cursor: pointer;
-    box-shadow: 0 1px 1px rgba(0, 0, 0, 0.1);
-}
-
-.placeholder .webuploader-pick-hover {
-    background: #00a2d4;
-}
-
-.placeholder .flashTip {
-    color: #666666;
-    font-size: 12px;
-    position: absolute;
-    width: 100%;
-    text-align: center;
-    bottom: 20px;
-}
-.placeholder .flashTip a {
-    color: #0785d1;
-    text-decoration: none;
-}
-.placeholder .flashTip a:hover {
-    text-decoration: underline;
-}
-
-</style>
 <div class="mdui-container-fluid">
     <div class="mdui-typo">
         <h1> 离线下载 <small>远程文件->服务器->onedrive</small></h1>
@@ -123,6 +74,12 @@
           </div>
 </div>
 <script>
+function ShowNotice(msg){
+    mdui.snackbar({
+          message: msg,
+          position: 'top'
+        });
+}
 function pause(gid){
     var defer = $.Deferred();
     $.ajax({
@@ -133,7 +90,7 @@ function pause(gid){
         dataType: "json",
         success: function(data) {
             defer.resolve(data);
-            alert(data['result'][0]['msg']);
+            ShowNotice(data['result'][0]['msg']);
             defer.promise();
         }
     });
@@ -148,7 +105,7 @@ function unpause(gid){
         dataType: "json",
         success: function(data) {
             defer.resolve(data);
-            alert(data['result'][0]['msg']);
+            ShowNotice(data['result'][0]['msg']);
             defer.promise();
         }
     });
@@ -163,7 +120,7 @@ function remove(gid){
         dataType: "json",
         success: function(data) {
             defer.resolve(data);
-            alert(data['result'][0]['msg']);
+            ShowNotice(data['result'][0]['msg']);
             defer.promise();
         }
     });
@@ -178,7 +135,7 @@ function restart(gid){
         dataType: "json",
         success: function(data) {
             defer.resolve(data);
-            alert(data['result'][0]['msg']);
+            ShowNotice(data['result'][0]['msg']);
             defer.promise();
         }
     });
@@ -207,15 +164,15 @@ function AddLink() {
                 success: function(data) {
                     defer.resolve(data);
                     if (data.status) {
-                        alert('添加任务成功！');
+                        ShowNotice('添加任务成功！');
                     } else {
-                        alert(status);
+                        ShowNotice(status);
                     }
-                    window.location.reload();
                 },
                 complete: function(xhr) {
                     defer.promise();
                     $('#layui-layer-shade1').remove();
+                    setTimeout("window.location.reload();",2000);
                 }
             });
         });
@@ -253,7 +210,7 @@ function tellActive() {
                     $('#active').append(html);
                 }
             } else {
-                alert(data.msg);
+                ShowNotice(data.msg);
             }
         },
         complete:function(){
@@ -290,7 +247,7 @@ function tellFail() {
                     $('#fail').append(html);
                 }
             } else {
-                alert(data.msg);
+                ShowNotice(data.msg);
             }
         },
         complete:function(){
@@ -306,8 +263,8 @@ function tellSuccess() {
         type: "POST",
         url: "{{url_for('admin.RPCserver')}}",
         data: { action:'tellSuccess' },
-        cache: false, 
-        // async: false, 
+        cache: false,
+        // async: false,
         dataType: "json",
         success: function(data) {
              defer.resolve(data);
@@ -327,7 +284,7 @@ function tellSuccess() {
                     $('#success').append(html);
                 }
             } else {
-                alert(data.msg);
+                ShowNotice(data.msg);
             }
         },
         complete: function(){

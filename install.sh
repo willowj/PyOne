@@ -57,7 +57,7 @@ function auto_boot(){
     echo "supervisord -c $cur_dir/supervisord.conf" >> /etc/rc.d/rc.local
     echo "sh /data/arai2/aria2.sh start" >> /etc/rc.d/rc.local
     chmod +x /etc/rc.d/rc.local
-    sh /data/arai2/aria2.sh start
+    # sh /data/arai2/aria2.sh start
 }
 
 
