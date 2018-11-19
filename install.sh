@@ -64,7 +64,7 @@ function auto_boot(){
 #安装aria2
 function install_aria2(){
     echo "7. 安装aria2";
-    which aria2 > /dev/null 2>&1
+    which aria2c > /dev/null 2>&1
     if [ $? == 0 ]; then
         echo "检测到已安装aria2"
         echo "请到后台配置aria2信息"
