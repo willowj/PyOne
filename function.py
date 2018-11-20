@@ -115,8 +115,8 @@ def GetToken(Token_file='token.json',user='A'):
                 if token.get('access_token'):
                     with open(token_path,'w') as f:
                         json.dump(token,f,ensure_ascii=False)
-            else:
-                print token
+                else:
+                    print token
         except:
             with open(os.path.join(data_dir,'{}_Atoken.json'.format(user)),'r') as f:
                 Atoken=json.load(f)
@@ -176,7 +176,7 @@ def Dir(path=u'A:/'):
             n_path=n_path[:-1]
         if not n_path.startswith('/'):
             n_path='/'+n_path
-        n_path=urllib.quote(n_path)
+        n_path=urllib.quote(n_path.encode('utf-8'))
         BaseUrl=app_url+u'v1.0/me/drive/root:{}:/children?expand=thumbnails'.format(n_path)
         queue=Queue()
         # queue.put(dict(url=BaseUrl,grandid=grandid,parent=parent,trytime=1))
@@ -232,7 +232,7 @@ def Dir_all(path=u'A:/'):
                 items.delete_many({'parent':parent_id})
             grandid=idx+1
             parent=parent_id
-        n_path=urllib.quote(n_path)
+        n_path=urllib.quote(n_path.encode('utf-8'))
         BaseUrl=app_url+u'v1.0/me/drive/root:{}:/children?expand=thumbnails'.format(n_path)
         queue=Queue()
         g=GetItemThread(queue,user)
@@ -329,7 +329,9 @@ class GetItemThread(Thread):
                                 if value.get('folder').get('childCount')==0:
                                     continue
                                 else:
-                                    url=app_url+'v1.0/me'+value.get('parentReference').get('path')+'/'+value.get('name')+':/children?expand=thumbnails'
+                                    parent_path=value.get('parentReference').get('path').replace('/drive/root:','')
+                                    path=urllib.quote(convert2unicode(parent_path+'/'+value['name']))
+                                    url=app_url+'v1.0/me/drive/root:{}:/children?expand=thumbnails'.format(path)
                                     self.queue.put(dict(url=url,grandid=grandid+1,parent=item['id'],trytime=1))
                         else:
                             items.delete_one({'id':value['id']})
@@ -358,7 +360,9 @@ class GetItemThread(Thread):
                             if value.get('folder').get('childCount')==0:
                                 continue
                             else:
-                                url=app_url+'v1.0/me'+value.get('parentReference').get('path')+'/'+value.get('name')+':/children?expand=thumbnails'
+                                parent_path=value.get('parentReference').get('path').replace('/drive/root:','')
+                                path=urllib.quote(convert2unicode(parent_path+'/'+value['name']))
+                                url=app_url+'v1.0/me/drive/root:{}:/children?expand=thumbnails'.format(path)
                                 self.queue.put(dict(url=url,grandid=grandid+1,parent=item['id'],trytime=1))
                     else:
                         if items.find_one({'id':value['id']}) is not None: #文件存在
@@ -407,12 +411,12 @@ class GetItemThread(Thread):
     def GetItemByPath(self,path):
         app_url=GetAppUrl()
         token=GetToken(user=self.user)
+        path=urllib.quote(convert2unicode(path))
         if path=='' or path=='/':
             url=app_url+u'v1.0/me/drive/root/'
-        if path=='/':
+        else:
             url=app_url+u'v1.0/me/drive/root:{}:/'.format(path)
         header={'Authorization': 'Bearer {}'.format(token)}
-        url=app_url+u'v1.0/me/drive/root:{}:/'.format(path)
         r=requests.get(url,headers=header)
         data=json.loads(r.content)
         return data
@@ -458,7 +462,7 @@ def UpdateFile(renew='all'):
 def FileExists(filename,user='A'):
     token=GetToken(user=user)
     headers={'Authorization':'bearer {}'.format(token),'Content-Type':'application/json'}
-    search_url=app_url+"v1.0/me/drive/root/search(q='{}')".format(filename)
+    search_url=app_url+"v1.0/me/drive/root/search(q='{}')".format(convert2unicode(filename))
     r=requests.get(search_url,headers=headers)
     jsondata=json.loads(r.text)
     if len(jsondata['value'])==0:
@@ -523,7 +527,7 @@ def _file_content(path,offset,length):
 def _upload(filepath,remote_path,user='A'): #remote_path like 'share/share.mp4'
     token=GetToken(user=user)
     headers={'Authorization':'bearer {}'.format(token)}
-    url=app_url+'v1.0/me/drive/root:'+urllib.quote(remote_path)+':/content'
+    url=app_url+'v1.0/me/drive/root:{}:/content'.format(urllib.quote(convert2unicode(remote_path)))
     r=requests.put(url,headers=headers,data=open(filepath,'rb'))
     data=json.loads(r.content)
     trytime=1
@@ -683,7 +687,7 @@ def AddResource(data,user='A'):
 def CreateUploadSession(path,user='A'):
     token=GetToken(user=user)
     headers={'Authorization':'bearer {}'.format(token),'Content-Type':'application/json'}
-    url=app_url+u'v1.0/me/drive/root:{}:/createUploadSession'.format(urllib.quote(path.encode('utf8')))
+    url=app_url+u'v1.0/me/drive/root:{}:/createUploadSession'.format(urllib.quote(convert2unicode(path)))
     data={
           "item": {
             "@microsoft.graph.conflictBehavior": "rename",
@@ -743,6 +747,8 @@ def Upload_for_server(filepath,remote_path=None,user='A'):
         remote_path=os.path.join(remote_path,os.path.basename(filepath))
     if not remote_path.startswith('/'):
         remote_path='/'+remote_path
+    filepath=convert2unicode(filepath)
+    remote_path=convert2unicode(remote_path)
     print('local file path:{}, remote file path:{}'.format(filepath,remote_path))
     if _filesize(filepath)<1024*1024*3.25:
         for msg in _upload(filepath,remote_path,user):
@@ -1075,14 +1081,6 @@ def get_aria2():
         return e,False
 
 
-def parse_result(data):
-    j=json.loads(data)
-    print js
-    try:
-        return j[0]['result']['status']
-    except Exception as e:
-        print e
-        return False
 
 def download_and_upload(url,remote_dir,user,gid=None):
     p,status=get_aria2()
@@ -1104,12 +1102,13 @@ def download_and_upload(url,remote_dir,user,gid=None):
         item['gid']=gid
         a=json.loads(p.tellStatus(gid))[0]["result"]
         if 'magnet:?xt=' in url:
-            name=re.findall('magnet:\?xt=urn:btih:(.{,40})',url)[0]+'.torrent'
+            name=re.findall('magnet:\?xt=urn:btih:(.{,40})',url)[0].lower()+'.torrent'
             localpath=os.path.join(down_path,name)
         else:
             name=a['files'][0]['path'].replace(down_path+'/','').replace(down_path,'').replace(down_path[:-1],'')
             localpath=a['files'][0]['path']
         item['name']=name
+        item['idx']=0
         item['localpath']=localpath
         item['downloadUrl']=url
         item['user']=user
@@ -1127,7 +1126,7 @@ def download_and_upload(url,remote_dir,user,gid=None):
             old_status['status']=0
             old_status['up_status']=u'磁力文件，无需上传'
             down_db.find_one_and_update({'gid':gid},{'$set':old_status})
-            magnet=re.findall('magnet:\?xt=urn:btih:(.{,40})',down_db.find_one({'gid':gid})['downloadUrl'])[0]+'.torrent'
+            magnet=re.findall('magnet:\?xt=urn:btih:(.{,40})',down_db.find_one({'gid':gid})['downloadUrl'])[0].lower()+'.torrent'
             old_path=os.path.join(down_path,magnet)
             try:
                 os.remove(old_path)
@@ -1135,9 +1134,10 @@ def download_and_upload(url,remote_dir,user,gid=None):
                 print("删除种子文件失败")
             gid=a.get('followedBy')[0]
             aa=json.loads(p.tellStatus(gid))[0]["result"]
-            for file in aa['files']:
+            for idx,file in enumerate(aa['files']):
                 new_item={}
                 new_item['gid']=gid
+                new_item['idx']=idx
                 new_item['name']=file['path'].replace(down_path+'/','').replace(down_path,'').replace(down_path[:-1],'')
                 new_item['localpath']=file['path']
                 new_item['downloadUrl']=aa['infoHash']
@@ -1150,40 +1150,49 @@ def download_and_upload(url,remote_dir,user,gid=None):
                 new_item['status']=1
                 down_db.insert_one(new_item)
             a=json.loads(p.tellStatus(gid))[0]["result"]
-        name=a['files'][0]['path'].replace(down_path+'/','').replace(down_path,'').replace(down_path[:-1],'')
-        new_value={'down_status':u'{}%'.format(round(float(a['completedLength'])/(float(a['totalLength'])+0.1)*100,0))}
-        new_value['name']=name
-        new_value['size']=humanize.naturalsize(a['totalLength'], gnu=True)
-        new_value['localpath']=a['files'][0]['path']
-        if a['status']=='complete' or (a['completedLength']==a['totalLength'] and int(a['totalLength'])!=0):
-            new_value['up_status']=u'准备上传'
-            down_db.update_many({'gid':gid},{'$set':new_value})
-            upload_status(gid,remote_dir,user)
-            break
-        elif a['status']=='active' or a['status']=='waiting':
-            time.sleep(1)
-            down_db.update_many({'gid':gid},{'$set':new_value})
-        else:
-            print('下载出错')
-            new_value['down_status']=u'下载出错'
-            new_value['status']=-1
-            print new_value
-            down_db.update_many({'gid':gid},{'$set':new_value})
-            break
+        for idx,file in enumerate(a['files']):
+            t=down_db.find_one({'gid':gid,'idx':idx})
+            if t['down_status']=='100.0%':
+                if t['up_status']=='待机':
+                    new_value['up_status']=u'准备上传'
+                    down_db.find_one_and_update({'gid':gid,'idx':idx},{'$set':new_value})
+                    upload_status(gid,idx,remote_dir,user)
+                else:
+                    continue
+            name=file['path'].replace(down_path+'/','').replace(down_path,'').replace(down_path[:-1],'')
+            new_value={'down_status':u'{}%'.format(round(float(file['completedLength'])/(float(file['length'])+0.1)*100,0))}
+            new_value['name']=name
+            new_value['size']=humanize.naturalsize(file['length'], gnu=True)
+            new_value['localpath']=file['path']
+            if a['status']=='complete' or (file['completedLength']==file['length'] and int(file['length'])!=0):
+                new_value['up_status']=u'准备上传'
+                down_db.find_one_and_update({'gid':gid,'idx':idx},{'$set':new_value})
+                upload_status(gid,idx,remote_dir,user)
+                break
+            elif a['status']=='active' or a['status']=='waiting':
+                time.sleep(1)
+                down_db.find_one_and_update({'gid':gid,'idx':idx},{'$set':new_value})
+            else:
+                print('下载出错')
+                new_value['down_status']=u'下载出错'
+                new_value['status']=-1
+                down_db.find_one_and_update({'gid':gid,'idx':idx},{'$set':new_value})
+                break
 
-def upload_status(gid,remote_dir,user):
-    items=down_db.find({'gid':gid})
+def upload_status(gid,idx,remote_dir,user):
+    items=down_db.find({'gid':gid,'idx':idx})
     for item in items:
         localpath=item['localpath']
         if not remote_dir.endswith('/'):
             remote_dir=remote_dir+'/'
+        remote_path=os.path.join(remote_dir,item['name'])
         if not os.path.exists(localpath):
             new_value={}
             new_value['up_status']=u'本地文件不存在。检查：{}'.format(localpath)
             new_value['status']=-1
             down_db.find_one_and_update({'_id':item['_id']},{'$set':new_value})
             return
-        _upload_session=Upload_for_server(localpath,remote_dir,user)
+        _upload_session=Upload_for_server(localpath,remote_path,user)
         while 1:
             try:
                 new_value={}
@@ -1240,6 +1249,7 @@ def get_tasks(status):
     for t in tasks:
         info={}
         info['gid']=t['gid']
+        info['idx']=t['idx']
         info['name']=t['name']
         info['downloadUrl']=t['downloadUrl']
         info['size']=t['size']
@@ -1260,6 +1270,7 @@ def Aria2Method(action,**kwargs):
         eval('p.{}()'.format(action))
     elif action in ['remove','removeAll']:
         for gid in kwargs['gids']:
+            gid,idx=gid.split('#')
             p.forceRemove(gid)
     elif action=='restart':
         for gid in kwargs['gids']:
@@ -1288,8 +1299,9 @@ def DBMethod(action,**kwargs):
     elif action in ['remove','removeAll']:
         result=[]
         for gid in kwargs['gids']:
-            info={'gid':gid}
-            task=down_db.find_one({'gid':gid})
+            gid,idx=gid.split('#')
+            info={'gid':gid,'idx':int(idx)}
+            task=down_db.find_one({'gid':gid,'idx':int(idx)})
             if task['down_status']=='100.0%' and 'partition upload success' in task['up_status']:
                 info['msg']='正在上传的任务，无法更改状态'
             else:

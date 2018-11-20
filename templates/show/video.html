@@ -22,10 +22,10 @@ const dp = new DPlayer({
   container: document.getElementById('dplayer'),
   lang:'zh-cn',
   video: {
-      url: '{{url}}',
+      url: '{{inner_url}}',
       type: 'auto'
   }
 });
 </script>
-<a href="{{url}}" class="mdui-fab mdui-fab-fixed mdui-ripple mdui-color-theme-accent"><i class="mdui-icon material-icons">file_download</i></a>
+<a href="{{inner_url}}" class="mdui-fab mdui-fab-fixed mdui-ripple mdui-color-theme-accent"><i class="mdui-icon material-icons">file_download</i></a>
 {%endblock content%}

@@ -419,6 +419,7 @@ def page_not_found(e):
 @app.route('/',methods=['POST','GET'])
 @limiter.limit("200/minute;50/second")
 def index(path='A:/'):
+    path=urllib.unquote(path)
     if path=='favicon.ico':
         return redirect('https://onedrive.live.com/favicon.ico')
     if items.count()==0:
@@ -427,6 +428,10 @@ def index(path='A:/'):
         else:
             #subprocess.Popen('python {} UpdateFile'.format(os.path.join(config_dir,'function.py')),shell=True)
             return make_response('<h1>正在更新数据！如果您是网站管理员，请在后台运行命令：python function.py UpdateFile</h1>')
+    try:
+        path.split(':')
+    except:
+        path='A:/'+path
     #参数
     user,n_path=path.split(':')
     if n_path=='':
@@ -499,24 +504,25 @@ def show(fileid,user):
     ext=name.split('.')[-1].lower()
     path=GetPath(fileid)
     if request.method=='POST':
-        url=request.url.replace(':80','').replace(':443','')
+        url=request.url.replace(':80','').replace(':443','').encode('utf-8')
+        inner_url='/'.join(url.split('/')[:3])+'/'+urllib.quote('/'.join(url.split('/')[3:]))
         if ext in ['csv','doc','docx','odp','ods','odt','pot','potm','potx','pps','ppsx','ppsxm','ppt','pptm','pptx','rtf','xls','xlsx']:
             downloadUrl=GetDownloadUrl(fileid,user)
             url = 'https://view.officeapps.live.com/op/view.aspx?src='+urllib.quote(downloadUrl)
             return redirect(url)
         elif ext in ['bmp','jpg','jpeg','png','gif']:
-            return render_template('show/image.html',url=url,path=path,cur_user=user)
+            return render_template('show/image.html',url=url,inner_url=inner_url,path=path,cur_user=user)
         elif ext in ['mp4','webm']:
-            return render_template('show/video.html',url=url,path=path,cur_user=user)
+            return render_template('show/video.html',url=url,inner_url=inner_url,path=path,cur_user=user)
         elif ext in ['mp4','webm','avi','mpg', 'mpeg', 'rm', 'rmvb', 'mov', 'wmv', 'mkv', 'asf']:
-            return render_template('show/video2.html',url=url,path=path,cur_user=user)
+            return render_template('show/video2.html',url=url,inner_url=inner_url,path=path,cur_user=user)
         elif ext in ['avi','mpg', 'mpeg', 'rm', 'rmvb', 'mov', 'wmv', 'mkv', 'asf']:
-            return render_template('show/video2.html',url=url,path=path,cur_user=user)
+            return render_template('show/video2.html',url=url,inner_url=inner_url,path=path,cur_user=user)
         elif ext in ['ogg','mp3','wav']:
-            return render_template('show/audio.html',url=url,path=path,cur_user=user)
+            return render_template('show/audio.html',url=url,inner_url=inner_url,path=path,cur_user=user)
         elif CodeType(ext) is not None:
             content=_remote_content(fileid,user)
-            return render_template('show/code.html',content=content,url=url,language=CodeType(ext),path=path,cur_user=user)
+            return render_template('show/code.html',content=content,url=url,inner_url=inner_url,language=CodeType(ext),path=path,cur_user=user)
         else:
             downloadUrl=GetDownloadUrl(fileid,user)
             return redirect(downloadUrl)
@@ -551,6 +557,7 @@ app.register_blueprint(admin_blueprint)
 app.jinja_env.globals['FetchData']=FetchData
 app.jinja_env.globals['path_list']=path_list
 app.jinja_env.globals['CanEdit']=CanEdit
+app.jinja_env.globals['quote']=urllib.quote
 app.jinja_env.globals['len']=len
 app.jinja_env.globals['enumerate']=enumerate
 app.jinja_env.globals['os']=os
