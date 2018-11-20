@@ -1090,10 +1090,11 @@ def download_and_upload(url,remote_dir,user,gid=None):
         task=down_db.find_one({'gid':gid})
         if task is None:
             return False
-        new_value={}
-        new_value['up_status']=u'待机'
-        new_value['status']=1
-        down_db.update_many({'gid':gid},{'$set':new_value})
+        if task['up_status']!='100.0%':
+            new_value={}
+            new_value['up_status']=u'待机'
+            new_value['status']=1
+            down_db.update_many({'gid':gid},{'$set':new_value})
     else:
         cur_order=down_db.count()
         option={"dir":down_path,"split":"16","max-connection-per-server":"8","seed-ratio":"0","header":["User-Agent:Transmission/2.77"]}
