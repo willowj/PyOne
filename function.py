@@ -1093,7 +1093,7 @@ def download_and_upload(url,remote_dir,user,gid=None):
         new_value={}
         new_value['up_status']=u'待机'
         new_value['status']=1
-        down_db.find_one_and_update({'gid':gid},{'$set':new_value})
+        down_db.update_many({'gid':gid},{'$set':new_value})
     else:
         cur_order=down_db.count()
         option={"dir":down_path,"split":"16","max-connection-per-server":"8","seed-ratio":"0","header":["User-Agent:Transmission/2.77"]}
@@ -1180,67 +1180,66 @@ def download_and_upload(url,remote_dir,user,gid=None):
                 break
 
 def upload_status(gid,idx,remote_dir,user):
-    items=down_db.find({'gid':gid,'idx':idx})
-    for item in items:
-        localpath=item['localpath']
-        if not remote_dir.endswith('/'):
-            remote_dir=remote_dir+'/'
-        remote_path=os.path.join(remote_dir,item['name'])
-        if not os.path.exists(localpath):
+    item=down_db.find_one({'gid':gid,'idx':idx})
+    localpath=item['localpath']
+    if not remote_dir.endswith('/'):
+        remote_dir=remote_dir+'/'
+    remote_path=os.path.join(remote_dir,item['name'])
+    if not os.path.exists(localpath):
+        new_value={}
+        new_value['up_status']=u'本地文件不存在。检查：{}'.format(localpath)
+        new_value['status']=-1
+        down_db.find_one_and_update({'_id':item['_id']},{'$set':new_value})
+        return
+    _upload_session=Upload_for_server(localpath,remote_path,user)
+    while 1:
+        try:
             new_value={}
-            new_value['up_status']=u'本地文件不存在。检查：{}'.format(localpath)
-            new_value['status']=-1
-            down_db.find_one_and_update({'_id':item['_id']},{'$set':new_value})
-            return
-        _upload_session=Upload_for_server(localpath,remote_path,user)
-        while 1:
-            try:
-                new_value={}
-                data=_upload_session.next()
-                msg=data['status']
-                """
-                partition upload success
-                The request has been throttled!
-                partition upload fail! retry
-                partition upload fail!
-                file exists
-                create upload session fail
-                """
-                if 'partition upload success' in msg:
-                    new_value['up_status']=msg
-                    new_value['uploadUrl']=data.get('uploadUrl')
-                    new_value['status']=1
-                elif 'The request has been throttled' in msg:
-                    new_value['up_status']='api受限！智能等待30分钟'
-                    new_value['status']=0
-                elif 'partition upload fail! retry' in msg:
-                    new_value['up_status']='上传失败，等待重试'
-                    new_value['status']=1
-                elif 'partition upload fail' in msg:
-                    new_value['up_status']='上传失败，已经超过重试次数'
-                    new_value['status']=-1
-                    down_db.find_one_and_update({'_id':item['_id']},{'$set':new_value})
-                    break
-                elif 'file exists' in msg:
-                    new_value['up_status']='远程文件已存在'
-                    new_value['status']=-1
-                    down_db.find_one_and_update({'_id':item['_id']},{'$set':new_value})
-                    break
-                elif 'create upload session fail' in msg:
-                    new_value['up_status']='创建实例失败！'
-                    new_value['status']=-1
-                    down_db.find_one_and_update({'_id':item['_id']},{'$set':new_value})
-                    break
-                else:
-                    new_value['up_status']='上传成功！'
-                    new_value['status']=0
-                    down_db.find_one_and_update({'_id':item['_id']},{'$set':new_value})
-                    os.remove(localpath)
-                    break
+            data=_upload_session.next()
+            msg=data['status']
+            """
+            partition upload success
+            The request has been throttled!
+            partition upload fail! retry
+            partition upload fail!
+            file exists
+            create upload session fail
+            """
+            if 'partition upload success' in msg:
+                new_value['up_status']=msg
+                new_value['uploadUrl']=data.get('uploadUrl')
+                new_value['status']=1
+            elif 'The request has been throttled' in msg:
+                new_value['up_status']='api受限！智能等待30分钟'
+                new_value['status']=0
+            elif 'partition upload fail! retry' in msg:
+                new_value['up_status']='上传失败，等待重试'
+                new_value['status']=1
+            elif 'partition upload fail' in msg:
+                new_value['up_status']='上传失败，已经超过重试次数'
+                new_value['status']=-1
                 down_db.find_one_and_update({'_id':item['_id']},{'$set':new_value})
-            except Exception as e:
-                print(e)
                 break
+            elif 'file exists' in msg:
+                new_value['up_status']='远程文件已存在'
+                new_value['status']=-1
+                down_db.find_one_and_update({'_id':item['_id']},{'$set':new_value})
+                break
+            elif 'create upload session fail' in msg:
+                new_value['up_status']='创建实例失败！'
+                new_value['status']=-1
+                down_db.find_one_and_update({'_id':item['_id']},{'$set':new_value})
+                break
+            else:
+                new_value['up_status']='上传成功！'
+                new_value['status']=0
+                down_db.find_one_and_update({'_id':item['_id']},{'$set':new_value})
+                os.remove(localpath)
+                break
+            down_db.find_one_and_update({'_id':item['_id']},{'$set':new_value})
+        except Exception as e:
+            print(e)
+            break
 
 
 def get_tasks(status):
@@ -1281,8 +1280,9 @@ def DBMethod(action,**kwargs):
     if action in ['pause','unpause','pauseAll','unpauseAll']:
         result=[]
         for gid in kwargs['gids']:
-            info={'gid':gid}
-            task=down_db.find_one({'gid':gid})
+            gid,idx=gid.split('#')
+            info={'gid':gid,'idx':int(idx)}
+            task=down_db.find_one({'gid':gid,'idx':int(idx)})
             if task['down_status']=='100.0%':
                 info['msg']='文件下载完成！无法更改上传状态'
             elif task['down_status']=='下载出错':
@@ -1293,7 +1293,7 @@ def DBMethod(action,**kwargs):
                     new_value['down_status']='暂停下载'
                 else:
                     new_value['down_status']='开始下载'
-                down_db.find_one_and_update({'gid':gid},{'$set':new_value})
+                down_db.update_many({'gid':gid},{'$set':new_value})
                 info['msg']='更改状态成功'
             result.append(info)
     elif action in ['remove','removeAll']:
@@ -1318,9 +1318,10 @@ def DBMethod(action,**kwargs):
         for gid in kwargs['gids']:
             info={'gid':gid}
             new_value={'status':1}
-            down_db.find_one_and_update({'gid':gid},{'$set':new_value})
+            down_db.update_many({'gid':gid},{'$set':new_value})
             info['msg']='更改状态成功'
-            cmd=u'python {} download_and_upload "{}" "{}" {} {}'.format(os.path.join(config_dir,'function.py'),1,1,1,gid)
+            user=down_db.find_one({'gid':gid})['user']
+            cmd=u'python {} download_and_upload "{}" "{}" {} {}'.format(os.path.join(config_dir,'function.py'),1,1,user,gid)
             print cmd
             subprocess.Popen(cmd,shell=True)
             result.append(info)
