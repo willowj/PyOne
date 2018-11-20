@@ -1320,8 +1320,10 @@ def DBMethod(action,**kwargs):
             new_value={'status':1}
             down_db.update_many({'gid':gid},{'$set':new_value})
             info['msg']='更改状态成功'
-            user=down_db.find_one({'gid':gid})['user']
-            cmd=u'python {} download_and_upload "{}" "{}" {} {}'.format(os.path.join(config_dir,'function.py'),1,1,user,gid)
+            it=down_db.find_one({'gid':gid})
+            user=it['user']
+            remote_dir=it['remote_dir']
+            cmd=u'python {} download_and_upload "{}" "{}" {} {}'.format(os.path.join(config_dir,'function.py'),1,remote_dir,user,gid)
             print cmd
             subprocess.Popen(cmd,shell=True)
             result.append(info)
