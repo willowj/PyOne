@@ -417,7 +417,6 @@ def off_download():
         for url in urls:
             if url.strip()!='':
                 cmd=u'python {} download_and_upload "{}" "{}" {}'.format(os.path.join(config_dir,'function.py'),url,grand_path,user)
-                print cmd
                 subprocess.Popen(cmd,shell=True)
         return jsonify({'status':True,'msg':'ok'})
     path=request.args.get('path')
@@ -428,17 +427,22 @@ def off_download():
 @admin.route('/jsonrpc',methods=['POST'])
 def RPCserver():
     action=request.form.get('action')
-    allow_action=['tellActive','tellSuccess','tellFail','pause','pauseAll','unpause','unpauseAll','remove','removeAll','restart']
-    action_dict=dict(tellActive=1,tellSuccess=0,tellFail=-1)
+    allow_action=['tellActive','tellSuccess','tellFail','tellUnselected','pause','pauseAll','unpause','unpauseAll','remove','removeAll','restart','unselected','selected']
+    action_dict=dict(tellActive=1,tellSuccess=0,tellFail=-1,tellUnselected=2)
     if action not in allow_action:
         return jsonify({'code':0,'msg':'not allow action'})
-    if action in ['tellActive','tellSuccess','tellFail']:
+    if action in ['tellActive','tellSuccess','tellFail','tellUnselected']:
         status=action_dict[action]
         ret={'code':1,'msg':'get data success','result':get_tasks(status)}
-    elif action in ['pause','pauseAll','unpause','unpauseAll','remove','removeAll','restart']:
+    elif action in ['pause','pauseAll','unpause','unpauseAll','remove','removeAll','restart','unselected','selected']:
+        ret=None
         gids=request.form.get('gid').split('####')
-        Aria2Method(action=action,gids=gids)
-        ret=DBMethod(action=action,gids=gids)
+        ret1=Aria2Method(action=action,gids=gids)
+        ret2=DBMethod(action=action,gids=gids)
+        if ret1 is not None:
+            ret=ret1
+        else:
+            ret=ret2
     return jsonify(ret)
 
 

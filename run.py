@@ -523,10 +523,14 @@ def show(fileid,user):
         elif CodeType(ext) is not None:
             content=_remote_content(fileid,user)
             return render_template('show/code.html',content=content,url=url,inner_url=inner_url,language=CodeType(ext),path=path,cur_user=user)
+        elif name=='.password':
+            return abort(404)
         else:
             downloadUrl=GetDownloadUrl(fileid,user)
             return redirect(downloadUrl)
     else:
+        if name=='.password':
+            return abort(404)
         if 'no-referrer' in allow_site:
             downloadUrl=GetDownloadUrl(fileid,user)
             resp=redirect(downloadUrl)
@@ -564,7 +568,7 @@ app.jinja_env.globals['os']=os
 app.jinja_env.globals['re']=re
 app.jinja_env.globals['file_ico']=file_ico
 app.jinja_env.globals['title']=title
-app.jinja_env.globals['tj_code']=tj_code if tj_code is not None else ''
+app.jinja_env.globals['tj_cod   e']=tj_code if tj_code is not None else ''
 app.jinja_env.globals['get_od_user']=get_od_user
 app.jinja_env.globals['allow_site']=','.join(allow_site)
 # app.jinja_env.globals['share_path']=od_users.get('A').get('share_path')

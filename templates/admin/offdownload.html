@@ -17,7 +17,11 @@
                       <caption>进行中任务</caption>
                         <thead>
                             <tr>
-                                <th>链接</th>
+                                <th class="mdui-table-cell-checkbox" id="SelectAll" style="width: 60px;">
+                                    <label class="mdui-checkbox">
+                                        <input type="checkbox" onclick="reserveCheck('active')"><i class="mdui-checkbox-icon"></i>
+                                    </label>
+                                </th>
                                 <th>文件名称</th>
                                 <th>文件大小</th>
                                 <th>服务器下载状态</th>
@@ -37,7 +41,11 @@
                       <caption>失败任务</caption>
                         <thead>
                             <tr>
-                                <th>链接</th>
+                                <th class="mdui-table-cell-checkbox" id="SelectAll" style="width: 60px;">
+                                    <label class="mdui-checkbox">
+                                        <input type="checkbox" onclick="reserveCheck('fail')"><i class="mdui-checkbox-icon"></i>
+                                    </label>
+                                </th>
                                 <th>文件名称</th>
                                 <th>文件大小</th>
                                 <th>服务器下载状态</th>
@@ -57,7 +65,11 @@
                       <caption>成功任务</caption>
                         <thead>
                             <tr>
-                                <th>链接</th>
+                                <th class="mdui-table-cell-checkbox" id="SelectAll" style="width: 60px;">
+                                    <label class="mdui-checkbox">
+                                        <input type="checkbox" onclick="reserveCheck('success')"><i class="mdui-checkbox-icon"></i>
+                                    </label>
+                                </th>
                                 <th>文件名称</th>
                                 <th>文件大小</th>
                                 <th>服务器下载状态</th>
@@ -69,16 +81,70 @@
                         </tbody>
                     </table>
                 </div>
+                <br>
+                <hr>
+                <br>
+                <div class="mdui-table-fluid">
+                    <table class="mdui-table" mdui-tooltip="{content: '同一个磁力下，可选择不下载哪些文件'}">
+                      <caption>选择不下载文件</caption>
+                        <thead>
+                            <tr>
+                                <th class="mdui-table-cell-checkbox" id="SelectAll" style="width: 60px;">
+                                    <label class="mdui-checkbox">
+                                        <input type="checkbox" onclick="reserveCheck('unselected')"><i class="mdui-checkbox-icon"></i>
+                                    </label>
+                                </th>
+                                <th>文件名称</th>
+                                <th>文件大小</th>
+                                <th>服务器下载状态</th>
+                                <th>onedrive上传状态</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="unselected">
+                        </tbody>
+                    </table>
+                </div>
               </div>
             </div>
           </div>
 </div>
 <script>
+var need_refresh=true;
 function ShowNotice(msg){
     mdui.snackbar({
           message: msg,
           position: 'top'
         });
+}
+
+function reserveCheck(name) {
+    var revalue = document.getElementsByName(name);
+    for (i = 0; i < revalue.length; i++) {
+        if (revalue[i].checked == true){
+            revalue[i].checked = false;
+            need_refresh=true;
+        }
+        else {
+            revalue[i].checked = true;
+            need_refresh=false;
+        }
+    }
+}
+function DoAction(action,gid){
+    var defer = $.Deferred();
+    $.ajax({
+        type: "POST",
+        url: "{{url_for('admin.RPCserver')}}",
+        data: { action:action,gid:gid },
+        cache: false, //使用同步的方式,true为异步方式
+        dataType: "json",
+        success: function(data) {
+            defer.resolve(data);
+            ShowNotice(data['result'][0]['msg']);
+            defer.promise();
+        }
+    });
 }
 function pause(gid){
     var defer = $.Deferred();
@@ -125,12 +191,57 @@ function remove(gid){
         }
     });
 }
+function removeAll(gid){
+    var defer = $.Deferred();
+    $.ajax({
+        type: "POST",
+        url: "{{url_for('admin.RPCserver')}}",
+        data: { action:'removeAll',gid:gid },
+        cache: false, //使用同步的方式,true为异步方式
+        dataType: "json",
+        success: function(data) {
+            defer.resolve(data);
+            ShowNotice(data['result'][0]['msg']);
+            defer.promise();
+        }
+    });
+}
 function restart(gid){
     var defer = $.Deferred();
     $.ajax({
         type: "POST",
         url: "{{url_for('admin.RPCserver')}}",
         data: { action:'restart',gid:gid },
+        cache: false, //使用同步的方式,true为异步方式
+        dataType: "json",
+        success: function(data) {
+            defer.resolve(data);
+            ShowNotice(data['result'][0]['msg']);
+            defer.promise();
+        }
+    });
+}
+function selected(gid){
+    var defer = $.Deferred();
+    $.ajax({
+        type: "POST",
+        url: "{{url_for('admin.RPCserver')}}",
+        data: { action:'selected',gid:gid },
+        cache: false, //使用同步的方式,true为异步方式
+        dataType: "json",
+        success: function(data) {
+            defer.resolve(data);
+            ShowNotice(data['result'][0]['msg']);
+            defer.promise();
+        }
+    });
+}
+function unselected(gid){
+    var defer = $.Deferred();
+    $.ajax({
+        type: "POST",
+        url: "{{url_for('admin.RPCserver')}}",
+        data: { action:'unselected',gid:gid },
         cache: false, //使用同步的方式,true为异步方式
         dataType: "json",
         success: function(data) {
@@ -194,18 +305,28 @@ function tellActive() {
                 for (var i = 0; i <= data.result.length - 1; i++) {
                     t=data.result[i];
                     html='<tr>';
-                    html+='<td>'+t['downloadUrl'].substr(0,20)+'</td>';
+                    html+='<td class="mdui-table-cell-checkbox"><label class="mdui-checkbox"><input type="checkbox" name="active" value="\''+t['gid']+'#'+t['idx']+'\'"><i class="mdui-checkbox-icon"></i></label></td>';
                     html+='<td>'+t['name']+'</td>';
                     html+='<td>'+t['size']+'</td>';
                     html+='<td>'+t['down_status']+'</td>';
                     html+='<td>'+t['up_status']+'</td>';
                     //active -- >pause/unpause/remove
+                    td='<td>';
                     if(t['down_status']=='暂停下载'){
-                        html+='<td>'+'<button class="mdui-btn mdui-btn-icon" onclick="unpause(\''+t['gid']+'#'+t['idx']+'\')" mdui-tooltip="{content: \'开始任务\'}"><i class="mdui-icon material-icons">&#xe037;</i></button> '+'<button class="mdui-btn mdui-btn-icon" onclick="remove(\''+t['gid']+'#'+t['idx']+'\')" mdui-tooltip="{content: \'删除任务\'}"><i class="mdui-icon material-icons">&#xe872;</i></button>'+'<button class="mdui-btn mdui-btn-icon" onclick="restart(\''+t['gid']+'\')" mdui-tooltip="{content: \'重新开始\'}"><i class="mdui-icon material-icons">&#xe863;</i></button> '+'</td>';
+                        td+='<button class="mdui-btn mdui-btn-icon" onclick="unpause(\''+t['gid']+'#'+t['idx']+'\')" mdui-tooltip="{content: \'开始任务\'}"><i class="mdui-icon material-icons">&#xe037;</i></button> ';
                     }
                     else{
-                        html+='<td>'+'<button class="mdui-btn mdui-btn-icon" onclick="pause(\''+t['gid']+'#'+t['idx']+'\')" mdui-tooltip="{content: \'暂停任务\'}"><i class="mdui-icon material-icons">&#xe047;</i></button> '+'<button class="mdui-btn mdui-btn-icon" onclick="remove(\''+t['gid']+'#'+t['idx']+'\')" mdui-tooltip="{content: \'删除任务\'}"><i class="mdui-icon material-icons">&#xe872;</i></button>'+'<button class="mdui-btn mdui-btn-icon" onclick="restart(\''+t['gid']+'\')" mdui-tooltip="{content: \'重新开始\'}"><i class="mdui-icon material-icons">&#xe863;</i></button> '+'</td>';
+                        td+='<button class="mdui-btn mdui-btn-icon" onclick="pause(\''+t['gid']+'#'+t['idx']+'\')" mdui-tooltip="{content: \'暂停任务\'}"><i class="mdui-icon material-icons">&#xe047;</i></button> ';
                     }
+                    if(t['selectable']=='true'){
+                        td+='<button class="mdui-btn mdui-btn-icon" onclick="unselected(\''+t['gid']+'#'+t['idx']+'\')" mdui-tooltip="{content: \'选择不下载文件\'}"><i class="mdui-icon material-icons">&#xe5c9;</i></button>';
+                    }
+                    td+='<button class="mdui-btn mdui-btn-icon" onclick="remove(\''+t['gid']+'#'+t['idx']+'\')" mdui-tooltip="{content: \'删除任务\'}"><i class="mdui-icon material-icons">&#xe872;</i></button>';
+                    td+='<button class="mdui-btn mdui-btn-icon" onclick="removeAll(\''+t['gid']+'\')" mdui-tooltip="{content: \'删除同磁力下所有任务\'}"><i class="mdui-icon material-icons">&#xe92b;</i></button>';
+                    td+='<button class="mdui-btn mdui-btn-icon" onclick="restart(\''+t['gid']+'\')" mdui-tooltip="{content: \'重新开始\'}"><i class="mdui-icon material-icons">&#xe863;</i></button> ';
+                    td+='</td>';
+
+                    html+=td;
                     html+='</tr>';
                     $('#active').append(html);
                 }
@@ -236,13 +357,19 @@ function tellFail() {
                 for (var i = 0; i <= data.result.length - 1; i++) {
                     t=data.result[i];
                     html='<tr>';
-                    html+='<td>'+t['downloadUrl'].substr(0,20)+'</td>';
+                    html+='<td class="mdui-table-cell-checkbox"><label class="mdui-checkbox"><input type="checkbox" name="fail" value="\''+t['gid']+'#'+t['idx']+'\'"><i class="mdui-checkbox-icon"></i></label></td>';
                     html+='<td>'+t['name']+'</td>';
                     html+='<td>'+t['size']+'</td>';
                     html+='<td>'+t['down_status']+'</td>';
                     html+='<td>'+t['up_status']+'</td>';
                     //fail -- > restart
-                    html+='<td>'+'<button class="mdui-btn mdui-btn-icon" onclick="restart(\''+t['gid']+'\')" mdui-tooltip="{content: \'重新开始\'}"><i class="mdui-icon material-icons">&#xe863;</i></button> '+'<button class="mdui-btn mdui-btn-icon" onclick="remove(\''+t['gid']+'#'+t['idx']+'\')" mdui-tooltip="{content: \'删除任务\'}"><i class="mdui-icon material-icons">&#xe872;</i></button>'+'</td>';
+                    td='<td>';
+                    td+='<button class="mdui-btn mdui-btn-icon" onclick="restart(\''+t['gid']+'\')" mdui-tooltip="{content: \'重新开始\'}"><i class="mdui-icon material-icons">&#xe863;</i></button> ';
+                    td+='<button class="mdui-btn mdui-btn-icon" onclick="remove(\''+t['gid']+'#'+t['idx']+'\')" mdui-tooltip="{content: \'删除任务\'}"><i class="mdui-icon material-icons">&#xe872;</i></button>';
+                    td+='<button class="mdui-btn mdui-btn-icon" onclick="removeAll(\''+t['gid']+'\')" mdui-tooltip="{content: \'删除同磁力下所有任务\'}"><i class="mdui-icon material-icons">&#xe92b;</i></button>';
+                    td+='</td>';
+
+                    html+=td;
                     html+='</tr>';
                     $('#fail').append(html);
                 }
@@ -273,15 +400,63 @@ function tellSuccess() {
                 for (var i = 0; i <= data.result.length - 1; i++) {
                     t=data.result[i];
                     html='<tr>';
-                    html+='<td>'+t['downloadUrl'].substr(0,20)+'</td>';
+                    html+='<td class="mdui-table-cell-checkbox"><label class="mdui-checkbox"><input type="checkbox" name="success" value="\''+t['gid']+'#'+t['idx']+'\'"><i class="mdui-checkbox-icon"></i></label></td>';
                     html+='<td>'+t['name']+'</td>';
                     html+='<td>'+t['size']+'</td>';
                     html+='<td>'+t['down_status']+'</td>';
                     html+='<td>'+t['up_status']+'</td>';
                     //success -- > remove
-                    html+='<td>'+'<button class="mdui-btn mdui-btn-icon" onclick="remove(\''+t['gid']+'#'+t['idx']+'\')" mdui-tooltip="{content: \'删除任务\'}"><i class="mdui-icon material-icons">&#xe872;</i></button>'+'</td>';
+                    td='<td>';
+                    td+='<button class="mdui-btn mdui-btn-icon" onclick="remove(\''+t['gid']+'#'+t['idx']+'\')" mdui-tooltip="{content: \'删除任务\'}"><i class="mdui-icon material-icons">&#xe872;</i></button>';
+                    td+='<button class="mdui-btn mdui-btn-icon" onclick="removeAll(\''+t['gid']+'\')" mdui-tooltip="{content: \'删除同磁力下所有任务\'}"><i class="mdui-icon material-icons">&#xe92b;</i></button>';
+                    td+='</td>';
+
+                    html+=td;
                     html+='</tr>';
                     $('#success').append(html);
+                }
+            } else {
+                ShowNotice(data.msg);
+            }
+        },
+        complete: function(){
+            defer.promise();
+            tellUnselected();
+        }
+    });
+}
+
+function tellUnselected() {
+    var defer = $.Deferred();
+    $.ajax({
+        type: "POST",
+        url: "{{url_for('admin.RPCserver')}}",
+        data: { action:'tellUnselected' },
+        cache: false,
+        // async: false,
+        dataType: "json",
+        success: function(data) {
+             defer.resolve(data);
+            $('#unselected').empty();
+            if (data.code==1) {
+                for (var i = 0; i <= data.result.length - 1; i++) {
+                    t=data.result[i];
+                    html='<tr>';
+                    html+='<td class="mdui-table-cell-checkbox"><label class="mdui-checkbox"><input type="checkbox" name="unselected" value="\''+t['gid']+'#'+t['idx']+'\'"><i class="mdui-checkbox-icon"></i></label></td>';
+                    html+='<td>'+t['name']+'</td>';
+                    html+='<td>'+t['size']+'</td>';
+                    html+='<td>'+t['down_status']+'</td>';
+                    html+='<td>'+t['up_status']+'</td>';
+                    //unselected -- > remove
+                    td='<td>';
+                    td+='<button class="mdui-btn mdui-btn-icon" onclick="selected(\''+t['gid']+'#'+t['idx']+'\')" mdui-tooltip="{content: \'选择下载文件\'}"><i class="mdui-icon material-icons">&#xe86c;</i></button>';
+                    td+='<button class="mdui-btn mdui-btn-icon" onclick="remove(\''+t['gid']+'#'+t['idx']+'\')" mdui-tooltip="{content: \'删除任务\'}"><i class="mdui-icon material-icons">&#xe872;</i></button>';
+                    td+='<button class="mdui-btn mdui-btn-icon" onclick="removeAll(\''+t['gid']+'\')" mdui-tooltip="{content: \'删除同磁力下所有任务\'}"><i class="mdui-icon material-icons">&#xe92b;</i></button>';
+                    td+='</td>';
+
+                    html+=td;
+                    html+='</tr>';
+                    $('#unselected').append(html);
                 }
             } else {
                 ShowNotice(data.msg);
@@ -301,7 +476,9 @@ function AutoRefresh(){
         window.clearInterval(interval_id);
     }
     interval_id = window.setInterval(function(){
-        Refresh();
+        if(need_refresh){
+            Refresh();
+        }
     },2000);
 }
 AutoRefresh();

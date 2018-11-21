@@ -1085,6 +1085,7 @@ def get_aria2():
 def download_and_upload(url,remote_dir,user,gid=None):
     p,status=get_aria2()
     down_path=os.path.join(config_dir,'upload')
+    url=url.lower()
     #重新下载
     if gid is not None:
         task=down_db.find_one({'gid':gid})
@@ -1112,6 +1113,8 @@ def download_and_upload(url,remote_dir,user,gid=None):
         item['idx']=0
         item['localpath']=localpath
         item['downloadUrl']=url
+        item['selected']='true'
+        item['selectable']='false'
         item['user']=user
         item['remote_dir']=remote_dir
         item['uploadUrl']=''
@@ -1142,6 +1145,8 @@ def download_and_upload(url,remote_dir,user,gid=None):
                 new_item['name']=file['path'].replace(down_path+'/','').replace(down_path,'').replace(down_path[:-1],'')
                 new_item['localpath']=file['path']
                 new_item['downloadUrl']=aa['infoHash']
+                new_item['selected']='true'
+                new_item['selectable']='true'
                 new_item['user']=user
                 new_item['remote_dir']=remote_dir
                 new_item['uploadUrl']=''
@@ -1160,6 +1165,8 @@ def download_and_upload(url,remote_dir,user,gid=None):
                     upload_status(gid,idx,remote_dir,user)
                 else:
                     continue
+            if t['selected']=='false':
+                continue
             name=file['path'].replace(down_path+'/','').replace(down_path,'').replace(down_path[:-1],'')
             new_value={'down_status':u'{}%'.format(round(float(file['completedLength'])/(float(file['length'])+0.1)*100,0))}
             new_value['name']=name
@@ -1173,12 +1180,16 @@ def download_and_upload(url,remote_dir,user,gid=None):
             elif a['status']=='active' or a['status']=='waiting':
                 time.sleep(1)
                 down_db.find_one_and_update({'gid':gid,'idx':idx},{'$set':new_value})
+            elif a['status']=='paused':
+                new_value['down_status']=u'暂停下载'
+                down_db.find_one_and_update({'gid':gid,'idx':idx},{'$set':new_value})
             else:
                 print('下载出错')
                 new_value['down_status']=u'下载出错'
                 new_value['status']=-1
                 down_db.find_one_and_update({'gid':gid,'idx':idx},{'$set':new_value})
                 break
+            time.sleep(2)
 
 def upload_status(gid,idx,remote_dir,user):
     item=down_db.find_one({'gid':gid,'idx':idx})
@@ -1255,6 +1266,8 @@ def get_tasks(status):
         info['size']=t['size']
         info['down_status']=t['down_status']
         info['up_status']=t['up_status']
+        info['selectable']=t['selectable']
+        info['selected']=t['selected']
         info['status']=t['status']
         result.append(info)
     return result
@@ -1265,16 +1278,104 @@ def Aria2Method(action,**kwargs):
         return {'status':False,'msg':p}
     if action in ['pause','unpause']:
         for gid in kwargs['gids']:
-            eval('p.{}("{}")'.format(action,gid))
+            gid,idx=gid.split('#')
+            p.forcePause(gid)
     elif action in ['pauseAll','unpauseAll']:
         eval('p.{}()'.format(action))
-    elif action in ['remove','removeAll']:
+    elif action in ['remove']:
         for gid in kwargs['gids']:
             gid,idx=gid.split('#')
+            p.forceRemove(gid)
+    elif action in ['removeAll']:
+        for gid in kwargs['gids']:
             p.forceRemove(gid)
     elif action=='restart':
         for gid in kwargs['gids']:
             p.unpause(gid)
+    elif action=='selected':
+        retdata={}
+        selected_dict={}
+        status_dict={}
+        #选择下载的gid&idx放进字典
+        for gid in kwargs['gids']:
+            gid,idx=gid.split('#')
+            idx=int(idx)
+            # p.pause(gid)
+            r=json.loads(p.tellStatus(gid))[0]['result']['status']
+            status_dict[gid]=r
+            if r=='active':
+                p.forcePause(gid)
+            selected_dict.setdefault(gid,[]).append(idx+1)
+        #之前本就选择下载的gid&idx放进字典
+        for gid in selected_dict.keys():
+            tasks=down_db.find({'gid':gid,'selected':'true'})
+            for t in tasks:
+                selected_dict[gid].append(t['idx']+1)
+        #重新处理可下载文件
+        result=[]
+        for gid,idxs in selected_dict.items():
+            idxs=[str(i) for i in idxs]
+            info={'gid':gid}
+            option={"select-file":','.join(idxs)}
+            r=p.changeOption(gid,option)
+            if status_dict[gid]=='active':
+                p.unpause(gid)
+            res=json.loads(r)[0]['result']
+            info['msg']=res
+            result.append(info)
+            for idx in idxs:
+                new_value={'selected':'true','down_status':'选择下载','status':1}
+                down_db.find_one_and_update({'gid':gid,'idx':int(idx)-1},{'$set':new_value})
+        retdata['result']=result
+        return retdata
+    elif action=='unselected':
+        retdata={}
+        selected_dict={}
+        status_dict={}
+        #先创建围表
+        for gid in kwargs['gids']:
+            gid,idx=gid.split('#')
+            nums=down_db.find({'gid':gid}).count()
+            if nums<=1:
+                result=[{'gid':gid,'msg':'当前任务只有一个文件，无法选择'}]
+                retdata['result']=result
+                return retdata
+            idx=int(idx)
+            # p.pause(gid)
+            r=json.loads(p.tellStatus(gid))[0]['result']['status']
+            status_dict[gid]=r
+            if r=='active':
+                p.forcePause(gid)
+            new_value={'selected':'false','down_status':'选择不下载','status':2}
+            down_db.find_one_and_update({'gid':gid,'idx':idx},{'$set':new_value})
+            selected_dict.setdefault(gid,[])
+        #之前本就选择下载的gid&idx放进字典
+        for gid in selected_dict.keys():
+            tasks=down_db.find({'gid':gid,'selected':'true'})
+            for t in tasks:
+                selected_dict[gid].append(int(t['idx']+1))
+        #选择不下载的gid&idx从字典移除
+        for gid in kwargs['gids']:
+            gid,idx=gid.split('#')
+            idx=int(idx)
+            # selected_dict[gid].pop(selected_dict[gid].index(idx+1))
+        #重新处理可下载文件
+        result=[]
+        for gid,idxs in selected_dict.items():
+            idxs=[str(i) for i in idxs]
+            info={'gid':gid}
+            option={"select-file":','.join(idxs)}
+            r=p.changeOption(gid,option)
+            if status_dict[gid]=='active':
+                p.unpause(gid)
+            res=json.loads(r)[0]['result']
+            info['msg']=res
+            result.append(info)
+        retdata['result']=result
+        return retdata
+
+
+
 
 def DBMethod(action,**kwargs):
     retdata={}
@@ -1297,7 +1398,7 @@ def DBMethod(action,**kwargs):
                 down_db.update_many({'gid':gid},{'$set':new_value})
                 info['msg']='更改状态成功'
             result.append(info)
-    elif action in ['remove','removeAll']:
+    elif action in ['remove']:
         result=[]
         for gid in kwargs['gids']:
             gid,idx=gid.split('#')
@@ -1310,6 +1411,22 @@ def DBMethod(action,**kwargs):
                 info['msg']='删除任务成功'
             try:
                 os.remove(task['localpath'])
+            except:
+                print('未能成功删除本地文件')
+                info['msg']='删除任务成功。但是未能成功删除本地文件'
+            result.append(info)
+    elif action in ['removeAll']:
+        result=[]
+        for gid in kwargs['gids']:
+            info={'gid':gid}
+            task=down_db.find_one({'gid':gid})
+            if task['down_status']=='100.0%' and 'partition upload success' in task['up_status']:
+                info['msg']='正在上传的任务，无法更改状态'
+            else:
+                down_db.delete_many(info)
+                info['msg']='删除任务成功'
+            try:
+                os.delete_many(task['localpath'])
             except:
                 print('未能成功删除本地文件')
                 info['msg']='删除任务成功。但是未能成功删除本地文件'
@@ -1328,6 +1445,8 @@ def DBMethod(action,**kwargs):
             print cmd
             subprocess.Popen(cmd,shell=True)
             result.append(info)
+    elif action in ['unselected','selected']:
+        return None
     retdata['result']=result
     return retdata
 

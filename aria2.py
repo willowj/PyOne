@@ -303,7 +303,9 @@ class PyAria2(object):
         options: dict, the options.
         return: This method returns OK for success.
         '''
-        return self.server.aria2.changeOption(gid, options)
+        params = [gid,options]
+        return self.sendJsonRPC(data=self.getRPCBody('aria2.changeOption', params))
+        # return self.server.aria2.changeOption(gid, options)
 
     def getGlobalOption(self):
         '''
