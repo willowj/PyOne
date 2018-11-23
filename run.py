@@ -127,7 +127,9 @@ def _thunbnail(id,user):
     r=requests.get(url,headers=headers)
     data=json.loads(r.content)
     if data.get('large').get('url'):
-        return data.get('large').get('url')
+        # return data.get('large').get('url').replace('thumbnail','videotranscode').replace('&width=800&height=800','')+'&format=dash&track=audio&transcodeAhead=0&part=initsegment&quality=audhigh'
+        return data.get('large').get('url').replace('thumbnail','videomanifest').replace('&width=800&height=800','')+'&part=index&format=dash&useScf=True&pretranscode=0&transcodeahead=0&quality=audhigh'
+        # return data.get('large').get('url').replace('thumbnail','videotranscode').replace('&width=800&height=800','')+'&format=dash&track=audio&transcodeAhead=0&part=initsegment&quality=audhigh'
     else:
         return False
 
@@ -137,39 +139,44 @@ def _getdownloadurl(id,user):
     token=GetToken(user=user)
     filename=GetName(id)
     ext=filename.split('.')[-1].lower()
-    if ext in ['webm','avi','mpg', 'mpeg', 'rm', 'rmvb', 'mov', 'wmv', 'mkv', 'asf']:
-        downloadUrl=_thunbnail(id,user)
-        downloadUrl=downloadUrl.replace('thumbnail','videomanifest')+'&part=index&format=dash&useScf=True&pretranscode=0&transcodeahead=0'
-        return downloadUrl
+    headers={'Authorization':'bearer {}'.format(token),'Content-type':'application/json'}
+    url=app_url+'v1.0/me/drive/items/'+id
+    r=requests.get(url,headers=headers)
+    data=json.loads(r.content)
+    if data.get('@microsoft.graph.downloadUrl'):
+        downloadUrl=data.get('@microsoft.graph.downloadUrl')
     else:
-        headers={'Authorization':'bearer {}'.format(token),'Content-type':'application/json'}
-        url=app_url+'v1.0/me/drive/items/'+id
-        r=requests.get(url,headers=headers)
-        data=json.loads(r.content)
-        if data.get('@microsoft.graph.downloadUrl'):
-            return data.get('@microsoft.graph.downloadUrl')
-        else:
-            return False
+        downloadUrl=False
+    if ext in ['webm','avi','mpg', 'mpeg', 'rm', 'rmvb', 'mov', 'wmv', 'mkv', 'asf']:
+        play_url=_thunbnail(id,user)
+        # downloadUrl=downloadUrl.replace('thumbnail','videomanifest').replace('&width=800&height=800','')+'&part=index&format=dash&useScf=True&pretranscode=0&transcodeahead=0'
+    else:
+        play_url=downloadUrl
+    return downloadUrl,play_url
 
 def GetDownloadUrl(id,user):
-    if rd.exists('downloadUrl2:{}'.format(id)):
-        downloadUrl,ftime=rd.get('downloadUrl2:{}'.format(id)).split('####')
+    downloadUrl,play_url=_getdownloadurl(id,user)
+    return downloadUrl,play_url
+    key_='downloadUrl:{}'.format(id)
+    if rd.exists(key_):
+        downloadUrl,play_url,ftime=rd.get(key_).split('####')
         if time.time()-int(ftime)>=600:
             # print('{} downloadUrl expired!'.format(id))
-            downloadUrl=_getdownloadurl(id,user)
+            downloadUrl,play_url=_getdownloadurl(id,user)
             ftime=int(time.time())
-            k='####'.join([downloadUrl,str(ftime)])
-            rd.set('downloadUrl2:{}'.format(id),k)
+            k='####'.join([downloadUrl,play_url,str(ftime)])
+            rd.set(key_,k)
         else:
             # print('get {}\'s downloadUrl from cache'.format(id))
             downloadUrl=downloadUrl
+            play_url=play_url
     else:
         # print('first time get downloadUrl from {}'.format(id))
-        downloadUrl=_getdownloadurl(id,user)
+        downloadUrl,play_url=_getdownloadurl(id,user)
         ftime=int(time.time())
-        k='####'.join([downloadUrl,str(ftime)])
-        rd.set('downloadUrl2:{}'.format(id),k)
-    return downloadUrl
+        k='####'.join([downloadUrl,play_url,str(ftime)])
+        rd.set(key_,k)
+    return downloadUrl,play_url
 
 
 
@@ -249,7 +256,7 @@ def _remote_content(fileid,user):
     if rd.exists(kc):
         return rd.get(kc)
     else:
-        downloadUrl=GetDownloadUrl(fileid,user)
+        downloadUrl,play_url=GetDownloadUrl(fileid,user)
         if downloadUrl:
             r=requests.get(downloadUrl)
             r.encoding='utf-8'
@@ -419,7 +426,7 @@ def page_not_found(e):
 @app.route('/',methods=['POST','GET'])
 @limiter.limit("200/minute;50/second")
 def index(path='A:/'):
-    path=urllib.unquote(path)
+    path=urllib.unquote(path).replace('&action=play','')
     if path=='favicon.ico':
         return redirect('https://onedrive.live.com/favicon.ico')
     if items.count()==0:
@@ -440,9 +447,13 @@ def index(path='A:/'):
     image_mode=request.args.get('image_mode')
     sortby=request.args.get('sortby')
     order=request.args.get('order')
+    try:
+        action=re.findall('&action=(.*)',request.url)[0]
+    except:
+        action='download'
     resp,total = FetchData(path=path,page=page,per_page=50,sortby=sortby,order=order,dismiss=True)
     if total=='files':
-        return show(resp['id'],user)
+        return show(resp['id'],user,action)
     #是否有密码
     password,_,cur=has_item(path,'.password')
     md5_p=md5(path)
@@ -498,16 +509,16 @@ def index(path='A:/'):
     resp.set_cookie('order',str(order))
     return resp
 
-@app.route('/file/<user>/<fileid>')
-def show(fileid,user):
+@app.route('/file/<user>/<fileid>/<action>')
+def show(fileid,user,action='download'):
     name=GetName(fileid)
     ext=name.split('.')[-1].lower()
     path=GetPath(fileid)
+    url=request.url.replace(':80','').replace(':443','').encode('utf-8')
+    inner_url='/'+urllib.quote('/'.join(url.split('/')[3:]))
     if request.method=='POST':
-        url=request.url.replace(':80','').replace(':443','').encode('utf-8')
-        inner_url='/'.join(url.split('/')[:3])+'/'+urllib.quote('/'.join(url.split('/')[3:]))
         if ext in ['csv','doc','docx','odp','ods','odt','pot','potm','potx','pps','ppsx','ppsxm','ppt','pptm','pptx','rtf','xls','xlsx']:
-            downloadUrl=GetDownloadUrl(fileid,user)
+            downloadUrl,play_url=GetDownloadUrl(fileid,user)
             url = 'https://view.officeapps.live.com/op/view.aspx?src='+urllib.quote(downloadUrl)
             return redirect(url)
         elif ext in ['bmp','jpg','jpeg','png','gif']:
@@ -526,20 +537,23 @@ def show(fileid,user):
         elif name=='.password':
             return abort(404)
         else:
-            downloadUrl=GetDownloadUrl(fileid,user)
+            downloadUrl,play_url=GetDownloadUrl(fileid,user)
             return redirect(downloadUrl)
-    else:
-        if name=='.password':
-            return abort(404)
-        if 'no-referrer' in allow_site:
-            downloadUrl=GetDownloadUrl(fileid,user)
-            resp=redirect(downloadUrl)
-            return resp
-        elif sum([i in referrer for i in allow_site])>0:
-            downloadUrl=GetDownloadUrl(fileid,user)
-            return redirect(downloadUrl)
+    print 'action:',action
+    if name=='.password':
+        return abort(404)
+    if 'no-referrer' in allow_site or sum([i in referrer for i in allow_site])>0:
+        downloadUrl,play_url=GetDownloadUrl(fileid,user)
+        if ext in ['webm','avi','mpg', 'mpeg', 'rm', 'rmvb', 'mov', 'wmv', 'mkv', 'asf']:
+            if action=='play':
+                resp=redirect(play_url)
+            else:
+                resp=redirect(downloadUrl)
         else:
-            return abort(404)
+            resp=redirect(play_url)
+        return resp
+    else:
+        return abort(404)
 
 @app.route('/robot.txt')
 def robot():
@@ -582,6 +596,7 @@ app.jinja_env.globals['ARIA2_SCHEME']=ARIA2_SCHEME
 ################################################################################
 if __name__=='__main__':
     app.run(port=58693,debug=True)
+
 
 
 
