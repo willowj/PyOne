@@ -128,7 +128,7 @@ def _thunbnail(id,user):
     data=json.loads(r.content)
     if data.get('large').get('url'):
         # return data.get('large').get('url').replace('thumbnail','videotranscode').replace('&width=800&height=800','')+'&format=dash&track=audio&transcodeAhead=0&part=initsegment&quality=audhigh'
-        return data.get('large').get('url').replace('thumbnail','videomanifest').replace('&width=800&height=800','')+'&part=index&format=dash&useScf=True&pretranscode=0&transcodeahead=0&quality=v1080p'
+        return data.get('large').get('url')
         # return data.get('large').get('url').replace('thumbnail','videotranscode').replace('&width=800&height=800','')+'&format=dash&track=audio&transcodeAhead=0&part=initsegment&quality=audhigh'
     else:
         return False
@@ -149,14 +149,14 @@ def _getdownloadurl(id,user):
         downloadUrl=False
     if ext in ['webm','avi','mpg', 'mpeg', 'rm', 'rmvb', 'mov', 'wmv', 'mkv', 'asf']:
         play_url=_thunbnail(id,user)
+        play_url=play_url.replace('thumbnail','videomanifest').replace('&width=800&height=800','')+'&part=index&format=dash&useScf=True&pretranscode=0&transcodeahead=0'
+        play_url=re.sub('inputFormat=.*?&','inputFormat=mp4&',play_url)
         # downloadUrl=downloadUrl.replace('thumbnail','videomanifest').replace('&width=800&height=800','')+'&part=index&format=dash&useScf=True&pretranscode=0&transcodeahead=0'
     else:
         play_url=downloadUrl
     return downloadUrl,play_url
 
 def GetDownloadUrl(id,user):
-    downloadUrl,play_url=_getdownloadurl(id,user)
-    return downloadUrl,play_url
     key_='downloadUrl:{}'.format(id)
     if rd.exists(key_):
         downloadUrl,play_url,ftime=rd.get(key_).split('####')
@@ -539,7 +539,7 @@ def show(fileid,user,action='download'):
         else:
             downloadUrl,play_url=GetDownloadUrl(fileid,user)
             return redirect(downloadUrl)
-    print 'action:',action
+    print('action:{}'.format(action))
     if name=='.password':
         return abort(404)
     if 'no-referrer' in allow_site or sum([i in referrer for i in allow_site])>0:
