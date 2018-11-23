@@ -664,12 +664,11 @@ def AddResource(data,user='A'):
     if grand_path=='':
         path=convert2unicode(data['name'])
     else:
-        path=grand_path.replace(share_path,'',1)+'/'+convert2unicode(data['name'])
-    if path.startswith('/') and path!='/':
-        path=path[1:]
-    if path=='':
-        path=convert2unicode(data['name'])
-    path=user+':/'+path
+        if share_path!='/':
+            path=user+':/'+grand_path.replace(share_path,'',1)+'/'+convert2unicode(data['name'])
+        else:
+            path=user+':/'+grand_path+'/'+convert2unicode(data['name'])
+    print('new file path:{}'.format(path))
     item['path']=path
     if GetExt(data['name']) in ['bmp','jpg','jpeg','png','gif']:
         item['order']=3

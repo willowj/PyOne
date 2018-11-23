@@ -199,13 +199,16 @@ def edit():
                 rd.delete('{}:content'.format(fileid))
                 file=items.find_one({'id':fileid})
                 name=file['name']
-                path=file['path'].replace('/'+name,'').replace(name,'')
-                if path=='':
-                    path='/'
-                if not path.startswith('/'):
-                    path='/'+path
-                path='{}:{}'.format(user,path)
+                path=file['path'].replace(name,'',1)
+                if len(path.split('/'))>2 and path.split('/')[-1]=='':
+                    path=path[:-1]
+                # if path=='':
+                #     path='/'
+                # if not path.startswith('/'):
+                #     path='/'+path
+                # path='{}:{}'.format(user,path)
                 key='has_item$#$#$#$#{}$#$#$#$#{}'.format(path,name)
+                print('edit key:{}'.format(key))
                 rd.delete(key)
             else:
                 info['status']=0
@@ -325,6 +328,7 @@ def setFile(filename=None):
                 info['status']=0
                 info['msg']='添加成功'
                 key='has_item$#$#$#$#{}$#$#$#$#{}'.format(path,filename)
+                print('set key:{}'.format(key))
                 rd.delete(key)
             else:
                 info['status']=0
@@ -358,15 +362,11 @@ def delete():
         print 'delete {}'.format(id)
         file=items.find_one({'id':id})
         name=file['name']
-        # path=file['path'].replace('/'+name,'').replace(name,'')
-        if file['parent']=='':
-            path='/'
-        else:
-            path=items.find_one({'id':file['parent']})['path']
-        if not path.startswith('/'):
-            path='/'+path
-        path='{}:{}'.format(user,path)
+        path=file['path'].replace(name,'')
+        if len(path.split('/'))>2 and path.split('/')[-1]=='':
+            path=path[:-1]
         key='has_item$#$#$#$#{}$#$#$#$#{}'.format(path,name)
+        print('delete key:{}'.format(key))
         rd.delete(key)
         kc='{}:content'.format(id)
         rd.delete(kc)

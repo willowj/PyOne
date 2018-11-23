@@ -271,6 +271,7 @@ def has_item(path,name):
     if items.count()==0:
         return False,False,False
     key='has_item$#$#$#$#{}$#$#$#$#{}'.format(path,name)
+    print('get key:{}'.format(key))
     if rd.exists(key):
         values=rd.get(key)
         item,fid,cur=values.split('########')
