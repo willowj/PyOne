@@ -1,40 +1,58 @@
 {% macro pagination_widget(pagination, endpoint) %}
-<!-- <div class="mdui-tab mdui-tab-centered mdui-tab-full-width .mdui-color-blue">
-    <div{% if not pagination.has_prev %} class="disabled"{% endif %}>
-        <a href="{% if pagination.has_prev %}{{ url_for(endpoint,
-        page = pagination.page - 1, **kwargs) }}{% else %}#{% endif %}" >
-        &laquo;
-        </a>
+<div class="mdui-row-xs-12">
+    <div class="mdui-chip mdui-col">
+      <span class="mdui-chip-title{% if not pagination.has_prev %} disabled{% endif %}">
+          <a href="{% if pagination.has_prev %}{{ url_for(endpoint,
+          page = pagination.page - 1, **kwargs) }}{% else %}#{% endif %}" class="mdui-btn mdui-btn-icon">
+          &laquo;
+          </a>
+      </span>
     </div>
     {% for p in pagination.iter_pages() %}
         {% if p %}
             {% if p == pagination.page %}
-            <div>
-                <a  class="mdui-tab-active" href="{{ url_for(endpoint, page = p,**kwargs) }}">{{ p }}</a>
+            <div class="mdui-chip mdui-col">
+              <span class="mdui-chip-title mdui-tab-active">
+                  <a href="{{ url_for(endpoint, page = p,**kwargs) }}" class="mdui-btn mdui-btn-icon">
+                  {{ p }}
+                  </a>
+              </span>
             </div>
             {% else %}
-            <div>
-                <a href="{{ url_for(endpoint, page = p,**kwargs) }}">{{ p }}</a>
+            <div class="mdui-chip mdui-col">
+              <span class="mdui-chip-title">
+                  <a href="{{ url_for(endpoint, page = p,**kwargs) }}" class="mdui-btn mdui-btn-icon">
+                  {{ p }}
+                  </a>
+              </span>
             </div>
              {% endif %}
         {% else %}
-            <div class="disabled"><a href="#">&hellip;</a></div>
+        <div class="mdui-chip mdui-col">
+              <span class="mdui-chip-title disabled">
+                  <a href="#" class="mdui-btn mdui-btn-icon">
+                  &hellip;
+                  </a>
+              </span>
+            </div>
         {% endif %}
     {% endfor %}
-    <div {% if not pagination.has_next %} class="disabled"{% endif %}>
-        <a href="{% if pagination.has_next %}{{ url_for(endpoint,
-        page = pagination.page + 1, **kwargs) }}{% else %}#{% endif %}">
+    <div class="mdui-chip mdui-col">
+      <span class="mdui-chip-title{% if not pagination.has_next %} disabled{% endif %}">
+          <a href="{% if pagination.has_next %}{{ url_for(endpoint,
+        page = pagination.page + 1, **kwargs) }}{% else %}#{% endif %}" class="mdui-btn mdui-btn-icon">
         &raquo;
         </a>
+      </span>
     </div>
-</div> -->
-<a class="mdui-btn mdui-btn-raised mdui-ripple mdui-color-theme-accent mdui-fab-fixed_left" href="{% if pagination.has_prev %}{{ url_for(endpoint,page = pagination.page - 1, **kwargs) |safe}}{% else %}#{% endif %}">
+</div>
+<!-- <a class="mdui-btn mdui-btn-raised mdui-ripple mdui-color-theme-accent mdui-fab-fixed_left" href="{% if pagination.has_prev %}{{ url_for(endpoint,page = pagination.page - 1, **kwargs) |safe}}{% else %}#{% endif %}">
     <i class="mdui-icon material-icons">&#xe314;</i>
 </a>
 <a class="mdui-btn mdui-btn-raised mdui-ripple mdui-color-theme-accent mdui-fab-fixed" href="{% if pagination.has_next %}{{ url_for(endpoint,page = pagination.page + 1, **kwargs) |safe}}{% else %}#{% endif %}">
     <i class="mdui-icon material-icons">&#xe5cc;</i>
 </a>
-
+ -->
 {% endmacro %}
 
 {% macro Arraw(name,cur_type,sortby,order) %}
