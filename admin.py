@@ -313,7 +313,11 @@ def setFile(filename=None):
         filename=request.form.get('filename')
         if not n_path.startswith('/'):
             n_path='/'+n_path
-        remote_file=os.path.join(n_path,filename)
+        share_path=od_users.get(user).get('share_path')
+        if share_path!='/':
+            remote_file=os.path.join(os.path.join(share_path,n_path),filename)
+        else:
+            remote_file=os.path.join(n_path,filename)
         content=request.form.get('content').encode('utf-8')
         info={}
         token=GetToken(user=user)
