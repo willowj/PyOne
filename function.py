@@ -1097,7 +1097,7 @@ def download_and_upload(url,remote_dir,user,gid=None):
             down_db.update_many({'gid':gid},{'$set':new_value})
     else:
         cur_order=down_db.count()
-        option={"dir":down_path,"split":"16","max-connection-per-server":"8","seed-ratio":"0","header":["User-Agent:Transmission/2.77"]}
+        option={"dir":down_path,"split":"16","max-connection-per-server":"8","seed-ratio":"0.1","header":["User-Agent:Transmission/2.77"]}
         item={}
         gid=json.loads(p.addUri(url,option))[0]["result"]
         item['gid']=gid
@@ -1155,6 +1155,8 @@ def download_and_upload(url,remote_dir,user,gid=None):
                 new_item['status']=1
                 down_db.insert_one(new_item)
             a=json.loads(p.tellStatus(gid))[0]["result"]
+        total=len(a['files'])
+        complete=0
         for idx,file in enumerate(a['files']):
             t=down_db.find_one({'gid':gid,'idx':idx})
             if t['down_status']=='100.0%':
@@ -1162,9 +1164,12 @@ def download_and_upload(url,remote_dir,user,gid=None):
                     new_value['up_status']=u'准备上传'
                     down_db.find_one_and_update({'gid':gid,'idx':idx},{'$set':new_value})
                     upload_status(gid,idx,remote_dir,user)
+                elif t['up_status']=='上传成功！':
+                    complete+=1
                 else:
                     continue
             if t['selected']=='false':
+                complete+=1
                 continue
             name=file['path'].replace(down_path+'/','').replace(down_path,'').replace(down_path[:-1],'')
             new_value={'down_status':u'{}%'.format(round(float(file['completedLength'])/(float(file['length'])+0.1)*100,0))}
@@ -1175,7 +1180,7 @@ def download_and_upload(url,remote_dir,user,gid=None):
                 new_value['up_status']=u'准备上传'
                 down_db.find_one_and_update({'gid':gid,'idx':idx},{'$set':new_value})
                 upload_status(gid,idx,remote_dir,user)
-                break
+                complete+=1
             elif a['status']=='active' or a['status']=='waiting':
                 time.sleep(1)
                 down_db.find_one_and_update({'gid':gid,'idx':idx},{'$set':new_value})
@@ -1187,8 +1192,11 @@ def download_and_upload(url,remote_dir,user,gid=None):
                 new_value['down_status']=u'下载出错'
                 new_value['status']=-1
                 down_db.find_one_and_update({'gid':gid,'idx':idx},{'$set':new_value})
-                break
-            time.sleep(2)
+                complete+=1
+        time.sleep(2)
+        if complete==total:
+            print('{} complete'.format(gid))
+            break
 
 def upload_status(gid,idx,remote_dir,user):
     item=down_db.find_one({'gid':gid,'idx':idx})
