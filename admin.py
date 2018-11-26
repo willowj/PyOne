@@ -408,6 +408,22 @@ def MoveFileToNewFolder():
     result=MoveFile(fileid,new_folder_path,user)
     return jsonify({'result':result})
 
+@admin.route('/rename',methods=['POST'])
+def Rename():
+    fileid=request.form.get('fileid')
+    user=request.form.get('user')
+    new_name=request.form.get('new_name')
+    if new_name=='' or new_name is None:
+        return jsonify({'result':result})
+    else:
+        if new_name.startswith('/'):
+            new_name=new_name[1:]
+        if new_name.endswith('/'):
+            new_name=new_name[:-1]
+    result=ReName(fileid,new_name,user)
+    return jsonify({'result':result})
+
+
 ######离线下载---调用aria2
 @admin.route('/off_download',methods=['POST','GET'])
 def off_download():

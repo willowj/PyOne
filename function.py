@@ -986,6 +986,7 @@ def MoveFile(fileid,new_folder_path,user='A'):
         path=GetName(fileid)
     else:
         path='{}:/{}'.format(user,new_folder_path)
+        print path
         parent_item=items.find_one({'path':path})
         folder_id=parent_item['id']
         parent=parent_item['id']
@@ -1012,6 +1013,37 @@ def MoveFile(fileid,new_folder_path,user='A'):
             path=items.find_one({'id':file['parent']})['path']
         key='has_item$#$#$#$#{}$#$#$#$#{}'.format(path,filename)
         rd.delete(key)
+        return True
+    else:
+        print(data.get('error').get('msg'))
+        return False
+
+def ReName(fileid,new_name,user='A'):
+    app_url=GetAppUrl()
+    token=GetToken(user=user)
+    url=app_url+'v1.0/me/drive/items/{}'.format(fileid)
+    headers={'Authorization':'bearer {}'.format(token),'Content-Type':'application/json'}
+    payload={
+      "name": new_name
+    }
+    r=requests.patch(url,headers=headers,data=json.dumps(payload))
+    data=json.loads(r.content)
+    if data.get('id'):
+        it=items.find_one({'id':fileid})
+        old_name=it['name']
+        path=it['path'].replace(old_name,new_name,1)
+        new_value={'path':path,'name':new_name}
+        items.find_one_and_update({'id':fileid},{'$set':new_value})
+        key='path:{}'.format(fileid)
+        rd.delete(key)
+        key='name:{}'.format(fileid)
+        rd.delete(key)
+        if it['type']=='folder':
+            files=items.find({'parent':it['id']})
+            for file in files:
+                new_path=file['path'].replace(old_name,new_name,1)
+                new_value={'path':new_path}
+                items.find_one_and_update({'id':file['id']},{'$set':new_value})
         return True
     else:
         print(data.get('error').get('msg'))
