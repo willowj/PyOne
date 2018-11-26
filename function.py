@@ -1084,7 +1084,6 @@ def get_aria2():
 def download_and_upload(url,remote_dir,user,gid=None):
     p,status=get_aria2()
     down_path=os.path.join(config_dir,'upload')
-    url=url.lower()
     #重新下载
     if gid is not None:
         task=down_db.find_one({'gid':gid})
@@ -1096,8 +1095,26 @@ def download_and_upload(url,remote_dir,user,gid=None):
             new_value['status']=1
             down_db.update_many({'gid':gid},{'$set':new_value})
     else:
+        if not url.lower().startswith('http') and not url.lower().startswith('magnet'):
+            item={}
+            item['name']='仅支持http(s)和磁力链接(magnet)'
+            item['idx']=0
+            item['gid']=''
+            item['localpath']=''
+            item['downloadUrl']=url
+            item['selected']='true'
+            item['selectable']='false'
+            item['user']=user
+            item['remote_dir']=remote_dir
+            item['uploadUrl']=''
+            item['size']='-'
+            item['down_status']='-'
+            item['up_status']='-'
+            item['status']=-1
+            down_db.insert_one(item)
+            return
         cur_order=down_db.count()
-        option={"dir":down_path,"split":"16","max-connection-per-server":"8","seed-ratio":"0.1","header":["User-Agent:Transmission/2.77"]}
+        option={"dir":down_path,"split":"16","max-connection-per-server":"8","seed-ratio":"0.1","bt-save-metadata":"false","bt-max-peers":"200","header":["User-Agent:Transmission/2.77"]}
         item={}
         gid=json.loads(p.addUri(url,option))[0]["result"]
         item['gid']=gid
