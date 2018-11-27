@@ -1,4 +1,5 @@
 {% macro pagination_widget(pagination, endpoint) %}
+<br>
 <center>
     <div id="page">
         {% if pagination.has_prev %}
@@ -22,27 +23,6 @@
         {%endif%}
     </div>
 </center>
-<!-- <div class="moe-page-div">
-<center>
-{% if pagination.has_prev %}
-<a class="prev" href="{{ url_for(endpoint,page = pagination.page - 1, **kwargs) |safe}}">
-  <button class="mdui-btn mdui-btn-icon mdui-float-left mdui-ripple mdui-color-theme-accent mdui-shadow-5">
-    <i class="mdui-icon material-icons">navigate_before</i>
-  </button>
-</a>
-{%endif%}
-<button class="mdui-btn" disabled="">
-  <strong class="moe-text-color">{{pagination.page}} / {{pagination.pages}}</strong>
-</button>
-{% if pagination.has_next %}
-<a class="next" title="" href="{{ url_for(endpoint,page = pagination.page + 1, **kwargs) |safe}}">
-  <button class="mdui-btn mdui-btn-icon mdui-float-right mdui-ripple mdui-color-theme-accent mdui-shadow-5">
-    <i class="mdui-icon material-icons">navigate_next</i>
-  </button>
-</a>
-{%endif%}
-</center>
-</div> -->
  <style type="text/css">
      #page a {
          text-align: center;
