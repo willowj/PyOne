@@ -58,7 +58,7 @@
  -->
 <div class="moe-page-div">
 <center>
-{% if pagination.has_next %}
+{% if pagination.has_prev %}
 <a class="prev" href="{{ url_for(endpoint,page = pagination.page - 1, **kwargs) |safe}}">
   <button class="mdui-btn mdui-btn-icon mdui-float-left mdui-ripple mdui-color-theme-accent mdui-shadow-5">
     <i class="mdui-icon material-icons">navigate_before</i>
