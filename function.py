@@ -1302,12 +1302,14 @@ def upload_status(gid,idx,remote_dir,user):
                 new_value['up_status']='上传成功！'
                 new_value['status']=0
                 down_db.find_one_and_update({'_id':item['_id']},{'$set':new_value})
+                time.sleep(2)
                 os.remove(localpath)
                 break
             down_db.find_one_and_update({'_id':item['_id']},{'$set':new_value})
         except Exception as e:
             print(e)
             break
+        time.sleep(2)
 
 
 def get_tasks(status):

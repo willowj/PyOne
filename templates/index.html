@@ -11,11 +11,6 @@
           </label>
     </div>
     {%include 'head.html'%}
-    <div class="mdui-center">
-    {% if pagination %}
-        {{ macros.pagination_widget(pagination, endpoint,path=path,sortby=sortby,order=order) }}
-    {% endif %}
-    </div>
     <div class="nexmoe-item">
         <div class="mdui-row">
             <ul class="mdui-list">
