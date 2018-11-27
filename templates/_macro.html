@@ -1,62 +1,28 @@
 {% macro pagination_widget(pagination, endpoint) %}
+<center>
+    <div id="page">
+        {% if pagination.has_prev %}
+        <a href="{{ url_for(endpoint,page = pagination.page - 1, **kwargs) |safe}}" class="mdui-fab mdui-fab-mini mdui-ripple">&lt;</a>
+        {%endif%}
 
-<!-- <div class="mdui-row-xs-12" style="margin:10px;">
-    <div class="mdui-col">
-      <span class="mdui-chip-icon{% if not pagination.has_prev %} disabled{% endif %}">
-          <a href="{% if pagination.has_prev %}{{ url_for(endpoint,
-          page = pagination.page - 1, **kwargs) }}{% else %}#{% endif %}">
-          &laquo;
-          </a>
-      </span>
+        {% for p in pagination.iter_pages() %}
+          {% if p %}
+            {%if p == pagination.page%}
+              <a href="{{ url_for(endpoint, page = p,**kwargs) }}" class="current mdui-shadow-13">{{ p }}</a>
+            {%else%}
+              <a href="{{ url_for(endpoint, page = p,**kwargs) }}">{{ p }}</a>
+            {%endif%}
+          {%else%}
+              <a href="javascript:void(0);">&hellip;</a>
+          {%endif%}
+        {%endfor%}
+
+        {% if pagination.has_next %}
+        <a href="{{ url_for(endpoint,page = pagination.page + 1, **kwargs) |safe}}">&gt;</a>
+        {%endif%}
     </div>
-    {% for p in pagination.iter_pages() %}
-        {% if p %}
-            {% if p == pagination.page %}
-            <div class="mdui-col mdui-text-color-blue">
-              <span class="mdui-chip-icon">
-                  <a href="{{ url_for(endpoint, page = p,**kwargs) }}">
-                  {{ p }}
-                  </a>
-              </span>
-            </div>
-            {% else %}
-            <div class="mdui-col">
-              <span class="mdui-chip-icon">
-                  <a href="{{ url_for(endpoint, page = p,**kwargs) }}">
-                  {{ p }}
-                  </a>
-              </span>
-            </div>
-             {% endif %}
-        {% else %}
-        <div class="mdui-col">
-              <span class="mdui-chip-icon disabled">
-                  <a href="#">
-                  &hellip;
-                  </a>
-              </span>
-            </div>
-        {% endif %}
-    {% endfor %}
-    <div class="mdui-col">
-      <span class="mdui-chip-icon{% if not pagination.has_next %} disabled{% endif %}">
-          <a href="{% if pagination.has_next %}{{ url_for(endpoint,
-        page = pagination.page + 1, **kwargs) }}{% else %}#{% endif %}">
-        &raquo;
-        </a>
-      </span>
-    </div>
-</div> -->
-
-<!-- <a class="mdui-btn mdui-btn-raised mdui-ripple mdui-color-theme-accent mdui-fab-fixed_left" href="{% if pagination.has_prev %}{{ url_for(endpoint,page = pagination.page - 1, **kwargs) |safe}}{% else %}#{% endif %}">
-    <i class="mdui-icon material-icons">&#xe314;</i>
-</a>
-
-<a class="mdui-btn mdui-btn-raised mdui-ripple mdui-color-theme-accent mdui-fab-fixed" href="{% if pagination.has_next %}{{ url_for(endpoint,page = pagination.page + 1, **kwargs) |safe}}{% else %}#{% endif %}">
-    <i class="mdui-icon material-icons">&#xe5cc;</i>
-</a>
- -->
-<div class="moe-page-div">
+</center>
+<!-- <div class="moe-page-div">
 <center>
 {% if pagination.has_prev %}
 <a class="prev" href="{{ url_for(endpoint,page = pagination.page - 1, **kwargs) |safe}}">
@@ -76,12 +42,44 @@
 </a>
 {%endif%}
 </center>
-</div>
+</div> -->
  <style type="text/css">
-     a:link {color: black; text-decoration:none;} //未访问：蓝色、无下划线
-     a:active:{color: red; } //激活：红色
-     a:visited {color:black;text-decoration:none;} //已访问：purple、无下划线
-     a:hover {color: red; text-decoration:underline;} //鼠标移近：红色、下划线
+     #page a {
+         text-align: center;
+         position: relative;
+         display: inline-block;
+         color: inherit;
+         text-align: center;
+         text-decoration: none;
+         text-transform: uppercase;
+         letter-spacing: .04em;
+         white-space: nowrap;
+         vertical-align: middle;
+         padding: 0!important;
+         margin: auto;
+         overflow: hidden;
+         font-size: 24px;
+         line-height: normal!important;
+         border-radius: 50%;
+         margin-right: 5px;
+         box-shadow: 0 3px 5px -1px rgba(0, 0, 0, .2), 0 6px 10px 0 rgba(0, 0, 0, .14), 0 1px 18px 0 rgba(0, 0, 0, .12);
+         width: 20px;
+         min-width:30px;
+         height: 30px;
+         outline: 0;
+         user-select: none;
+         background: 0 0;
+         border: none;
+         cursor: pointer;
+         zoom: 1;
+         webkit-transition: all .2s cubic-bezier(.4, 0, .2, 1), box-shadow .2s cubic-bezier(.4, 0, 1, 1), -webkit-transform .2s;
+         transition: all .2s cubic-bezier(.4, 0, .2, 1), box-shadow .2s cubic-bezier(.4, 0, 1, 1), -webkit-transform .2s;
+         transition: all .2s cubic-bezier(.4, 0, .2, 1), box-shadow .2s cubic-bezier(.4, 0, 1, 1), transform .2s;
+         transition: all .2s cubic-bezier(.4, 0, .2, 1), box-shadow .2s cubic-bezier(.4, 0, 1, 1), transform .2s, -webkit-transform .2s;
+         -webkit-transform: scale(1) translateZ(0);
+         transform: scale(1) translateZ(0);
+         will-change: transform;
+     }
      .moe-page-div {
         max-width: 600px;
         margin-left: auto;
