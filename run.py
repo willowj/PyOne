@@ -448,10 +448,11 @@ def index(path='A:/'):
     image_mode=request.args.get('image_mode')
     sortby=request.args.get('sortby')
     order=request.args.get('order')
-    try:
-        action=re.findall('&action=(.*)',request.url)[0]
-    except:
-        action='download'
+    action=request.args.get('action','download')
+    # try:
+    #     action=re.findall('action=(.*)',request.url)[0]
+    # except:
+    #     action='download'
     resp,total = FetchData(path=path,page=page,per_page=50,sortby=sortby,order=order,dismiss=True)
     if total=='files':
         return show(resp['id'],user,action)
@@ -515,9 +516,10 @@ def show(fileid,user,action='download'):
     name=GetName(fileid)
     ext=name.split('.')[-1].lower()
     path=GetPath(fileid)
-    url=request.url.replace(':80','').replace(':443','').encode('utf-8')
+    url=request.url.replace(':80','').replace(':443','').encode('utf-8').split('?')[0]
     inner_url='/'+urllib.quote('/'.join(url.split('/')[3:]))
-    if request.method=='POST':
+    if request.method=='POST' or action=='share':
+        print(u'share page:{}'.format(path))
         if ext in ['csv','doc','docx','odp','ods','odt','pot','potm','potx','pps','ppsx','ppsxm','ppt','pptm','pptx','rtf','xls','xlsx']:
             downloadUrl,play_url=GetDownloadUrl(fileid,user)
             url = 'https://view.officeapps.live.com/op/view.aspx?src='+urllib.quote(downloadUrl)
