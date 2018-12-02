@@ -17,9 +17,10 @@ import base64
 import humanize
 import StringIO
 import subprocess
+import signal
 from dateutil.parser import parse
 from Queue import Queue
-from threading import Thread
+from threading import Thread,Event
 from redis import Redis
 from config import *
 from aria2 import PyAria2
@@ -159,16 +160,6 @@ def Dir(path=u'A:/'):
         g=GetItemThread(queue,user)
         g.GetItem(BaseUrl)
         queue=g.queue
-        if queue.qsize()==0:
-            return
-        tasks=[]
-        for i in range(min(5,queue.qsize())):
-            t=GetItemThread(queue,user)
-            t.start()
-            tasks.append(t)
-        for t in tasks:
-            t.join()
-        RemoveRepeatFile()
     else:
         grandid=0
         parent=''
@@ -183,16 +174,27 @@ def Dir(path=u'A:/'):
         g=GetItemThread(queue,user)
         g.GetItem(BaseUrl,grandid,parent,1)
         queue=g.queue
-        if queue.qsize()==0:
-            return
-        tasks=[]
-        for i in range(min(10,queue.qsize())):
-            t=GetItemThread(queue,user)
-            t.start()
-            tasks.append(t)
+    if queue.qsize()==0:
+        return
+    tasks=[]
+    for i in range(min(10,queue.qsize())):
+        t=GetItemThread(queue,user)
+        # t.setDaemon(True)
+        t.start()
+        tasks.append(t)
+    # for t in tasks:
+    #     t.join()
+    while 1:
         for t in tasks:
-            t.join()
-        RemoveRepeatFile()
+            # print('thread {}\'s status {},qsize {}'.format(t.getName(),t.isAlive(),t.queue.qsize()))
+            if t.isAlive()==False or t.queue.qsize()==0:
+                tasks.pop(tasks.index(t))
+                t.stop()
+        if len(tasks)==0:
+            print('all thread stop!')
+            break
+        time.sleep(1)
+    RemoveRepeatFile()
 
 def Dir_all(path=u'A:/'):
     app_url=GetAppUrl()
@@ -205,16 +207,6 @@ def Dir_all(path=u'A:/'):
         g=GetItemThread(queue,user)
         g.GetItem(BaseUrl)
         queue=g.queue
-        if queue.qsize()==0:
-            return
-        tasks=[]
-        for i in range(min(5,queue.qsize())):
-            t=GetItemThread(queue,user)
-            t.start()
-            tasks.append(t)
-        for t in tasks:
-            t.join()
-        RemoveRepeatFile()
     else:
         grandid=0
         parent=''
@@ -238,22 +230,34 @@ def Dir_all(path=u'A:/'):
         g=GetItemThread(queue,user)
         g.GetItem(BaseUrl,grandid,parent,1)
         queue=g.queue
-        if queue.qsize()==0:
-            return
-        tasks=[]
-        for i in range(min(10,queue.qsize())):
-            t=GetItemThread(queue,user)
-            t.start()
-            tasks.append(t)
+    if queue.qsize()==0:
+        return
+    tasks=[]
+    for i in range(min(10,queue.qsize())):
+        t=GetItemThread(queue,user)
+        # t.setDaemon(True)
+        t.start()
+        tasks.append(t)
+    # for t in tasks:
+    #     t.join()
+    while 1:
         for t in tasks:
-            t.join()
-        RemoveRepeatFile()
+            # print('thread {}\'s status {},qsize {}'.format(t.getName(),t.isAlive(),t.queue.qsize()))
+            if t.isAlive()==False or t.queue.qsize()==0:
+                tasks.pop(tasks.index(t))
+                t.stop()
+        if len(tasks)==0:
+            print('all thread stop!')
+            break
+        time.sleep(1)
+    RemoveRepeatFile()
 
 class GetItemThread(Thread):
     def __init__(self,queue,user):
         super(GetItemThread,self).__init__()
         self.queue=queue
         self.user=user
+        self._stop_event = Event()
         share_path=od_users.get(user).get('share_path')
         if share_path=='/':
             self.share_path=share_path
@@ -266,7 +270,7 @@ class GetItemThread(Thread):
             self.share_path=sp
 
     def run(self):
-        while 1:
+        while not self.queue.empty():
             time.sleep(0.5) #避免过快
             info=self.queue.get()
             url=info['url']
@@ -274,11 +278,18 @@ class GetItemThread(Thread):
             parent=info['parent']
             trytime=info['trytime']
             self.GetItem(url,grandid,parent,trytime)
+            # if self.queue.empty():
+            #     print('waiting 5s if queue is not empty')
+            #     time.sleep(5) #再等5s
             if self.queue.empty():
-                time.sleep(5) #再等5s
-                print('waiting 5s if queue is not empty')
-                if self.queue.empty():
-                    break
+                break
+
+    def stop(self):
+        self._stop_event.set()
+
+    def stopped(self):
+        return self._stop_event.is_set()
+
 
     def GetItem(self,url,grandid=0,parent='',trytime=1):
         app_url=GetAppUrl()
@@ -444,19 +455,38 @@ def GetRootid(user='A'):
         return data['id']
 
 def UpdateFile(renew='all'):
+    tasks=[]
     if renew=='all':
         items.remove()
         rd.flushdb()
         for user,item in od_users.items():
             if item.get('client_id')!='':
                 share_path='{}:{}'.format(user,item['share_path'])
-                Dir_all(share_path)
+                # Dir_all(share_path)
+                t=Thread(target=Dir_all,args=(share_path,))
+                t.start()
+                tasks.append(t)
+        for t in tasks:
+            t.join()
     else:
         for user,item in od_users.items():
             if item.get('client_id')!='':
                 share_path='{}:{}'.format(user,item['share_path'])
-                Dir(share_path)
+                # Dir(share_path)
+                t=Thread(target=Dir,args=(share_path,))
+                t.start()
+                tasks.append(t)
+    while 1:
+        for t in tasks:
+            if t.isAlive()==False:
+                tasks.pop(tasks.index(t))
+        if len(tasks)==0:
+            print('all users update status is complete')
+            break
+        time.sleep(1)
     print('update file success!')
+    os.kill(os.getpid(), signal.SIGKILL)
+
 
 
 def FileExists(filename,user='A'):
@@ -880,9 +910,10 @@ def UploadDir(local_dir,remote_dir,user,threads=5):
                     parent_id=parent['id']
                     parent_path='/'.join([parent_path,parent['name']])
                 else:
-                    parent=items.find_one({'name':p,'grandid':idx,'parent':parent_id})
-                    parent_id=parent['id']
-                    parent_path='/'.join([parent_path,parent['name']])
+                    parent=items.find_one({'parent':parent_id})
+                    if parent is not None:
+                        parent_id=parent['id']
+                        parent_path='/'.join([parent_path,parent['name']])
             grandid=idx+1
             cloud_files=_GetAllFile(parent_id,parent_path)
     try:
