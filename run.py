@@ -150,7 +150,7 @@ def _getdownloadurl(id,user):
     if ext in ['webm','avi','mpg', 'mpeg', 'rm', 'rmvb', 'mov', 'wmv', 'mkv', 'asf']:
         play_url=_thunbnail(id,user)
         play_url=play_url.replace('thumbnail','videomanifest').replace('&width=800&height=800','')+'&part=index&format=dash&useScf=True&pretranscode=0&transcodeahead=0'
-        play_url=re.sub('inputFormat=.*?&','inputFormat=mp4&',play_url)
+        # play_url=re.sub('inputFormat=.*?&','inputFormat=mp4&',play_url)
         # downloadUrl=downloadUrl.replace('thumbnail','videomanifest').replace('&width=800&height=800','')+'&part=index&format=dash&useScf=True&pretranscode=0&transcodeahead=0'
     else:
         play_url=downloadUrl
