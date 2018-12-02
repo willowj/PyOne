@@ -719,7 +719,7 @@ def CreateUploadSession(path,user='A'):
     url=app_url+u'v1.0/me/drive/root:{}:/createUploadSession'.format(urllib.quote(convert2unicode(path)))
     data={
           "item": {
-            "@microsoft.graph.conflictBehavior": "rename",
+            "@microsoft.graph.conflictBehavior": "fail",
           }
         }
     try:

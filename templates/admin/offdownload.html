@@ -291,9 +291,10 @@ function AddLink() {
 
 function tellActive() {
     var defer = $.Deferred();
+    var getTimestamp=new Date().getTime();
     $.ajax({
         type: "POST",
-        url: "{{url_for('admin.RPCserver')}}",
+        url: "{{url_for('admin.RPCserver')}}?t="+getTimestamp,
         data: { action:'tellActive' },
         cache: false, //使用同步的方式,true为异步方式
         // async: false, //使用同步的方式,true为异步方式
@@ -343,9 +344,10 @@ function tellActive() {
 
 function tellFail() {
     var defer = $.Deferred();
+    var getTimestamp=new Date().getTime();
     $.ajax({
         type: "POST",
-        url: "{{url_for('admin.RPCserver')}}",
+        url: "{{url_for('admin.RPCserver')}}?t="+getTimestamp,
         data: { action:'tellFail' },
         cache: false, //使用同步的方式,true为异步方式
         // async: false, //使用同步的方式,true为异步方式
@@ -386,9 +388,10 @@ function tellFail() {
 
 function tellSuccess() {
     var defer = $.Deferred();
+    var getTimestamp=new Date().getTime();
     $.ajax({
         type: "POST",
-        url: "{{url_for('admin.RPCserver')}}",
+        url: "{{url_for('admin.RPCserver')}}?t="+getTimestamp,
         data: { action:'tellSuccess' },
         cache: false,
         // async: false,
@@ -428,9 +431,10 @@ function tellSuccess() {
 
 function tellUnselected() {
     var defer = $.Deferred();
+    var getTimestamp=new Date().getTime();
     $.ajax({
         type: "POST",
-        url: "{{url_for('admin.RPCserver')}}",
+        url: "{{url_for('admin.RPCserver')}}?t="+getTimestamp,
         data: { action:'tellUnselected' },
         cache: false,
         // async: false,
