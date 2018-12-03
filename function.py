@@ -187,7 +187,7 @@ def Dir(path=u'A:/'):
     while 1:
         for t in tasks:
             # print('thread {}\'s status {},qsize {}'.format(t.getName(),t.isAlive(),t.queue.qsize()))
-            if t.isAlive()==False or t.queue.qsize()==0:
+            if t.isAlive()==False and t.queue.qsize()==0:
                 tasks.pop(tasks.index(t))
                 t.stop()
         if len(tasks)==0:
@@ -243,7 +243,7 @@ def Dir_all(path=u'A:/'):
     while 1:
         for t in tasks:
             # print('thread {}\'s status {},qsize {}'.format(t.getName(),t.isAlive(),t.queue.qsize()))
-            if t.isAlive()==False or t.queue.qsize()==0:
+            if t.isAlive()==False and t.queue.qsize()==0:
                 tasks.pop(tasks.index(t))
                 t.stop()
         if len(tasks)==0:
