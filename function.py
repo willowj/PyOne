@@ -682,7 +682,7 @@ def AddResource(data,user='A'):
                 pid=fdata.get('id')
     #插入数据
     item={}
-    item['type']='file'
+    item['type']=GetExt(data.get('name'))
     item['name']=data.get('name')
     item['user']=user
     item['id']=data.get('id')
@@ -702,10 +702,10 @@ def AddResource(data,user='A'):
     item['path']=path
     if GetExt(data['name']) in ['bmp','jpg','jpeg','png','gif']:
         item['order']=3
-        key1='name:{}'.format(data['id'])
-        key2='path:{}'.format(data['id'])
-        rd.set(key1,data['name'])
-        rd.set(key2,path)
+        # key1='name:{}'.format(data['id'])
+        # key2='path:{}'.format(data['id'])
+        # rd.set(key1,data['name'])
+        # rd.set(key2,path)
     elif data['name']=='.password':
         item['order']=1
     else:
