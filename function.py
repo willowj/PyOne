@@ -334,7 +334,7 @@ class GetItemThread(Thread):
                                     path=path[1:]
                                 if path=='':
                                     path=convert2unicode(value['name'])
-                                path='{}:/{}'.format(self.user,path)
+                                path=urllib.unquote('{}:/{}'.format(self.user,path))
                                 item['path']=path
                                 subfodler=items.insert_one(item)
                                 if value.get('folder').get('childCount')==0:
@@ -365,7 +365,7 @@ class GetItemThread(Thread):
                                 path=path[1:]
                             if path=='':
                                 path=convert2unicode(value['name'])
-                            path='{}:/{}'.format(self.user,path)
+                            path=urllib.unquote('{}:/{}'.format(self.user,path))
                             item['path']=path
                             subfodler=items.insert_one(item)
                             if value.get('folder').get('childCount')==0:
@@ -389,7 +389,7 @@ class GetItemThread(Thread):
                                 path=path[1:]
                             if path=='':
                                 path=convert2unicode(value['name'])
-                            path='{}:/{}'.format(self.user,path)
+                            path=urllib.unquote('{}:/{}'.format(self.user,path))
                             item['path']=path
                             item['user']=self.user
                             item['name']=convert2unicode(value['name'])
