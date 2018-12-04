@@ -1170,7 +1170,7 @@ def download_and_upload(url,remote_dir,user,gid=None):
             item['user']=user
             item['remote_dir']=remote_dir
             item['uploadUrl']=''
-            item['size']='-'
+            item['size']=0
             item['down_status']='-'
             item['up_status']='-'
             item['status']=-1
@@ -1197,7 +1197,8 @@ def download_and_upload(url,remote_dir,user,gid=None):
         item['user']=user
         item['remote_dir']=remote_dir
         item['uploadUrl']=''
-        item['size']=humanize.naturalsize(a['totalLength'], gnu=True)
+        item['size']=a['totalLength']
+        # item['size']=humanize.naturalsize(a['totalLength'], gnu=True)
         item['down_status']=u'{}%'.format(round(float(a['completedLength'])/(float(a['totalLength'])+0.1)*100,0))
         item['up_status']=u'待机'
         item['status']=1
@@ -1207,6 +1208,7 @@ def download_and_upload(url,remote_dir,user,gid=None):
         if a.get('followedBy'):
             old_status={}
             old_status['status']=0
+            old_status['down_status']='100.0%'
             old_status['up_status']=u'磁力文件，无需上传'
             down_db.find_one_and_update({'gid':gid},{'$set':old_status})
             magnet=re.findall('magnet:\?xt=urn:btih:(.{,40})',down_db.find_one({'gid':gid})['downloadUrl'])[0].lower()+'.torrent'
@@ -1229,7 +1231,8 @@ def download_and_upload(url,remote_dir,user,gid=None):
                 new_item['user']=user
                 new_item['remote_dir']=remote_dir
                 new_item['uploadUrl']=''
-                new_item['size']=humanize.naturalsize(file['length'], gnu=True)
+                new_item['size']=file['length']
+                # new_item['size']=humanize.naturalsize(file['length'], gnu=True)
                 new_item['down_status']=u'{}%'.format(round(float(file['completedLength'])/(float(file['length'])+0.1)*100,0))
                 new_item['up_status']=u'待机'
                 new_item['status']=1
@@ -1254,7 +1257,8 @@ def download_and_upload(url,remote_dir,user,gid=None):
             name=file['path'].replace(down_path+'/','').replace(down_path,'').replace(down_path[:-1],'')
             new_value={'down_status':u'{}%'.format(round(float(file['completedLength'])/(float(file['length'])+0.1)*100,0))}
             new_value['name']=name
-            new_value['size']=humanize.naturalsize(file['length'], gnu=True)
+            new_value['size']=file['length']
+            # new_value['size']=humanize.naturalsize(file['length'], gnu=True)
             new_value['localpath']=file['path']
             if a['status']=='complete' or (file['completedLength']==file['length'] and int(file['length'])!=0):
                 new_value['up_status']=u'准备上传'
@@ -1273,7 +1277,7 @@ def download_and_upload(url,remote_dir,user,gid=None):
                 new_value['status']=-1
                 down_db.find_one_and_update({'gid':gid,'idx':idx},{'$set':new_value})
                 complete+=1
-        time.sleep(2)
+        # time.sleep(2)
         if complete==total:
             print('{} complete'.format(gid))
             break
@@ -1345,19 +1349,43 @@ def upload_status(gid,idx,remote_dir,user):
 
 def get_tasks(status):
     tasks=down_db.find({'status':status})
-    result=[]
+    #获取所有的gid
+    gids=[]
     for t in tasks:
+        gids.append((t['gid'],t['name'].split('/')[0]))
+    gids=list(set(gids))
+    ##根据gid获取列表
+    result=[]
+    for gid,title in gids:
         info={}
-        info['gid']=t['gid']
-        info['idx']=t['idx']
-        info['name']=t['name']
-        info['downloadUrl']=t['downloadUrl']
-        info['size']=t['size']
-        info['down_status']=t['down_status']
-        info['up_status']=t['up_status']
-        info['selectable']=t['selectable']
-        info['selected']=t['selected']
-        info['status']=t['status']
+        info['gid']=gid
+        info['down_status']='' #"选择下载","选择不下载","*%","暂停下载","开始下载","-","下载出错"
+        info['title']=title
+        info['files']=[]
+        total_size=0
+        complete=0
+        for file in down_db.find({'gid':gid}):
+            file_info={}
+            total_size+=int(file['size'])
+            try:
+                complete+=int(file['size'])*float(file['down_status'].replace('%',''))/100
+            except Exception as e:
+                complete+=0
+            file_info['idx']=file['idx']
+            file_info['name']=file['name'].replace(title+'/','')
+            file_info['size']=humanize.naturalsize(file['size'], gnu=True)
+            file_info['down_status']=file['down_status']
+            file_info['up_status']=file['up_status']
+            file_info['selectable']=file['selectable']
+            file_info['selected']=file['selected']
+            file_info['status']=file['status']
+            if file['down_status'] not in ["选择下载","选择不下载"]:
+                if file['down_status'] in ["暂停下载","下载出错"]:
+                    info['down_status']='暂停下载'
+            info['files'].append(file_info)
+        info['size']=humanize.naturalsize(total_size, gnu=True)
+        d=round(float(complete)/(float(total_size)+0.1)*100,0)
+        info['down_percent']=u'{}% / '.format(d)
         result.append(info)
     return result
 
@@ -1365,12 +1393,12 @@ def Aria2Method(action,**kwargs):
     p,status=get_aria2()
     if not status:
         return {'status':False,'msg':p}
-    if action in ['pause','unpause']:
+    if action in ['pause']:
         for gid in kwargs['gids']:
-            gid,idx=gid.split('#')
             p.forcePause(gid)
-    elif action in ['pauseAll','unpauseAll']:
-        eval('p.{}()'.format(action))
+    if action in ['unpause']:
+        for gid in kwargs['gids']:
+            p.unpause(gid)
     elif action in ['remove']:
         for gid in kwargs['gids']:
             gid,idx=gid.split('#')
@@ -1426,7 +1454,7 @@ def Aria2Method(action,**kwargs):
             gid,idx=gid.split('#')
             nums=down_db.find({'gid':gid}).count()
             if nums<=1:
-                result=[{'gid':gid,'msg':'当前任务只有一个文件，无法选择'}]
+                result=[{'gid':gid,'msg':'当前磁力只有一个文件，无法选择'}]
                 retdata['result']=result
                 return retdata
             idx=int(idx)
@@ -1471,9 +1499,8 @@ def DBMethod(action,**kwargs):
     if action in ['pause','unpause','pauseAll','unpauseAll']:
         result=[]
         for gid in kwargs['gids']:
-            gid,idx=gid.split('#')
-            info={'gid':gid,'idx':int(idx)}
-            task=down_db.find_one({'gid':gid,'idx':int(idx)})
+            info={'gid':gid}
+            task=down_db.find_one({'gid':gid})
             if task['down_status']=='100.0%':
                 info['msg']='文件下载完成！无法更改上传状态'
             elif task['down_status']=='下载出错':
