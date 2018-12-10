@@ -191,7 +191,7 @@ def Dir(path=u'A:/'):
                 tasks.pop(tasks.index(t))
                 t.stop()
         if len(tasks)==0:
-            print('all thread stop!')
+            print(u'{} all thread stop!'.format(path))
             break
         time.sleep(1)
     RemoveRepeatFile()
@@ -235,19 +235,19 @@ def Dir_all(path=u'A:/'):
     tasks=[]
     for i in range(min(10,queue.qsize())):
         t=GetItemThread(queue,user)
-        # t.setDaemon(True)
+        t.setDaemon(True)
         t.start()
         tasks.append(t)
     # for t in tasks:
     #     t.join()
     while 1:
         for t in tasks:
-            # print('thread {}\'s status {},qsize {}'.format(t.getName(),t.isAlive(),t.queue.qsize()))
+            print('{} {} : isAlive:{};queue size:{}'.format(path,t.getName(),t.isAlive(),t.queue.qsize()))
             if t.isAlive()==False and t.queue.qsize()==0:
                 tasks.pop(tasks.index(t))
                 t.stop()
         if len(tasks)==0:
-            print('all thread stop!')
+            print(u'{} all thread stop!'.format(path))
             break
         time.sleep(1)
     RemoveRepeatFile()
@@ -278,10 +278,8 @@ class GetItemThread(Thread):
             parent=info['parent']
             trytime=info['trytime']
             self.GetItem(url,grandid,parent,trytime)
-            # if self.queue.empty():
-            #     print('waiting 5s if queue is not empty')
-            #     time.sleep(5) #再等5s
             if self.queue.empty():
+                # print('{} queue empty!break'.format(self.user))
                 break
 
     def stop(self):
@@ -290,14 +288,13 @@ class GetItemThread(Thread):
     def stopped(self):
         return self._stop_event.is_set()
 
-
     def GetItem(self,url,grandid=0,parent='',trytime=1):
         app_url=GetAppUrl()
         token=GetToken(user=self.user)
-        print(u'getting files from url {}'.format(url))
+        print(u'[start] getting files from url {}'.format(url))
         header={'Authorization': 'Bearer {}'.format(token)}
         try:
-            r=requests.get(url,headers=header)
+            r=requests.get(url,headers=header,timeout=10)
             data=json.loads(r.content)
             if data.get('error'):
                 print('error:{}! waiting 180s'.format(data.get('error').get('message')))
@@ -410,8 +407,11 @@ class GetItemThread(Thread):
                             else:
                                 item['order']=2
                             items.insert_one(item)
+            else:
+                print('{}\'s size is zero'.format(url))
             if data.get('@odata.nextLink'):
                 self.queue.put(dict(url=data.get('@odata.nextLink'),grandid=grandid,parent=parent,trytime=1))
+            print(u'[success] getting files from url {}'.format(url))
         except Exception as e:
             trytime+=1
             print(u'error to opreate GetItem("{}","{}","{}"),try times :{}, reason: {}'.format(url,grandid,parent,trytime,e))

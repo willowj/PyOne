@@ -49,29 +49,31 @@
      }
     }
 </style>
-<center>
-    <div id="page">
-        {% if pagination.has_prev %}
-        <a href="{{ url_for(endpoint,page = pagination.page - 1, **kwargs) |safe}}" class="mdui-fab mdui-fab-mini mdui-ripple">&lt;</a>
-        {%endif%}
+    {%if pagination.pages>1%}
+        <center>
+            <div id="page">
+                {% if pagination.has_prev %}
+                <a href="{{ url_for(endpoint,page = pagination.page - 1, **kwargs) |safe}}" class="mdui-fab mdui-fab-mini mdui-ripple">&lt;</a>
+                {%endif%}
 
-        {% for p in pagination.iter_pages() %}
-          {% if p %}
-            {%if p == pagination.page%}
-              <a href="{{ url_for(endpoint, page = p,**kwargs) }}" class="mdui-color-blue mdui-shadow-13">{{ p }}</a>
-            {%else%}
-              <a href="{{ url_for(endpoint, page = p,**kwargs) }}">{{ p }}</a>
-            {%endif%}
-          {%else%}
-              <a href="javascript:void(0);">&hellip;</a>
-          {%endif%}
-        {%endfor%}
+                {% for p in pagination.iter_pages() %}
+                  {% if p %}
+                    {%if p == pagination.page%}
+                      <a href="{{ url_for(endpoint, page = p,**kwargs) }}" class="mdui-color-blue mdui-shadow-13">{{ p }}</a>
+                    {%else%}
+                      <a href="{{ url_for(endpoint, page = p,**kwargs) }}">{{ p }}</a>
+                    {%endif%}
+                  {%else%}
+                      <a href="javascript:void(0);">&hellip;</a>
+                  {%endif%}
+                {%endfor%}
 
-        {% if pagination.has_next %}
-        <a href="{{ url_for(endpoint,page = pagination.page + 1, **kwargs) |safe}}">&gt;</a>
-        {%endif%}
-    </div>
-</center>
+                {% if pagination.has_next %}
+                <a href="{{ url_for(endpoint,page = pagination.page + 1, **kwargs) |safe}}">&gt;</a>
+                {%endif%}
+            </div>
+        </center>
+    {%endif%}
 {% endmacro %}
 
 {% macro Arraw(name,cur_type,sortby,order) %}
