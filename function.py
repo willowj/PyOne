@@ -692,7 +692,7 @@ def AddResource(data,user='A'):
     item['grandid']=grandid
     item['parent']=parent_id
     if grand_path=='':
-        path=convert2unicode(data['name'])
+        path=user+':/'+convert2unicode(data['name'])
     else:
         if share_path!='/':
             path=user+':/'+grand_path.replace(share_path,'',1)+'/'+convert2unicode(data['name'])

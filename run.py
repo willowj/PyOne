@@ -558,7 +558,7 @@ def show(fileid,user,action='download'):
     else:
         return abort(404)
 
-@app.route('/robot.txt')
+@app.route('/robots.txt')
 def robot():
     resp="""
 User-agent:  *
