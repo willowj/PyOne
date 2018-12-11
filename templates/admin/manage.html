@@ -164,10 +164,14 @@ a:hover {
 $$(function() {
     $$('.file a').each(function() {
         $$(this).on('click', function() {
-            var form = $$('<form target=_blank method=post></form>').attr('action', $$(this).attr('href')).get(0);
-            $$(document.body).append(form);
-            form.submit();
-            $$(form).remove();
+            layer.open({
+              type: 2,
+              title: 'PyOne播放窗口',
+              shadeClose: true,
+              shade: 0.8,
+              area: ['100%', '100%'],
+              content: $$(this).attr('href')+"?action=share" //iframe的url
+            });
             return false;
         });
     });
