@@ -153,7 +153,7 @@ def Dir(path=u'A:/'):
     user,n_path=path.split(':')
     print('update {}\'s {} file'.format(user,n_path))
     if n_path=='/':
-        BaseUrl=app_url+u'v1.0/me/drive/root/children?expand=thumbnails?orderby=lastModifiedDateTime%20desc'
+        BaseUrl=app_url+u'v1.0/me/drive/root/children?expand=thumbnails&orderby=lastModifiedDateTime%20desc'
         queue=Queue()
         g=GetItemThread(queue,user)
         g.GetItem(BaseUrl)
@@ -175,7 +175,7 @@ def Dir(path=u'A:/'):
             grandid=idx+1
             parent=parent_id
         n_path=urllib.quote(n_path.encode('utf-8'))
-        BaseUrl=app_url+u'v1.0/me/drive/root:{}:/children?expand=thumbnails?orderby=lastModifiedDateTime%20desc'.format(n_path)
+        BaseUrl=app_url+u'v1.0/me/drive/root:{}:/children?expand=thumbnails&orderby=lastModifiedDateTime%20desc'.format(n_path)
         queue=Queue()
         g=GetItemThread(queue,user)
         g.GetItem(BaseUrl,grandid,parent,1)
@@ -207,7 +207,7 @@ def Dir_all(path=u'A:/'):
     user,n_path=path.split(':')
     print('update {}\'s {} file'.format(user,n_path))
     if n_path=='/':
-        BaseUrl=app_url+u'v1.0/me/drive/root/children?expand=thumbnails?orderby=lastModifiedDateTime%20desc'
+        BaseUrl=app_url+u'v1.0/me/drive/root/children?expand=thumbnails&orderby=lastModifiedDateTime%20desc'
         items.remove({'user':user})
         queue=Queue()
         g=GetItemThread(queue,user)
@@ -231,7 +231,7 @@ def Dir_all(path=u'A:/'):
             grandid=idx+1
             parent=parent_id
         n_path=urllib.quote(n_path.encode('utf-8'))
-        BaseUrl=app_url+u'v1.0/me/drive/root:{}:/children?expand=thumbnails?orderby=lastModifiedDateTime%20desc'.format(n_path)
+        BaseUrl=app_url+u'v1.0/me/drive/root:{}:/children?expand=thumbnails&orderby=lastModifiedDateTime%20desc'.format(n_path)
         queue=Queue()
         g=GetItemThread(queue,user)
         g.GetItem(BaseUrl,grandid,parent,1)
@@ -345,7 +345,7 @@ class GetItemThread(Thread):
                                 else:
                                     parent_path=value.get('parentReference').get('path').replace('/drive/root:','')
                                     path=urllib.quote(convert2unicode(parent_path+'/'+value['name']))
-                                    url=app_url+'v1.0/me/drive/root:{}:/children?expand=thumbnails?orderby=lastModifiedDateTime%20desc'.format(path)
+                                    url=app_url+'v1.0/me/drive/root:{}:/children?expand=thumbnails&orderby=lastModifiedDateTime%20desc'.format(path)
                                     self.queue.put(dict(url=url,grandid=grandid+1,parent=item['id'],trytime=1))
                         else:
                             items.delete_one({'id':value['id']})
@@ -376,7 +376,7 @@ class GetItemThread(Thread):
                             else:
                                 parent_path=value.get('parentReference').get('path').replace('/drive/root:','')
                                 path=urllib.quote(convert2unicode(parent_path+'/'+value['name']))
-                                url=app_url+'v1.0/me/drive/root:{}:/children?expand=thumbnails?orderby=lastModifiedDateTime%20desc'.format(path)
+                                url=app_url+'v1.0/me/drive/root:{}:/children?expand=thumbnails&orderby=lastModifiedDateTime%20desc'.format(path)
                                 self.queue.put(dict(url=url,grandid=grandid+1,parent=item['id'],trytime=1))
                     else:
                         if items.find_one({'id':value['id']}) is not None: #文件存在
