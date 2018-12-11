@@ -151,12 +151,10 @@ def date_to_char(date):
 def Dir(path=u'A:/'):
     app_url=GetAppUrl()
     user,n_path=path.split(':')
-    print('update {}\'s file'.format(user))
+    print('update {}\'s {} file'.format(user,n_path))
     if n_path=='/':
         BaseUrl=app_url+u'v1.0/me/drive/root/children?expand=thumbnails?orderby=lastModifiedDateTime%20desc'
-        # items.remove()
         queue=Queue()
-        # queue.put(dict(url=BaseUrl,grandid=grandid,parent=parent,trytime=1))
         g=GetItemThread(queue,user)
         g.GetItem(BaseUrl)
         queue=g.queue
@@ -167,10 +165,18 @@ def Dir(path=u'A:/'):
             n_path=n_path[:-1]
         if not n_path.startswith('/'):
             n_path='/'+n_path
+        if items.find_one({'grandid':0,'type':'folder','user':user}):
+            parent_id=0
+            for idx,p in enumerate(n_path[1:].split('/')):
+                if parent_id==0:
+                    parent_id=items.find_one({'name':p,'grandid':idx,'user':user})['id']
+                else:
+                    parent_id=items.find_one({'name':p,'grandid':idx,'parent':parent_id})['id']
+            grandid=idx+1
+            parent=parent_id
         n_path=urllib.quote(n_path.encode('utf-8'))
         BaseUrl=app_url+u'v1.0/me/drive/root:{}:/children?expand=thumbnails?orderby=lastModifiedDateTime%20desc'.format(n_path)
         queue=Queue()
-        # queue.put(dict(url=BaseUrl,grandid=grandid,parent=parent,trytime=1))
         g=GetItemThread(queue,user)
         g.GetItem(BaseUrl,grandid,parent,1)
         queue=g.queue
@@ -179,14 +185,14 @@ def Dir(path=u'A:/'):
     tasks=[]
     for i in range(min(10,queue.qsize())):
         t=GetItemThread(queue,user)
-        # t.setDaemon(True)
+        t.setDaemon(True)
         t.start()
         tasks.append(t)
     # for t in tasks:
     #     t.join()
     while 1:
         for t in tasks:
-            # print('thread {}\'s status {},qsize {}'.format(t.getName(),t.isAlive(),t.queue.qsize()))
+            print('{} {} : isAlive:{};queue size:{}'.format(path,t.getName(),t.isAlive(),t.queue.qsize()))
             if t.isAlive()==False and t.queue.qsize()==0:
                 tasks.pop(tasks.index(t))
                 t.stop()
