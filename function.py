@@ -559,30 +559,34 @@ def _upload(filepath,remote_path,user='A'): #remote_path like 'share/share.mp4'
     headers={'Authorization':'bearer {}'.format(token)}
     url=app_url+'v1.0/me/drive/root:{}:/content'.format(urllib.quote(convert2unicode(remote_path)))
     r=requests.put(url,headers=headers,data=open(filepath,'rb'))
-    data=json.loads(r.content)
-    trytime=1
-    while 1:
-        try:
-            if data.get('error'):
-                print(data.get('error').get('message'))
-                yield {'status':'upload fail!'}
+    try:
+        data=json.loads(r.content)
+        trytime=1
+        while 1:
+            try:
+                if data.get('error'):
+                    print(data.get('error').get('message'))
+                    yield {'status':'upload fail!'}
+                    break
+                elif r.status_code==201 or r.status_code==200:
+                    print('upload {} success!'.format(filepath))
+                    AddResource(data,user)
+                    yield {'status':'upload success!'}
+                    break
+                else:
+                    print(data)
+                    yield {'status':'upload fail!'}
+                    break
+            except Exception as e:
+                trytime+=1
+                print('error to opreate _upload("{}","{}"), try times {},error:{}'.format(filepath,remote_path,trytime,e))
+                yield {'status':'upload fail! retry!'}
+            if trytime>3:
+                yield {'status':'upload fail! touch max retry time(3)'}
                 break
-            elif r.status_code==201 or r.status_code==200:
-                print('upload {} success!'.format(filepath))
-                AddResource(data,user)
-                yield {'status':'upload success!'}
-                break
-            else:
-                print(data)
-                yield {'status':'upload fail!'}
-                break
-        except Exception as e:
-            trytime+=1
-            print('error to opreate _upload("{}","{}"), try times {},error:{}'.format(filepath,remote_path,trytime,e))
-            yield {'status':'upload fail! retry!'}
-        if trytime>3:
-            yield {'status':'upload fail! touch max retry time(3)'}
-            break
+    except:
+        print(u'upload fail!content')
+        print(r.content)
 
 def _upload_part(uploadUrl, filepath, offset, length,trytime=1):
     size=_filesize(filepath)
@@ -626,20 +630,6 @@ def _upload_part(uploadUrl, filepath, offset, length,trytime=1):
             return {'status':'fail','msg':'please retry','code':2,'trytime':trytime,'sys_msg':''}
         else:
             return {'status':'fail','msg':'retry times limit','code':3,'sys_msg':''}
-
-
-def _GetAllFile(parent_id="",parent_path="",filelist=[]):
-    for f in db.items.find({'parent':parent_id}):
-        if f['type']=='folder':
-            _GetAllFile(f['id'],'/'.join([parent_path,f['name']]),filelist)
-        else:
-            fp='/'.join([parent_path,f['name']])
-            if fp.startswith('/'):
-                fp=base64.b64encode(fp[1:].encode('utf-8'))
-            else:
-                fp=base64.b64encode(fp.encode('utf-8'))
-            filelist.append(fp)
-    return filelist
 
 
 def AddResource(data,user='A'):
@@ -873,7 +863,11 @@ class MultiUpload(Thread):
     def run(self):
         while not self.queue.empty():
             localpath,remote_dir=self.queue.get()
-            Upload(localpath,remote_dir,self.user)
+            cp='{}:/{}'.format(self.user,remote_dir)
+            if items.find_one({'path':cp}):
+                print(u'{} exists!'.format(cp))
+            else:
+                Upload(localpath,remote_dir,self.user)
 
 
 def UploadDir(local_dir,remote_dir,user,threads=5):
@@ -895,37 +889,10 @@ def UploadDir(local_dir,remote_dir,user,threads=5):
         remote_path=remote_dir+'/'+dir_.replace(local_dir,'')+'/'+fname
         remote_path=remote_path.replace('//','/')
         check_file_list.append((remote_path,file))
-    print(u'check repeat file')
-    if remote_dir=='/':
-        cloud_files=_GetAllFile()
-    else:
-        if remote_dir.startswith('/'):
-            remote_dir=remote_dir[1:]
-        if items.find_one({'grandid':0,'type':'folder','name':remote_dir.split('/')[0]}):
-            parent_id=0
-            parent_path=''
-            for idx,p in enumerate(remote_dir.split('/')):
-                if parent_id==0:
-                    parent=items.find_one({'name':p,'grandid':idx})
-                    parent_id=parent['id']
-                    parent_path='/'.join([parent_path,parent['name']])
-                else:
-                    parent=items.find_one({'parent':parent_id})
-                    if parent is not None:
-                        parent_id=parent['id']
-                        parent_path='/'.join([parent_path,parent['name']])
-            grandid=idx+1
-            cloud_files=_GetAllFile(parent_id,parent_path)
-    try:
-        cloud_files=dict([(i,i) for i in cloud_files])
-    except:
-        cloud_files={}
     queue=Queue()
     tasks=[]
     for remote_path,file in check_file_list:
-        if not cloud_files.get(base64.b64encode(remote_path)):
-            queue.put((file,remote_path))
-    print "check_file_list {},cloud_files {},queue {}".format(len(check_file_list),len(cloud_files),queue.qsize())
+        queue.put((file,remote_path))
     print "start upload files 5s later"
     time.sleep(5)
     for i in range(min(threads,queue.qsize())):
