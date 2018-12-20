@@ -114,7 +114,21 @@ def setting():
                 key=re.findall('(.*)\[',k)[0]
                 print('setting {}\'s {}\'s value {}'.format(user,key,v))
                 set(key,v,user)
-        reload()
+        # reload()
+        rd.set('title',title)
+        rd.set('tj_code',tj_code)
+        rd.set('downloadUrl_timeout',downloadUrl_timeout)
+        rd.set('allow_site',','.join(allow_site.split(',')))
+        rd.set('ARIA2_HOST',ARIA2_HOST)
+        rd.set('ARIA2_PORT',ARIA2_PORT)
+        rd.set('ARIA2_SECRET',ARIA2_SECRET)
+        rd.set('ARIA2_SCHEME',ARIA2_SCHEME)
+        rd.set('password',password)
+        config_path=os.path.join(config_dir,'config.py')
+        with open(config_path,'r') as f:
+            text=f.read()
+        rd.set('users',re.findall('od_users=([\w\W]*})',text)[0])
+        flash('更新成功')
         return render_template('admin/setting.html')
     return render_template('admin/setting.html')
 
@@ -471,7 +485,7 @@ def RPCserver():
 def login():
     if request.method=='POST':
         password1=request.form.get('password')
-        if password1==password:
+        if password1==GetConfig('password'):
             session['login']='true'
             if len(os.listdir(os.path.join(config_dir,'data')))<=1:
                 return redirect(url_for('admin.install',step=0,user='A'))

@@ -9,22 +9,22 @@
     <form action="{{url_for('admin.setting')}}" method="POST">
         <div class="mdui-textfield">
           <h4>网站名称</h4>
-          <input class="mdui-textfield-input" type="text" name="title" value="{{title}}"/>
+          <input class="mdui-textfield-input" type="text" name="title" value="{{GetConfig('title')}}"/>
         </div>
 
         <div class="mdui-textfield">
           <h4>缓存过期时间(秒)</h4>
-          <input class="mdui-textfield-input" type="text" name="downloadUrl_timeout" value="{{downloadUrl_timeout}}"/>
+          <input class="mdui-textfield-input" type="text" name="downloadUrl_timeout" value="{{GetConfig('downloadUrl_timeout')}}"/>
         </div>
 
         <div class="mdui-textfield">
           <h4>防盗链设置（不限制，则设置：no-referrer；仅限3pp.me调用，则设置：3pp.me；可调用域名通过英文逗号分隔）</h4>
-          <input class="mdui-textfield-input" type="text" name="allow_site" value="{{allow_site}}"/>
+          <input class="mdui-textfield-input" type="text" name="allow_site" value="{{GetConfig('allow_site')}}"/>
         </div>
 
         <div class="mdui-textfield">
           <h4>统计代码</h4>
-          <input class="mdui-textfield-input" type="text" name="tj_code" value="{{tj_code}}"/>
+          <input class="mdui-textfield-input" type="text" name="tj_code" value="{{GetConfig('tj_code')}}"/>
         </div>
 
         <div class="mdui-textfield">
@@ -41,15 +41,15 @@
                 <div class="mdui-panel-item-body">
                   <h5>Aria2协议</h5>
                   <select class="mdui-select" name="ARIA2_SCHEME" mdui-select>
-                    <option value="http"{%if ARIA2_SCHEME=='http'%} selected{%endif%}>http</option>
-                    <option value="https"{%if ARIA2_SCHEME=='https'%} selected{%endif%}>https</option>
+                    <option value="http"{%if GetConfig('ARIA2_SCHEME')=='http'%} selected{%endif%}>http</option>
+                    <option value="https"{%if GetConfig('ARIA2_SCHEME')=='https'%} selected{%endif%}>https</option>
                   </select>
                   <h5>主机（默认localhost。如果不是本机的aria2，怎么下载到本机然后上传？？？）</h5>
-                  <input class="mdui-textfield-input" type="text" readonly="readonly" name="ARIA2_HOST" placeholder="请输入aria2主机" value="{{ARIA2_HOST}}" />
+                  <input class="mdui-textfield-input" type="text" readonly="readonly" name="ARIA2_HOST" placeholder="请输入aria2主机" value="{{GetConfig('ARIA2_HOST')}}" />
                   <h5>端口</h5>
-                  <input class="mdui-textfield-input" type="text" name="ARIA2_PORT" placeholder="请输入aria2端口" value="{{ARIA2_PORT}}" />
+                  <input class="mdui-textfield-input" type="text" name="ARIA2_PORT" placeholder="请输入aria2端口" value="{{GetConfig('ARIA2_PORT')}}" />
                   <h5>秘钥</h5>
-                  <input class="mdui-textfield-input" type="text" name="ARIA2_SECRET" placeholder="请输入aria2秘钥" value="{{ARIA2_SECRET}}" />
+                  <input class="mdui-textfield-input" type="text" name="ARIA2_SECRET" placeholder="请输入aria2秘钥" value="{{GetConfig('ARIA2_SECRET')}}" />
                 </div>
               </div>
           </div>

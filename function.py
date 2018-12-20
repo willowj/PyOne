@@ -74,6 +74,12 @@ def GetPath(id):
         rd.set(key,item['path'])
         return item['path']
 
+def GetConfig(key):
+    if key=='allow_site':
+        value=rd.get('allow_site') if rd.exists('allow_site') else ','.join(allow_site)
+    else:
+        value=rd.get(key) if rd.exists(key) else eval(key)
+    return value
 
 ################################################################################
 ###################################授权函数#####################################

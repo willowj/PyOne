@@ -28,7 +28,7 @@ sys.setdefaultencoding("utf-8")
 #######flask
 app=Flask(__name__)
 app.wsgi_app = ProxyFix(app.wsgi_app)
-app.secret_key=os.path.join(config_dir,'PyOne'+password)
+app.secret_key=os.path.join(config_dir,'PyOne'+GetConfig('password'))
 cache = Cache(app, config={'CACHE_TYPE': 'redis'})
 limiter = Limiter(
     app,
@@ -368,7 +368,13 @@ def get_od_user():
     config_path=os.path.join(config_dir,'config.py')
     with open(config_path,'r') as f:
         text=f.read()
-    users=json.loads(re.findall('od_users=([\w\W]*})',text)[0])
+    key='users'
+    if rd.exists(key):
+        users=json.loads(rd.get(key))
+    else:
+        value=re.findall('od_users=([\w\W]*})',text)[0]
+        users=json.loads(value)
+        rd.set(key,value)
     ret=[]
     for user,value in users.items():
         if value.get('client_id')!='':
@@ -394,8 +400,6 @@ def get_od_user():
                 )
     ret=sorted(ret,key=lambda x:x[-1],reverse=False)
     return ret
-
-
 
 
 ################################################################################
@@ -545,7 +549,7 @@ def show(fileid,user,action='download'):
     print('action:{}'.format(action))
     if name=='.password':
         return abort(404)
-    if 'no-referrer' in allow_site or sum([i in referrer for i in allow_site])>0:
+    if 'no-referrer' in GetConfig('allow_site') or sum([i in referrer for i in GetConfig('allow_site')])>0:
         downloadUrl,play_url=GetDownloadUrl(fileid,user)
         if ext in ['webm','avi','mpg', 'mpeg', 'rm', 'rmvb', 'mov', 'wmv', 'mkv', 'asf']:
             if action=='play':
@@ -573,6 +577,20 @@ Disallow:  /
 from admin import admin as admin_blueprint
 app.register_blueprint(admin_blueprint)
 
+######################初始化变量
+rd.set('title',title)
+rd.set('tj_code',tj_code)
+rd.set('downloadUrl_timeout',downloadUrl_timeout)
+rd.set('allow_site',','.join(allow_site))
+rd.set('ARIA2_HOST',ARIA2_HOST)
+rd.set('ARIA2_PORT',ARIA2_PORT)
+rd.set('ARIA2_SECRET',ARIA2_SECRET)
+rd.set('ARIA2_SCHEME',ARIA2_SCHEME)
+rd.set('password',password)
+config_path=os.path.join(config_dir,'config.py')
+with open(config_path,'r') as f:
+    text=f.read()
+rd.set('users',re.findall('od_users=([\w\W]*})',text)[0])
 
 ######################函数
 app.jinja_env.globals['FetchData']=FetchData
@@ -584,16 +602,8 @@ app.jinja_env.globals['enumerate']=enumerate
 app.jinja_env.globals['os']=os
 app.jinja_env.globals['re']=re
 app.jinja_env.globals['file_ico']=file_ico
-app.jinja_env.globals['title']=title
-app.jinja_env.globals['tj_code']=tj_code if tj_code is not None else ''
+app.jinja_env.globals['GetConfig']=GetConfig
 app.jinja_env.globals['get_od_user']=get_od_user
-app.jinja_env.globals['allow_site']=','.join(allow_site)
-# app.jinja_env.globals['share_path']=od_users.get('A').get('share_path')
-app.jinja_env.globals['downloadUrl_timeout']=downloadUrl_timeout
-app.jinja_env.globals['ARIA2_HOST']=ARIA2_HOST
-app.jinja_env.globals['ARIA2_PORT']=ARIA2_PORT
-app.jinja_env.globals['ARIA2_SECRET']=ARIA2_SECRET
-app.jinja_env.globals['ARIA2_SCHEME']=ARIA2_SCHEME
 ################################################################################
 #####################################启动#######################################
 ################################################################################
