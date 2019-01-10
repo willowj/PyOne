@@ -549,7 +549,7 @@ def show(fileid,user,action='download'):
     print('action:{}'.format(action))
     if name=='.password':
         return abort(404)
-    if 'no-referrer' in GetConfig('allow_site') or sum([i in referrer for i in GetConfig('allow_site')])>0:
+    if 'no-referrer' in GetConfig('allow_site').split(',') or sum([i in referrer for i in GetConfig('allow_site').split(',')])>0:
         downloadUrl,play_url=GetDownloadUrl(fileid,user)
         if ext in ['webm','avi','mpg', 'mpeg', 'rm', 'rmvb', 'mov', 'wmv', 'mkv', 'asf']:
             if action=='play':
