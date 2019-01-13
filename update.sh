@@ -1,12 +1,12 @@
 #!/etc/bash
 
 #11.20
-function del_rubbish(){
+del_rubbish(){
     python -c "from function import *;down_db.delete_many({});"
 }
 
 #2019.01.10
-function update_sp(){
+update_sp(){
     ps -aux | grep supervisord | awk '{print "kill -9 " $2}'|sh
     rm -rf supervisord.conf
     cp supervisord.conf.sample supervisord.conf
@@ -23,6 +23,7 @@ echo "2018.12.04更新版本，优化磁力下载界面"
 echo "2018.12.10更新版本，修复特定分享目录后，二级目录设置密码出错的bug"
 echo "2018.12.20更新版本，基础设置之后无需重启网站啦！如果你一直有保存之后不生效的问题，那么本次直接重启服务器吧！"
 echo "2019.01.10更新版本，1. 修复防盗链失效的bug；2. 优化开机启动脚本。"
+echo "2019.01.13更新版本，修复后台修改密码不生效的bug"
 update_sp
 echo "---------------------------------------------------------------"
 echo "更新完成！"
