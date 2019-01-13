@@ -123,7 +123,7 @@ def setting():
         rd.set('ARIA2_PORT',ARIA2_PORT)
         rd.set('ARIA2_SECRET',ARIA2_SECRET)
         rd.set('ARIA2_SCHEME',ARIA2_SCHEME)
-        rd.set('password',password)
+        rd.set('password',new_password)
         config_path=os.path.join(config_dir,'config.py')
         with open(config_path,'r') as f:
             text=f.read()
