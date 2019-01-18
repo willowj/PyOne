@@ -87,6 +87,7 @@ def FetchData(path='A:/',page=1,per_page=50,sortby='lastModtime',order='desc',di
             item['lastModtime']=d['lastModtime']
             item['size']=d['size']
             item['type']=d['type']
+            item['path']=d['path']
             if dismiss:
                 if d['name'] not in ('README.md','README.txt','readme.md','readme.txt','.password','HEAD.md','HEAD.txt','head.md','head.txt'):
                     resp.append(item)
@@ -116,6 +117,7 @@ def FetchData(path='A:/',page=1,per_page=50,sortby='lastModtime',order='desc',di
                 item['lastModtime']=d['lastModtime']
                 item['size']=d['size']
                 item['type']=d['type']
+                item['path']=d['path']
                 if dismiss:
                     if d['name'] not in ('README.md','README.txt','readme.md','readme.txt','.password','HEAD.md','HEAD.txt','head.md','head.txt'):
                         resp.append(item)
@@ -137,6 +139,7 @@ def FetchData(path='A:/',page=1,per_page=50,sortby='lastModtime',order='desc',di
                 item['lastModtime']=d['lastModtime']
                 item['size']=d['size']
                 item['type']=d['type']
+                item['path']=d['path']
                 if dismiss:
                     if d['name'] not in ('README.md','README.txt','readme.md','readme.txt','.password','HEAD.md','HEAD.txt','head.md','head.txt'):
                         resp.append(item)
