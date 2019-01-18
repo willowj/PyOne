@@ -78,8 +78,8 @@ def FetchData(path='A:/',page=1,per_page=50,sortby='lastModtime',order='desc',di
                     folder_name=d['path']
                 else:
                     folder_name=d['path'].replace(d['name']+'/','')
-                _,_,has_password=has_item(folder_name,'.password')
-                if has_password:
+                _,has_password,_=has_item(folder_name,'.password')
+                if has_password!=False:
                     continue
             item={}
             item['name']=d['name']
