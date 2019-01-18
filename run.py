@@ -67,7 +67,6 @@ def FetchData(path='A:/',page=1,per_page=50,sortby='lastModtime',order='desc',di
     if search_mode:
         show_secret=GetConfig('show_secret')
         query=items.find({'name':re.compile(path)})
-        total=query.count()
         resp=[]
         data=query.limit(per_page).collation({"locale": "zh", 'numericOrdering':True})\
                 .sort([('order',ASCENDING)])\
@@ -93,6 +92,7 @@ def FetchData(path='A:/',page=1,per_page=50,sortby='lastModtime',order='desc',di
                     resp.append(item)
             else:
                 resp.append(item)
+        total=len(resp)
         return resp,total
     path=urllib.unquote(path)
     resp=[]
