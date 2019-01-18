@@ -19,6 +19,7 @@ from shelljob import proc
 import time
 import os
 import sys
+import re
 
 
 reload(sys)
@@ -62,7 +63,36 @@ def GetTotal(path='A:/'):
 
 
 # @cache.memoize(timeout=60*5)
-def FetchData(path='A:/',page=1,per_page=50,sortby='lastModtime',order='desc',dismiss=False):
+def FetchData(path='A:/',page=1,per_page=50,sortby='lastModtime',order='desc',dismiss=False,search_mode=False):
+    if search_mode:
+        show_secret=GetConfig('show_secret')
+        query=items.find({'name':re.compile(path)})
+        total=query.count()
+        resp=[]
+        data=query.limit(per_page).collation({"locale": "zh", 'numericOrdering':True})\
+                .sort([('order',ASCENDING)])\
+                .skip((page-1)*per_page)
+        for d in data:
+            if show_secret=='no':
+                if d['type']=='folder':
+                    folder_name=d['path']
+                else:
+                    folder_name=d['path'].replace(d['name']+'/','')
+                _,_,has_password=has_item(folder_name,'.password')
+                if has_password:
+                    continue
+            item={}
+            item['name']=d['name']
+            item['id']=d['id']
+            item['lastModtime']=d['lastModtime']
+            item['size']=d['size']
+            item['type']=d['type']
+            if dismiss:
+                if d['name'] not in ('README.md','README.txt','readme.md','readme.txt','.password','HEAD.md','HEAD.txt','head.md','head.txt'):
+                    resp.append(item)
+            else:
+                resp.append(item)
+        return resp,total
     path=urllib.unquote(path)
     resp=[]
     if sortby not in ['lastModtime','type','size','name']:
@@ -351,18 +381,21 @@ def has_verify(path):
 
 
 def path_list(path):
-    path=urllib.unquote(path)
-    if path.split(':',1)=='':
-        plist=[path+'/']
-    else:
-        user,n_path=path.split(':',1)
-        if n_path.startswith('/'):
-            n_path=n_path[1:]
-        if n_path.endswith('/'):
-            n_path=n_path[:-1]
-        plist=n_path.split('/')
-        plist=['{}:/{}'.format(user,plist[0])]+plist[1:]
-    return plist
+    try:
+        path=urllib.unquote(path)
+        if path.split(':',1)=='':
+            plist=[path+'/']
+        else:
+            user,n_path=path.split(':',1)
+            if n_path.startswith('/'):
+                n_path=n_path[1:]
+            if n_path.endswith('/'):
+                n_path=n_path[:-1]
+            plist=n_path.split('/')
+            plist=['{}:/{}'.format(user,plist[0])]+plist[1:]
+        return plist
+    except:
+        return []
 
 def get_od_user():
     config_path=os.path.join(config_dir,'config.py')
@@ -401,6 +434,15 @@ def get_od_user():
     ret=sorted(ret,key=lambda x:x[-1],reverse=False)
     return ret
 
+def GetCookie(key,default):
+    value=request.args.get(key)
+    if value is None:
+        value=request.cookies.get(key)
+        if value==None or value=='None':
+            value=default
+    if key=='image_mode':
+        value=int(value)
+    return value
 
 ################################################################################
 ###################################试图函数#####################################
@@ -449,9 +491,9 @@ def index(path='A:/'):
     if n_path=='':
         path=':'.join([user,'/'])
     page=request.args.get('page',1,type=int)
-    image_mode=request.args.get('image_mode')
-    sortby=request.args.get('sortby')
-    order=request.args.get('order')
+    image_mode=GetCookie(key='image_mode',default=0)
+    sortby=GetCookie(key='sortby',default='lastModtime')
+    order=GetCookie(key='order',default='desc')
     action=request.args.get('action','download')
     # try:
     #     action=re.findall('action=(.*)',request.url)[0]
@@ -476,22 +518,6 @@ def index(path='A:/'):
             return render_template('password.html',path=path,cur_user=user)
     readme,ext_r=GetReadMe(path)
     head,ext_d=GetHead(path)
-    #设置cookies
-    if image_mode:
-        image_mode=request.args.get('image_mode',type=int)
-    else:
-        image_mode=request.cookies.get('image_mode') if request.cookies.get('image_mode') is not None else 0
-        image_mode=int(image_mode)
-    if sortby:
-        sortby=request.args.get('sortby')
-    else:
-        sortby=request.cookies.get('sortby') if request.cookies.get('sortby') is not None else 'lastModtime'
-        sortby=sortby
-    if order:
-        order=request.args.get('order')
-    else:
-        order=request.cookies.get('order') if request.cookies.get('order') is not None else 'desc'
-        order=order
     #参数
     resp,total = FetchData(path=path,page=page,per_page=50,sortby=sortby,order=order,dismiss=True)
     pagination=Pagination(query=None,page=page, per_page=50, total=total, items=None)
@@ -561,6 +587,31 @@ def show(fileid,user,action='download'):
         return resp
     else:
         return abort(404)
+
+
+
+@app.route('/py_find/<key_word>')
+def find(key_word):
+    page=request.args.get('page',1,type=int)
+    image_mode=request.args.get('image_mode')
+    sortby=request.args.get('sortby')
+    order=request.args.get('order')
+    action=request.args.get('action','download')
+    resp,total=FetchData(path=key_word,page=page,per_page=50,sortby=sortby,order=order,dismiss=True,search_mode=True)
+    pagination=Pagination(query=None,page=page, per_page=50, total=total, items=None)
+    resp=make_response(render_template('find.html'
+                    ,pagination=pagination
+                    ,items=resp
+                    ,path='/'
+                    ,sortby=sortby
+                    ,order=order
+                    ,key_word=key_word
+                    ,cur_user='搜索:"{}"'.format(key_word)
+                    ,endpoint='.find'))
+    resp.set_cookie('image_mode',str(image_mode))
+    resp.set_cookie('sortby',str(sortby))
+    resp.set_cookie('order',str(order))
+    return resp
 
 @app.route('/robots.txt')
 def robot():

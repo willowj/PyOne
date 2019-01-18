@@ -13,6 +13,19 @@
         </div>
 
         <div class="mdui-textfield">
+          <h4>搜索结果是否展示“加密文件”</h4>
+          <select class="mdui-select" name="show_secret" mdui-select>
+            {%if GetConfig('show_secret')=='yes'%}
+            <option value="no">否</option>
+            <option value="yes" selected>是</option>
+            {%else%}
+            <option value="yes">是</option>
+            <option value="no" selected>否</option>
+            {%endif%}
+          </select>
+        </div>
+
+        <div class="mdui-textfield">
           <h4>缓存过期时间(秒)</h4>
           <input class="mdui-textfield-input" type="text" name="downloadUrl_timeout" value="{{GetConfig('downloadUrl_timeout')}}"/>
         </div>

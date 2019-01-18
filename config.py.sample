@@ -30,6 +30,10 @@ ARIA2_PORT=6800
 ARIA2_SECRET=""
 ARIA2_SCHEME="http"
 
+
+#搜索模式
+show_secret="no"
+
 od_users={
     "A":{
         "client_id":"",

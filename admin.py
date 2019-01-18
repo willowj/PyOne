@@ -20,7 +20,7 @@ admin = Blueprint('admin', __name__,url_prefix='/admin')
 
 ############功能函数
 def set(key,value,user='A'):
-    allow_key=['title','downloadUrl_timeout','allow_site','password','client_secret','client_id','share_path','other_name','tj_code','ARIA2_HOST','ARIA2_PORT','ARIA2_SECRET','ARIA2_SCHEME']
+    allow_key=['title','downloadUrl_timeout','allow_site','password','client_secret','client_id','share_path','other_name','tj_code','ARIA2_HOST','ARIA2_PORT','ARIA2_SECRET','ARIA2_SCHEME','show_secret']
     if key not in allow_key:
         return u'禁止修改'
     print 'set {}:{}'.format(key,value)
@@ -91,6 +91,7 @@ def setting():
         ARIA2_SCHEME=request.form.get('ARIA2_SCHEME','http')
         password1=request.form.get('password1')
         password2=request.form.get('password2')
+        show_secret=request.form.get('show_secret','no')
         new_password=password
         if ((password1 is not None and password2 is None) or (password1 is None and password2 is not None)):
             flash(u'请输入新密码或者二次确认新密码')
@@ -106,6 +107,7 @@ def setting():
         set('ARIA2_PORT',ARIA2_PORT)
         set('ARIA2_SECRET',ARIA2_SECRET)
         set('ARIA2_SCHEME',ARIA2_SCHEME)
+        set('show_secret',show_secret)
         set('password',new_password)
         ####网盘信息处理
         for k,v in request.form.to_dict().items():
@@ -123,6 +125,7 @@ def setting():
         rd.set('ARIA2_PORT',ARIA2_PORT)
         rd.set('ARIA2_SECRET',ARIA2_SECRET)
         rd.set('ARIA2_SCHEME',ARIA2_SCHEME)
+        rd.set('show_secret',show_secret)
         rd.set('password',new_password)
         config_path=os.path.join(config_dir,'config.py')
         with open(config_path,'r') as f:

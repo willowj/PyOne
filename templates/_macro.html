@@ -76,8 +76,8 @@
     {%endif%}
 {% endmacro %}
 
-{% macro Arraw(name,cur_type,sortby,order) %}
-    <a href="{% if order=='asc' %}{{url_for('.index',sortby=cur_type,order='desc',**kwargs)|safe}}{%else%}{{url_for('.index',sortby=cur_type,order='asc',**kwargs)|safe}}{%endif%}">
+{% macro Arraw(endpoint,name,cur_type,sortby,order) %}
+    <a href="{% if order=='asc' %}{{url_for(endpoint,sortby=cur_type,order='desc',**kwargs)|safe}}{%else%}{{url_for(endpoint,sortby=cur_type,order='asc',**kwargs)|safe}}{%endif%}">
     {{ name }}
     {% if cur_type==sortby %}
         {% if order=='asc' %}
