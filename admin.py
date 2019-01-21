@@ -11,6 +11,7 @@ import io
 import re
 import subprocess
 import random
+import string
 import urllib
 from shelljob import proc
 
@@ -487,6 +488,8 @@ def RPCserver():
     return jsonify(ret)
 
 
+
+###
 @admin.route('/login',methods=["POST","GET"])
 def login():
     if request.method=='POST':
@@ -551,4 +554,31 @@ def install():
     resp=render_template('admin/install_0.html',step=step,cur_user=user,redirectUrl=redirect_uri)
     return resp
 
+
+@admin.route('/add_pan',methods=["POST","GET"])
+def add_pan():
+    if request.method=='POST':
+        title=request.form.get('title','PyOne')
+        pan=request.form.get('pan',''.join(random.sample(string.ascii_letters,2)))
+        order=request.form.get('order',0,type=int)
+        info={"client_id":"",
+                "client_secret":"",
+                "share_path":"/",
+                "other_name":title,
+                "order":order
+            }
+        od_users[pan]=info
+        config_path=os.path.join(config_dir,'config.py')
+        with open(config_path,'r') as f:
+            old_text=f.read()
+        with open(config_path,'w') as f:
+            old_od=re.findall('od_users={[\w\W]*}',old_text)[0]
+            new_od='od_users='+json.dumps(od_users,indent=4,ensure_ascii=False)
+            new_text=old_text.replace(old_od,new_od,1)
+            f.write(new_text)
+        flash('添加盘符[{}]成功'.format(pan))
+        key='users'
+        rd.delete(key)
+        return render_template('admin/add_pan.html')
+    return render_template('admin/add_pan.html')
 
