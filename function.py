@@ -52,8 +52,8 @@ def get_value(key,user='A'):
     config_path=os.path.join(config_dir,'config.py')
     with open(config_path,'r') as f:
         text=f.read()
-    kv=re.findall('"{}":{{[\w\W]*}}'.format(user),text)[0]
-    value=re.findall('"{}":"(.*?)"'.format(key),kv)[0]
+    kv=re.findall('"{}":.*{{[\w\W]*}}'.format(user),text)[0]
+    value=re.findall('"{}":.*"(.*?)"'.format(key),kv)[0]
     return value
 
 def GetName(id):
