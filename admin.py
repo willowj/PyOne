@@ -110,13 +110,6 @@ def setting():
         set('ARIA2_SCHEME',ARIA2_SCHEME)
         set('show_secret',show_secret)
         set('password',new_password)
-        ####网盘信息处理
-        for k,v in request.form.to_dict().items():
-            if 'share_path' in k or 'other_name' in k:
-                user=re.findall('\[(.*?)\]',k)[0]
-                key=re.findall('(.*)\[',k)[0]
-                print('setting {}\'s {}\'s value {}'.format(user,key,v))
-                set(key,v,user)
         # reload()
         rd.set('title',title)
         rd.set('tj_code',tj_code)
@@ -128,10 +121,6 @@ def setting():
         rd.set('ARIA2_SCHEME',ARIA2_SCHEME)
         rd.set('show_secret',show_secret)
         rd.set('password',new_password)
-        config_path=os.path.join(config_dir,'config.py')
-        with open(config_path,'r') as f:
-            text=f.read()
-        rd.set('users',re.findall('od_users=([\w\W]*})',text)[0])
         flash('更新成功')
         return render_template('admin/setting.html')
     return render_template('admin/setting.html')
@@ -555,6 +544,26 @@ def install():
     return resp
 
 
+@admin.route('/',methods=['GET','POST'])
+@admin.route('/panage',methods=['GET','POST'])
+def panage():
+    if request.method=='POST':
+        ####网盘信息处理
+        for k,v in request.form.to_dict().items():
+            if 'share_path' in k or 'other_name' in k:
+                user=re.findall('\[(.*?)\]',k)[0]
+                key=re.findall('(.*)\[',k)[0]
+                print('setting {}\'s {}\'s value {}'.format(user,key,v))
+                set(key,v,user)
+        config_path=os.path.join(config_dir,'config.py')
+        with open(config_path,'r') as f:
+            text=f.read()
+        rd.set('users',re.findall('od_users=([\w\W]*})',text)[0])
+        flash('更新成功')
+        return render_template('admin/pan_manage.html')
+    return render_template('admin/pan_manage.html')
+
+
 @admin.route('/add_pan',methods=["POST","GET"])
 def add_pan():
     if request.method=='POST':
@@ -581,4 +590,25 @@ def add_pan():
         rd.delete(key)
         return render_template('admin/add_pan.html')
     return render_template('admin/add_pan.html')
+
+
+@admin.route('/rm_pan',methods=["POST","GET"])
+def rm_pan():
+    if request.method=='POST':
+        pan=request.form.get('user')
+        od_users.pop(pan)
+        config_path=os.path.join(config_dir,'config.py')
+        with open(config_path,'r') as f:
+            old_text=f.read()
+        with open(config_path,'w') as f:
+            old_od=re.findall('od_users={[\w\W]*}',old_text)[0]
+            new_od='od_users='+json.dumps(od_users,indent=4,ensure_ascii=False)
+            new_text=old_text.replace(old_od,new_od,1)
+            f.write(new_text)
+        key='users'
+        rd.delete(key)
+        items.delete_many({'user':pan})
+        data=dict(msg='删除盘符[{}]成功'.format(pan),status=1)
+        return jsonify(data)
+    return render_template('admin/rm_pan.html')
 
