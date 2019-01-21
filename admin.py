@@ -160,7 +160,10 @@ def upload():
 def cache():
     if request.method=='POST':
         type=request.form.get('type')
-        return render_template('admin/cache.html',type=type,action='UpdateFile')
+        cmd="python -u {} UpdateFile {}".format(os.path.join(config_dir,'function.py'),type)
+        subprocess.Popen(cmd,shell=True)
+        msg='后台刷新数据中...请不要多次点击！否则服务器出问题别怪PyOne'
+        return jsonify(dict(msg=msg))
     return render_template('admin/cache.html')
 
 

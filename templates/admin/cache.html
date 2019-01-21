@@ -1,59 +1,58 @@
-{%extends 'admin/layout.html'%} {%block content%}
-<style type="text/css">
-#output {
-  background-color: #000000;
-    color: #fff;
-    font-family: monospace, fixed;
-    font-size: 15px;
-    line-height: 18px;
-}
-</style>
+{%extends 'admin/layout.html'%}
+
+{%block content%}
 <div class="mdui-container-fluid">
     <div class="mdui-typo">
         <h1> 更新缓存 <small>更新本地文件列表</small></h1>
     </div>
     <div class="mdui-row">
-      <form action="" method="post">
-        <div class="mdui-col-xs-10">
-              <label class="mdui-textfield-label">更新规则</label>
-              <select class="mdui-select" name="type" mdui-select>
-                <option value="new">增量更新</option>
-                <option value="all">全量更新</option>
-              </select>
+        <div class="mdui-col-xs-2">
+            <button class="mdui-btn mdui-btn-raised mdui-ripple" id="new">增量更新</button>
         </div>
-<!--         <div class="mdui-col-xs-7">
-              <label class="mdui-textfield-label">更新目录 <small>默认为/，即更新全部文件；更新特定目录，比如91porn，则设置为91porn</small></label>
-              <input name="dir" class="mdui-textfield-input" type="text" value="{%if dir%}{{dir}}{%else%}/{%endif%}"/>
-        </div> -->
-          <div class="mdui-col-xs-2">
-              <button type="submit" name="refresh" class="mdui-btn mdui-btn-block mdui-color-green-600 mdui-ripple">
-                    <i class="mdui-icon material-icons">&#xe028;</i>
-                    更新缓存
-              </button>
-          </div>
-      </form>
+        <div class="mdui-col-xs-2">
+            <button class="mdui-btn mdui-btn-raised mdui-ripple mdui-color-theme-accent" id="all">全量更新</button>
+        </div>
+        <div class="mdui-col-xs-8"></div>
     </div>
-
     <hr>
-      <div class="mdui-textfield">
-          <textarea class="mdui-textfield-input" rows="20" placeholder="进度" id="output"></textarea>
-      </div>
+    <div class="mdui-row">
+        <div class="mdui-col-xs-12">
+            <div class="mdui-card">
+              <div class="mdui-card-actions mdui-card-actions-stacked">
+                <h2>更新策略解释</h2>
+                <p>1. 增量更新：对比本地列表和远程列表，文件列表有更新时才更新。（文件目录结构不变的情况下推荐使用增量更新）</p>
+                <p>2. 全量更新：删除本地文件列表，全量更新。（文件目录结构发生变化推荐使用增量更新）</p>
+              </div>
+            </div>
+        </div>
+    </div>
 </div>
-<script>
-  {%if type%}
-  var source = new EventSource("{{url_for('admin.web_console',type=type,action=action)|safe}}");
-  source.onmessage = function(event) {
-    if(event.data=='end'){
-        source.close();
-    }
-    else{
-        document.getElementById("output").innerHTML += event.data + "\n";
-        document.getElementById("output").scrollTop = document.getElementById('output').scrollHeight;
-    }
-  }
-  source.addEventListener('error',function(e){
-      source.close();
-  })
-  {%endif%}
+<script type="text/javascript">
+    $('#new').click(function(){
+        $.post("{{url_for('admin.cache')}}",
+            {
+                type:"new"
+            },
+            function(data){
+                mdui.snackbar({
+                    message: data.msg,
+                    position: 'top'
+                });
+            }
+        );
+    });
+    $('#all').click(function(){
+        $.post("{{url_for('admin.cache')}}",
+            {
+                type:"all"
+            },
+            function(data){
+                mdui.snackbar({
+                    message: data.msg,
+                    position: 'top'
+                });
+            }
+        );
+    });
 </script>
 {%endblock content%}
