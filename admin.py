@@ -335,22 +335,18 @@ def setFile(filename=None):
         app_url=GetAppUrl()
         headers={'Authorization':'bearer {}'.format(token)}
         url=app_url+'v1.0/me/drive/items/root:{}:/content'.format(remote_file)
-        try:
-            r=requests.put(url,headers=headers,data=content,timeout=10)
-            data=json.loads(r.content)
-            if data.get('id'):
-                AddResource(data,user)
-                info['status']=0
-                info['msg']='添加成功'
-                key='has_item$#$#$#$#{}$#$#$#$#{}'.format(path,filename)
-                print('set key:{}'.format(key))
-                rd.delete(key)
-            else:
-                info['status']=0
-                info['msg']=data.get('error').get('message')
-        except Exception as e:
+        r=requests.put(url,headers=headers,data=content,timeout=10)
+        data=json.loads(r.content)
+        if data.get('id'):
+            AddResource(data,user)
             info['status']=0
-            info['msg']='超时'
+            info['msg']='添加成功'
+            key='has_item$#$#$#$#{}$#$#$#$#{}'.format(path,filename)
+            print('set key:{}'.format(key))
+            rd.delete(key)
+        else:
+            info['status']=0
+            info['msg']=data.get('error').get('message')
         return jsonify(info)
     path=urllib.unquote(request.args.get('path'))
     if path.split(':')[-1]=='':

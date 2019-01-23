@@ -190,10 +190,20 @@ def Dir(path=u'A:/'):
         tasks.append(t)
     # for t in tasks:
     #     t.join()
+    error_status=0
     while 1:
         for t in tasks:
-            # print('thread {}\'s status {},qsize {}'.format(t.getName(),t.isAlive(),t.queue.qsize()))
+            print('thread {}\'s status {},qsize {}'.format(t.getName(),t.isAlive(),t.queue.qsize()))
             if t.isAlive()==False and t.queue.qsize()==0:
+                tasks.pop(tasks.index(t))
+                t.stop()
+            if t.queue.qsize()==0 and t.isAlive()==True:
+                error_status+=1
+                print('error status times:{}'.format(error_status))
+            else:
+                error_status=1
+            if error_status>=20 and t in tasks:
+                print('force kill thread:{}'.format(t.getName()))
                 tasks.pop(tasks.index(t))
                 t.stop()
         if len(tasks)==0:
@@ -246,10 +256,20 @@ def Dir_all(path=u'A:/'):
         tasks.append(t)
     # for t in tasks:
     #     t.join()
+    error_status=0
     while 1:
         for t in tasks:
-            print('{} {} : isAlive:{};queue size:{}'.format(path,t.getName(),t.isAlive(),t.queue.qsize()))
+            print('thread {}\'s status {},qsize {}'.format(t.getName(),t.isAlive(),t.queue.qsize()))
             if t.isAlive()==False and t.queue.qsize()==0:
+                tasks.pop(tasks.index(t))
+                t.stop()
+            if t.queue.qsize()==0 and t.isAlive()==True:
+                error_status+=1
+                print('error status times:{}'.format(error_status))
+            else:
+                error_status=1
+            if error_status>=20 and t in tasks:
+                print('force kill thread:{}'.format(t.getName()))
                 tasks.pop(tasks.index(t))
                 t.stop()
         if len(tasks)==0:
@@ -640,42 +660,48 @@ def _upload_part(uploadUrl, filepath, offset, length,trytime=1):
 
 def AddResource(data,user='A'):
     #检查父文件夹是否在数据库，如果不在则获取添加
-    grand_path=data.get('parentReference').get('path').replace('/drive/root:','')
+    grand_path=data.get('parentReference').get('path').replace('/drive/root:','') #空值或者/path
     share_path=od_users.get(user).get('share_path')
+    if share_path!='/' and share_path.startswith('/'):
+        share_path=share_path[1:]
     if grand_path=='':
         parent_id=''
         grandid=0
     else:
         g=GetItemThread(Queue(),user)
         parent_id=data.get('parentReference').get('id')
-        grandid=len(data.get('parentReference').get('path').replace('/drive/root:','').split('/'))-1
         grand_path=grand_path[1:]
-        parent_path='/'
-        pid=''
-        for idx,p in enumerate(grand_path.split('/')):
-            parent=items.find_one({'name':p,'grandid':idx,'parent':pid})
-            if parent is not None:
-                pid=parent['id']
-                parent_path='/'.join([parent_path,parent['name']])
-            else:
-                parent_path='/'.join([parent_path,p])
-                fdata=g.GetItemByPath(parent_path)
-                path=user+':/'+parent_path.replace('///','/')
-                path=path.replace('///','/').replace('//','/')
-                item={}
-                item['type']='folder'
-                item['user']=user
-                item['order']=0
-                item['name']=fdata.get('name')
-                item['id']=fdata.get('id')
-                item['size']=humanize.naturalsize(fdata.get('size'), gnu=True)
-                item['size_order']=fdata.get('size')
-                item['lastModtime']=date_to_char(parse(fdata['lastModifiedDateTime']))
-                item['grandid']=idx
-                item['parent']=pid
-                item['path']=path
-                items.insert_one(item)
-                pid=fdata.get('id')
+        grand_path=grand_path.replace(share_path,'',1)
+        grandid=len(grand_path.split('/'))-1
+        if grand_path.startswith('/'):
+            grand_path=grand_path[1:]
+        if grand_path!='':
+            parent_path='/'
+            pid=''
+            for idx,p in enumerate(grand_path.split('/')):
+                parent=items.find_one({'name':p,'grandid':idx,'parent':pid})
+                if parent is not None:
+                    pid=parent['id']
+                    parent_path='/'.join([parent_path,parent['name']])
+                else:
+                    parent_path='/'.join([parent_path,p])
+                    fdata=g.GetItemByPath(parent_path)
+                    path=user+':/'+parent_path.replace('///','/')
+                    path=path.replace('///','/').replace('//','/')
+                    item={}
+                    item['type']='folder'
+                    item['user']=user
+                    item['order']=0
+                    item['name']=fdata.get('name')
+                    item['id']=fdata.get('id')
+                    item['size']=humanize.naturalsize(fdata.get('size'), gnu=True)
+                    item['size_order']=fdata.get('size')
+                    item['lastModtime']=date_to_char(parse(fdata['lastModifiedDateTime']))
+                    item['grandid']=idx
+                    item['parent']=pid
+                    item['path']=path
+                    items.insert_one(item)
+                    pid=fdata.get('id')
     #插入数据
     item={}
     item['type']=GetExt(data.get('name'))
@@ -694,6 +720,7 @@ def AddResource(data,user='A'):
             path=user+':/'+grand_path.replace(share_path,'',1)+'/'+convert2unicode(data['name'])
         else:
             path=user+':/'+grand_path+'/'+convert2unicode(data['name'])
+    path=path.replace('//','/')
     print('new file path:{}'.format(path))
     item['path']=path
     if GetExt(data['name']) in ['bmp','jpg','jpeg','png','gif']:
