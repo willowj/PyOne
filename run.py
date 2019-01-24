@@ -503,8 +503,6 @@ def index(path='A:/'):
     # except:
     #     action='download'
     resp,total = FetchData(path=path,page=page,per_page=50,sortby=sortby,order=order,dismiss=True)
-    if total=='files':
-        return show(resp['id'],user,action)
     #是否有密码
     password,_,cur=has_item(path,'.password')
     md5_p=md5(path)
@@ -518,11 +516,14 @@ def index(path='A:/'):
             return resp
     if password!=False:
         if (not request.cookies.get(md5_p) or request.cookies.get(md5_p)!=password) and has_verify_==False:
+            if total=='files' and GetConfig('encrypt_file')=="no":
+                return show(resp['id'],user,action)
             return render_template('password.html',path=path,cur_user=user)
+    if total=='files':
+        return show(resp['id'],user,action)
     readme,ext_r=GetReadMe(path)
     head,ext_d=GetHead(path)
     #参数
-    resp,total = FetchData(path=path,page=page,per_page=50,sortby=sortby,order=order,dismiss=True)
     pagination=Pagination(query=None,page=page, per_page=50, total=total, items=None)
     if path.split(':',1)[-1]=='/':
         path=':'.join([path.split(':',1)[0],''])

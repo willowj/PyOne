@@ -34,6 +34,10 @@ ARIA2_SCHEME="http"
 #搜索模式
 show_secret="no"
 
+#文件是否支持加密--no-文件夹加密的情况下，如果直接访问该文件夹下的文件链接，则会跳过密码
+encrypt_file="no"
+
+
 od_users={
     "A":{
         "client_id":"",

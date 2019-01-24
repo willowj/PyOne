@@ -13,16 +13,19 @@
         </div>
 
         <div class="mdui-textfield">
-          <h4>搜索结果是否展示“加密文件”</h4>
-          <select class="mdui-select" name="show_secret" mdui-select>
-            {%if GetConfig('show_secret')=='yes'%}
-            <option value="no">否</option>
-            <option value="yes" selected>是</option>
-            {%else%}
-            <option value="yes">是</option>
-            <option value="no" selected>否</option>
-            {%endif%}
-          </select>
+          <h4>搜索结果是否展示“加密文件”（开启之后，前台搜索结果会展示出加密文件夹及加密文件夹下的文件）</h4>
+          <label class="mdui-switch">
+            <input type="checkbox" name="show_secret" {%if GetConfig('show_secret')=='yes'%}checked{%endif%}/>
+            <i class="mdui-switch-icon"></i>
+          </label>
+        </div>
+
+        <div class="mdui-textfield">
+          <h4>加密文件夹下的文件是否加密（本选项是配合前一个选项新增的选项，看个人需求开启）</h4>
+          <label class="mdui-switch">
+            <input type="checkbox" name="encrypt_file" {%if GetConfig('encrypt_file')=='yes'%}checked{%endif%}/>
+            <i class="mdui-switch-icon"></i>
+          </label>
         </div>
 
         <div class="mdui-textfield">

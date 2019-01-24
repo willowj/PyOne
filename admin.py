@@ -21,7 +21,8 @@ admin = Blueprint('admin', __name__,url_prefix='/admin')
 
 ############功能函数
 def set(key,value,user='A'):
-    allow_key=['title','downloadUrl_timeout','allow_site','password','client_secret','client_id','share_path','other_name','tj_code','ARIA2_HOST','ARIA2_PORT','ARIA2_SECRET','ARIA2_SCHEME','show_secret']
+    allow_key=['title','downloadUrl_timeout','allow_site','password','client_secret','client_id','share_path'\
+    ,'other_name','tj_code','ARIA2_HOST','ARIA2_PORT','ARIA2_SECRET','ARIA2_SCHEME','show_secret','encrypt_file']
     if key not in allow_key:
         return u'禁止修改'
     print 'set {}:{}'.format(key,value)
@@ -93,6 +94,7 @@ def setting():
         password1=request.form.get('password1')
         password2=request.form.get('password2')
         show_secret=request.form.get('show_secret','no')
+        encrypt_file=request.form.get('encrypt_file','no')
         new_password=password
         if ((password1 is not None and password2 is None) or (password1 is None and password2 is not None)):
             flash(u'请输入新密码或者二次确认新密码')
@@ -109,6 +111,7 @@ def setting():
         set('ARIA2_SECRET',ARIA2_SECRET)
         set('ARIA2_SCHEME',ARIA2_SCHEME)
         set('show_secret',show_secret)
+        set('encrypt_file',encrypt_file)
         set('password',new_password)
         # reload()
         rd.set('title',title)
@@ -120,6 +123,7 @@ def setting():
         rd.set('ARIA2_SECRET',ARIA2_SECRET)
         rd.set('ARIA2_SCHEME',ARIA2_SCHEME)
         rd.set('show_secret',show_secret)
+        rd.set('encrypt_file',encrypt_file)
         rd.set('password',new_password)
         flash('更新成功')
         return render_template('admin/setting.html')
