@@ -20,7 +20,7 @@ update_config(){
         echo 'show_secret="no"' >> config.py
     fi
 
-    um=`cat config.py | grep "encrypt_file" | wc -l`
+    num=`cat config.py | grep "encrypt_file" | wc -l`
     if [ $num == 0 ]; then
         echo 'encrypt_file="no"' >> config.py
     fi
