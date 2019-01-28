@@ -17,7 +17,11 @@ password="PyOne"
 #网站名称
 title="PyOne"
 
+#自定义代码
 tj_code=""""""
+headCode=""""""
+footCode=""""""
+cssCode=""""""
 
 #onedrive api设置
 redirect_uri="https://auth.pyone.me/" #不要修改！

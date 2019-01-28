@@ -25,6 +25,21 @@ update_config(){
         echo 'encrypt_file="no"' >> config.py
     fi
 
+    num=`cat config.py | grep "headCode" | wc -l`
+    if [ $num == 0 ]; then
+        echo 'headCode=""""""' >> config.py
+    fi
+
+    num=`cat config.py | grep "footCode" | wc -l`
+    if [ $num == 0 ]; then
+        echo 'footCode=""""""' >> config.py
+    fi
+
+    num=`cat config.py | grep "cssCode" | wc -l`
+    if [ $num == 0 ]; then
+        echo 'cssCode=""""""' >> config.py
+    fi
+
 }
 
 restart(){
@@ -44,6 +59,7 @@ echo "2019.01.18更新版本，修复bug；添加搜索功能"
 echo "2019.01.21更新版本，添加功能：后台直接添加盘符...避免小白添加配置出现各种问题"
 echo "2019.01.23更新版本：修复设置了共享目录后设置README/HEAD/密码出错的bug;优化更新文件列表假死的bug"
 echo "2019.01.24更新版本：支持设置加密文件夹下的文件；优化UI"
+echo "2019.01.28更新版本：支持自定义代码！"
 update_config
 restart
 echo "---------------------------------------------------------------"

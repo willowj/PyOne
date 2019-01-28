@@ -22,7 +22,8 @@ admin = Blueprint('admin', __name__,url_prefix='/admin')
 ############功能函数
 def set(key,value,user='A'):
     allow_key=['title','downloadUrl_timeout','allow_site','password','client_secret','client_id','share_path'\
-    ,'other_name','tj_code','ARIA2_HOST','ARIA2_PORT','ARIA2_SECRET','ARIA2_SCHEME','show_secret','encrypt_file']
+    ,'other_name','tj_code','ARIA2_HOST','ARIA2_PORT','ARIA2_SECRET','ARIA2_SCHEME','show_secret','encrypt_file'\
+    ,'cssCode','headCode','footCode']
     if key not in allow_key:
         return u'禁止修改'
     print 'set {}:{}'.format(key,value)
@@ -37,7 +38,7 @@ def set(key,value,user='A'):
         elif key=='allow_site':
             value=value.split(',')
             new_text=re.sub('{}=.*'.format(key),'{}={}'.format(key,value),old_text)
-        elif key=='tj_code':
+        elif key in ['tj_code','cssCode','headCode','footCode']:
             new_text=re.sub('{}=.*'.format(key),'{}="""{}"""'.format(key,value),old_text)
         else:
             new_text=re.sub('{}=.*'.format(key),'{}="{}"'.format(key,value),old_text)
@@ -86,7 +87,6 @@ def setting():
         title=request.form.get('title','PyOne')
         downloadUrl_timeout=request.form.get('downloadUrl_timeout',5*60)
         allow_site=request.form.get('allow_site','no-referrer')
-        tj_code=request.form.get('tj_code','')
         ARIA2_HOST=request.form.get('ARIA2_HOST','localhost').replace('https://','').replace('http://','')
         ARIA2_PORT=request.form.get('ARIA2_PORT',6800)
         ARIA2_SECRET=request.form.get('ARIA2_SECRET','')
@@ -105,7 +105,6 @@ def setting():
         set('title',title)
         set('downloadUrl_timeout',downloadUrl_timeout)
         set('allow_site',allow_site)
-        set('tj_code',tj_code)
         set('ARIA2_HOST',ARIA2_HOST)
         set('ARIA2_PORT',ARIA2_PORT)
         set('ARIA2_SECRET',ARIA2_SECRET)
@@ -115,7 +114,6 @@ def setting():
         set('password',new_password)
         # reload()
         rd.set('title',title)
-        rd.set('tj_code',tj_code)
         rd.set('downloadUrl_timeout',downloadUrl_timeout)
         rd.set('allow_site',','.join(allow_site.split(',')))
         rd.set('ARIA2_HOST',ARIA2_HOST)
@@ -126,10 +124,30 @@ def setting():
         rd.set('encrypt_file',encrypt_file)
         rd.set('password',new_password)
         flash('更新成功')
-        return render_template('admin/setting.html')
-    return render_template('admin/setting.html')
+        return render_template('admin/setting/setting.html')
+    return render_template('admin/setting/setting.html')
 
 
+@admin.route('/setCode',methods=['GET','POST'])
+def setCode():
+    if request.method=='POST':
+        tj_code=request.form.get('tj_code','')
+        headCode=request.form.get('headCode','')
+        footCode=request.form.get('footCode','')
+        cssCode=request.form.get('cssCode','')
+        #redis
+        set('tj_code',tj_code)
+        set('headCode',headCode)
+        set('footCode',footCode)
+        set('cssCode',cssCode)
+        # reload()
+        rd.set('tj_code',tj_code)
+        rd.set('headCode',headCode)
+        rd.set('footCode',footCode)
+        rd.set('cssCode',cssCode)
+        flash('更新成功')
+        return render_template('admin/setCode/setCode.html')
+    return render_template('admin/setCode/setCode.html')
 
 
 @admin.route('/upload',methods=["POST","GET"])
@@ -187,7 +205,7 @@ def manage():
     pagination=Pagination(query=None,page=page, per_page=50, total=total, items=None)
     if path.split(':',1)[-1]=='/':
         path=':'.join([path.split(':',1)[0],''])
-    resp=make_response(render_template('admin/manage.html',pagination=pagination,items=resp,path=path,sortby=sortby,order=order,cur_user=user,endpoint='admin.manage'))
+    resp=make_response(render_template('admin/manage/manage.html',pagination=pagination,items=resp,path=path,sortby=sortby,order=order,cur_user=user,endpoint='admin.manage'))
     resp.set_cookie('admin_sortby',str(sortby))
     resp.set_cookie('admin_order',str(order))
     return resp
@@ -240,13 +258,13 @@ def edit():
     if language is None:
         language='Text'
     content=_remote_content(fileid,user)
-    return render_template('admin/edit.html',content=content,fileid=fileid,name=name,language=language,cur_user=user)
+    return render_template('admin/setFile/edit.html',content=content,fileid=fileid,name=name,language=language,cur_user=user)
 
 ###本地上传文件只onedrive，通过服务器中转
 @admin.route('/upload_local',methods=['POST','GET'])
 def upload_local():
     user,remote_folder=request.args.get('path').split(':')
-    return render_template('admin/upload_local.html',remote_folder=remote_folder,cur_user=user)
+    return render_template('admin/manage/upload_local.html',remote_folder=remote_folder,cur_user=user)
 
 @admin.route('/checkChunk', methods=['POST'])
 def checkChunk():
@@ -359,7 +377,7 @@ def setFile(filename=None):
     _,fid,i=has_item(path,filename)
     if fid!=False:
         return redirect(url_for('admin.edit',fileid=fid,user=user))
-    return render_template('admin/setpass.html',path=path,filename=filename,cur_user=user)
+    return render_template('admin/setFile/setpass.html',path=path,filename=filename,cur_user=user)
 
 
 @admin.route('/delete',methods=["POST"])
@@ -517,7 +535,7 @@ def install():
             set('client_secret',client_secret,user)
             set('client_id',client_id,user)
             login_url=LoginUrl.format(client_id=client_id,redirect_uri=redirect_uri)
-            return render_template('admin/install_1.html',client_secret=client_secret,client_id=client_id,login_url=login_url,cur_user=user)
+            return render_template('admin/install/install_1.html',client_secret=client_secret,client_id=client_id,login_url=login_url,cur_user=user)
         else:
             client_secret=request.form.get('client_secret')
             client_id=request.form.get('client_id')
@@ -540,7 +558,7 @@ def install():
                 return jsonify(Atoken)
     step=request.args.get('step',type=int)
     user=request.args.get('user','A')
-    resp=render_template('admin/install_0.html',step=step,cur_user=user,redirectUrl=redirect_uri)
+    resp=render_template('admin/install/install_0.html',step=step,cur_user=user,redirectUrl=redirect_uri)
     return resp
 
 
@@ -560,8 +578,8 @@ def panage():
             text=f.read()
         rd.set('users',re.findall('od_users=([\w\W]*})',text)[0])
         flash('更新成功')
-        return render_template('admin/pan_manage.html')
-    return render_template('admin/pan_manage.html')
+        return render_template('admin/pan_manage/pan_manage.html')
+    return render_template('admin/pan_manage/pan_manage.html')
 
 
 @admin.route('/add_pan',methods=["POST","GET"])
@@ -588,8 +606,8 @@ def add_pan():
         flash('添加盘符[{}]成功'.format(pan))
         key='users'
         rd.delete(key)
-        return render_template('admin/add_pan.html')
-    return render_template('admin/add_pan.html')
+        return render_template('admin/pan_manage/add_pan.html')
+    return render_template('admin/pan_manage/add_pan.html')
 
 
 @admin.route('/rm_pan',methods=["POST","GET"])
@@ -610,5 +628,5 @@ def rm_pan():
         items.delete_many({'user':pan})
         data=dict(msg='删除盘符[{}]成功'.format(pan),status=1)
         return jsonify(data)
-    return render_template('admin/rm_pan.html')
+    return render_template('admin/pan_manage/rm_pan.html')
 
