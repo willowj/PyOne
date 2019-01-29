@@ -81,6 +81,24 @@ def GetConfig(key):
         value=rd.get(key) if rd.exists(key) else eval(key)
     return value
 
+def GetThemeList():
+    key='themelist'
+    if rd.exists(key):
+        tlist=rd.get(key).split(',')
+    else:
+        tlist=[]
+        theme_dir=os.path.join(config_dir,'templates/theme')
+        lists=os.listdir(theme_dir)
+        for l in lists:
+            p=os.path.join(theme_dir,l)
+            if os.path.isdir(p):
+                tlist.append(l)
+        rd.set(key,','.join(tlist))
+    return tlist
+
+
+
+
 ################################################################################
 ###################################授权函数#####################################
 ################################################################################

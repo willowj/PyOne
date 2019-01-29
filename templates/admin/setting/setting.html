@@ -7,6 +7,14 @@
       <h1> 基本设置 <small>设置PyOne基本参数</small></h1>
     </div>
     <form action="{{url_for('admin.setting')}}" method="POST">
+
+          <h4>主题选择</h4>
+          <select class="mdui-select" name="theme" mdui-select>
+            {%for t in GetThemeList()%}
+              <option value="{{t}}"{%if GetConfig('theme')==t%} selected{%endif%}>{{t}}</option>
+            {%endfor%}
+          </select>
+
         <div class="mdui-textfield">
           <h4>网站名称</h4>
           <input class="mdui-textfield-input" type="text" name="title" value="{{GetConfig('title')}}"/>
