@@ -1,5 +1,5 @@
-{%extends 'layout.html'%}
-{% import '_macro.html' as macros %}
+{%extends 'theme/'+GetConfig('theme')+'/layout.html'%}
+{% import 'theme/'+GetConfig('theme')+'/_macro.html' as macros %}
 
 {%block content%}
 <h2>Opps....500错误！</h2>

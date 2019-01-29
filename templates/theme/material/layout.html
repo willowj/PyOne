@@ -4,7 +4,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0,maximum-scale=1.0, user-scalable=no" />
-    <title>index of {{path}} - {{GetConfig('title')}}</title>
+    <title>{{GetConfig('title_pre')}} {{path}} - {{GetConfig('title')}}</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/mdui@0.4.1/dist/css/mdui.min.css">
     <script src="https://cdn.jsdelivr.net/npm/jquery@3.2"></script>
     <script src="https://cdn.jsdelivr.net/npm/mdui@0.4.1/dist/js/mdui.min.js"></script>
@@ -33,11 +33,11 @@
 
 <body class="mdui-theme-primary-blue-grey mdui-theme-accent-blue">
     <div class="mdui-container">
-    {%include 'header.html'%}
+    {%include 'theme/'+GetConfig('theme')+'/header.html'%}
     {%block content%}
     {%endblock content%}
     </div>
-    {%include 'footer.html'%}
+    {%include 'theme/'+GetConfig('theme')+'/footer.html'%}
 </body>
 
 </html>

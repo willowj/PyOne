@@ -470,7 +470,7 @@ def before_request():
 @app.errorhandler(500)
 def page_not_found(e):
     # note that we set the 500 status explicitly
-    return render_template('500.html',cur_user=''), 500
+    return render_template('theme/{}/500.html'.format(GetConfig('theme')),cur_user=''), 500
 
 @app.route('/<path:path>',methods=['POST','GET'])
 @app.route('/',methods=['POST','GET'])
@@ -518,7 +518,7 @@ def index(path='A:/'):
         if (not request.cookies.get(md5_p) or request.cookies.get(md5_p)!=password) and has_verify_==False:
             if total=='files' and GetConfig('encrypt_file')=="no":
                 return show(resp['id'],user,action)
-            return render_template('password.html',path=path,cur_user=user)
+            return render_template('theme/{}/password.html'.format(GetConfig('theme')),path=path,cur_user=user)
     if total=='files':
         return show(resp['id'],user,action)
     readme,ext_r=GetReadMe(path)
@@ -527,7 +527,7 @@ def index(path='A:/'):
     pagination=Pagination(query=None,page=page, per_page=50, total=total, items=None)
     if path.split(':',1)[-1]=='/':
         path=':'.join([path.split(':',1)[0],''])
-    resp=make_response(render_template('index.html'
+    resp=make_response(render_template('theme/{}/index.html'.format(GetConfig('theme'))
                     ,pagination=pagination
                     ,items=resp
                     ,path=path
@@ -559,18 +559,16 @@ def show(fileid,user,action='download'):
             url = 'https://view.officeapps.live.com/op/view.aspx?src='+urllib.quote(downloadUrl)
             return redirect(url)
         elif ext in ['bmp','jpg','jpeg','png','gif']:
-            return render_template('show/image.html',url=url,inner_url=inner_url,path=path,cur_user=user)
+            return render_template('theme/{}/show/image.html'.format(GetConfig('theme')),url=url,inner_url=inner_url,path=path,cur_user=user)
         elif ext in ['mp4','webm']:
-            return render_template('show/video.html',url=url,inner_url=inner_url,path=path,cur_user=user)
-        elif ext in ['mp4','webm','avi','mpg', 'mpeg', 'rm', 'rmvb', 'mov', 'wmv', 'mkv', 'asf']:
-            return render_template('show/video2.html',url=url,inner_url=inner_url,path=path,cur_user=user)
+            return render_template('theme/{}/show/video.html'.format(GetConfig('theme')),url=url,inner_url=inner_url,path=path,cur_user=user)
         elif ext in ['avi','mpg', 'mpeg', 'rm', 'rmvb', 'mov', 'wmv', 'mkv', 'asf']:
-            return render_template('show/video2.html',url=url,inner_url=inner_url,path=path,cur_user=user)
+            return render_template('theme/{}/show/video2.html'.format(GetConfig('theme')),url=url,inner_url=inner_url,path=path,cur_user=user)
         elif ext in ['ogg','mp3','wav']:
-            return render_template('show/audio.html',url=url,inner_url=inner_url,path=path,cur_user=user)
+            return render_template('theme/{}/show/audio.html'.format(GetConfig('theme')),url=url,inner_url=inner_url,path=path,cur_user=user)
         elif CodeType(ext) is not None:
             content=_remote_content(fileid,user)
-            return render_template('show/code.html',content=content,url=url,inner_url=inner_url,language=CodeType(ext),path=path,cur_user=user)
+            return render_template('theme/{}/show/code.html'.format(GetConfig('theme')),content=content,url=url,inner_url=inner_url,language=CodeType(ext),path=path,cur_user=user)
         elif name=='.password':
             return abort(404)
         else:
@@ -603,7 +601,7 @@ def find(key_word):
     action=request.args.get('action','download')
     resp,total=FetchData(path=key_word,page=page,per_page=50,sortby=sortby,order=order,dismiss=True,search_mode=True)
     pagination=Pagination(query=None,page=page, per_page=50, total=total, items=None)
-    resp=make_response(render_template('find.html'
+    resp=make_response(render_template('theme/{}/find.html'.format(GetConfig('theme'))
                     ,pagination=pagination
                     ,items=resp
                     ,path='/'

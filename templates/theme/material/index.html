@@ -1,5 +1,5 @@
-{%extends 'layout.html'%}
-{% import '_macro.html' as macros %}
+{%extends 'theme/'+GetConfig('theme')+'/layout.html'%}
+{% import 'theme/'+GetConfig('theme')+'/_macro.html' as macros %}
 
 {%block content%}
 <div class="mdui-container-fluid">
@@ -15,7 +15,7 @@
             <button class="mdui-btn mdui-btn-icon" mdui-tooltip="{content: '搜索'}" mdui-dialog="{target: '#find_dialog'}"><i class="mdui-icon material-icons">search</i></button>
         </div>
     </div>
-    {%include 'head.html'%}
+    {%include 'theme/'+GetConfig('theme')+'/head.html'%}
     <div class="nexmoe-item">
         <div class="mdui-row">
             <ul class="mdui-list">
@@ -81,7 +81,7 @@
                 {%endfor%}
 
             </ul>
-        {%include 'readme.html'%}
+        {%include 'theme/'+GetConfig('theme')+'/readme.html'%}
         </div>
     </div>
     <div class="mdui-dialog" id="find_dialog">

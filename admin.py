@@ -23,7 +23,7 @@ admin = Blueprint('admin', __name__,url_prefix='/admin')
 def set(key,value,user='A'):
     allow_key=['title','downloadUrl_timeout','allow_site','password','client_secret','client_id','share_path'\
     ,'other_name','tj_code','ARIA2_HOST','ARIA2_PORT','ARIA2_SECRET','ARIA2_SCHEME','show_secret','encrypt_file'\
-    ,'cssCode','headCode','footCode']
+    ,'cssCode','headCode','footCode','title_pre']
     if key not in allow_key:
         return u'禁止修改'
     print 'set {}:{}'.format(key,value)
@@ -85,6 +85,7 @@ def web_console():
 def setting():
     if request.method=='POST':
         title=request.form.get('title','PyOne')
+        title_pre=request.form.get('title_pre','index of ')
         downloadUrl_timeout=request.form.get('downloadUrl_timeout',5*60)
         allow_site=request.form.get('allow_site','no-referrer')
         ARIA2_HOST=request.form.get('ARIA2_HOST','localhost').replace('https://','').replace('http://','')
@@ -103,6 +104,7 @@ def setting():
         elif password1 is not None and password2 is not None and password1==password2 and password1!='':
             new_password=password1
         set('title',title)
+        set('title_pre',title_pre)
         set('downloadUrl_timeout',downloadUrl_timeout)
         set('allow_site',allow_site)
         set('ARIA2_HOST',ARIA2_HOST)
@@ -114,6 +116,7 @@ def setting():
         set('password',new_password)
         # reload()
         rd.set('title',title)
+        rd.set('title_pre',title_pre)
         rd.set('downloadUrl_timeout',downloadUrl_timeout)
         rd.set('allow_site',','.join(allow_site.split(',')))
         rd.set('ARIA2_HOST',ARIA2_HOST)

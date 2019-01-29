@@ -13,19 +13,8 @@
         </div>
 
         <div class="mdui-textfield">
-          <h4>搜索结果是否展示“加密文件”（开启之后，前台搜索结果会展示出加密文件夹及加密文件夹下的文件）</h4>
-          <label class="mdui-switch">
-            <input type="checkbox" name="show_secret" {%if GetConfig('show_secret')=='on'%}checked{%endif%}/>
-            <i class="mdui-switch-icon"></i>
-          </label>
-        </div>
-
-        <div class="mdui-textfield">
-          <h4>加密文件夹下的文件是否加密（本选项是配合前一个选项新增的选项，看个人需求开启）</h4>
-          <label class="mdui-switch">
-            <input type="checkbox" name="encrypt_file" {%if GetConfig('encrypt_file')=='on'%}checked{%endif%}/>
-            <i class="mdui-switch-icon"></i>
-          </label>
+          <h4>网站名称前缀（默认：index of）</h4>
+          <input class="mdui-textfield-input" type="text" name="title_pre" value="{{GetConfig('title_pre')}}"/>
         </div>
 
         <div class="mdui-textfield">
@@ -64,6 +53,22 @@
                 </div>
               </div>
           </div>
+        </div>
+
+        <div class="mdui-textfield">
+          <h4>搜索结果是否展示“加密文件”（开启之后，前台搜索结果会展示出加密文件夹及加密文件夹下的文件）</h4>
+          <label class="mdui-switch">
+            <input type="checkbox" name="show_secret" {%if GetConfig('show_secret')=='on'%}checked{%endif%}/>
+            <i class="mdui-switch-icon"></i>
+          </label>
+        </div>
+
+        <div class="mdui-textfield">
+          <h4>加密文件夹下的文件是否加密（本选项是配合前一个选项新增的选项，看个人需求开启）</h4>
+          <label class="mdui-switch">
+            <input type="checkbox" name="encrypt_file" {%if GetConfig('encrypt_file')=='on'%}checked{%endif%}/>
+            <i class="mdui-switch-icon"></i>
+          </label>
         </div>
        <button type="submit" class="mdui-btn mdui-color-theme-accent mdui-ripple mdui-float-right">
         <i class="mdui-icon material-icons">&#xe161;</i> 保存

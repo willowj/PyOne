@@ -23,6 +23,12 @@ headCode=""""""
 footCode=""""""
 cssCode=""""""
 
+#主题设置
+theme="material"
+
+#网站标题前缀
+title_pre="index of "
+
 #onedrive api设置
 redirect_uri="https://auth.pyone.me/" #不要修改！
 BaseAuthUrl='https://login.microsoftonline.com'
