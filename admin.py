@@ -32,8 +32,8 @@ def set(key,value,user='A'):
         old_text=f.read()
     with open(config_path,'w') as f:
         if key in ['client_secret','client_id','share_path','other_name']:
-            old_kv=re.findall('"{}":{{[\w\W]*}}'.format(user),old_text)[0]
-            new_kv=re.sub('"{}":.*?,'.format(key),'"{}":"{}",'.format(key,value),old_kv,1)
+            old_kv=re.findall('"{}":.*{{[\w\W]*}}'.format(user),old_text)[0]
+            new_kv=re.sub('"{}":.*.*?,'.format(key),'"{}":"{}",'.format(key,value),old_kv,1)
             new_text=old_text.replace(old_kv,new_kv,1)
         elif key=='allow_site':
             value=value.split(',')
