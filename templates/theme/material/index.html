@@ -130,7 +130,7 @@ function setCookie(c_name, value, exdays) {
     document.cookie = c_name + "=" + c_value;
 }
 
-var ckname='image_mode'
+var ckname='image_mode';
 $('#image_view').change(function(){
    if($(this).attr('checked')){
         setCookie(ckname,1,1);

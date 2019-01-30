@@ -272,17 +272,17 @@ def CodeType(ext):
     return code_type.get(ext.lower())
 
 def file_ico(item):
-  ext = item['name'].split('.')[-1].lower()
-  if ext in ['bmp','jpg','jpeg','png','gif']:
-    return "image";
+    ext = item['name'].split('.')[-1].lower()
+    if ext in ['bmp','jpg','jpeg','png','gif']:
+        return "image"
 
-  if ext in ['mp4','mkv','webm','avi','mpg', 'mpeg', 'rm', 'rmvb', 'mov', 'wmv', 'mkv', 'asf']:
-    return "ondemand_video";
+    if ext in ['mp4','mkv','webm','avi','mpg', 'mpeg', 'rm', 'rmvb', 'mov', 'wmv', 'mkv', 'asf']:
+        return "ondemand_video"
 
-  if ext in ['ogg','mp3','wav']:
-    return "audiotrack";
+    if ext in ['ogg','mp3','wav']:
+        return "audiotrack"
 
-  return "insert_drive_file";
+    return "insert_drive_file"
 
 def _remote_content(fileid,user):
     kc='{}:content'.format(fileid)
