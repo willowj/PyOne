@@ -644,7 +644,8 @@ config_path=os.path.join(config_dir,'config.py')
 with open(config_path,'r') as f:
     text=f.read()
 rd.set('users',re.findall('od_users=([\w\W]*})',text)[0])
-
+key='themelist'
+rd.delete(key)
 ######################函数
 app.jinja_env.globals['FetchData']=FetchData
 app.jinja_env.globals['path_list']=path_list
