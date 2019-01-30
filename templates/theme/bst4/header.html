@@ -20,3 +20,17 @@
     </div>
 </header>
 <br>
+<div class="container">
+    <ol class="breadcrumb">
+        <li><a href="{{url_for('.index',path=cur_user+':/')}}" {%if path%}{%else%}class="active"{%endif%}>{{cur_user}}</a></li>
+        {%if path%}
+            {%for idx,p in enumerate(path_list(path))%}
+                {%if idx==len(path_list(path))-1%}
+                    <li><a href="#" class="active">{{p|replace(cur_user+':/','')|replace(cur_user+':','')}}</a></li>
+                {%else%}
+                    <li><a href="{{url_for('.index',path='/'.join(path_list(path)[:idx+1]))}}">{{p|replace(cur_user+':/','')|replace(cur_user+':','')}}</a></li>
+                {%endif%}
+            {%endfor%}
+        {%endif%}
+    </ol>
+</div>
