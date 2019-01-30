@@ -48,13 +48,13 @@ update_config(){
     num=`cat config.py | grep "title_pre" | wc -l`
     if [ $num == 0 ]; then
         echo '' >> config.py
-        echo 'title_pre="' >> config.py
+        echo 'title_pre="index of "' >> config.py
     fi
 
     num=`cat config.py | grep "theme" | wc -l`
     if [ $num == 0 ]; then
         echo '' >> config.py
-        echo 'theme=""' >> config.py
+        echo 'theme="material"' >> config.py
     fi
 
 }
@@ -78,6 +78,7 @@ echo "2019.01.23更新版本：修复设置了共享目录后设置README/HEAD/�
 echo "2019.01.24更新版本：支持设置加密文件夹下的文件；优化UI"
 echo "2019.01.28更新版本：支持自定义代码！"
 echo "2019.01.29更新版本：支持设置网站标题前缀；支持自定义主题（待更新设计标准）"
+echo "2019.01.30更新版本：提交新主题"
 update_config
 restart
 echo "---------------------------------------------------------------"
