@@ -62,6 +62,11 @@
             $('#error_msg').html('关键词不能包含特殊字符！');
             return false;
         }
+        if (key_word.value == '') {
+            $('.alert').css('display', '');
+            $('#error_msg').html('关键词不能为空！');
+            return false;
+        }
         $('.alert').css('display', 'none');
         window.location.href = "/py_find/" + key_word.value;
     }
@@ -97,7 +102,7 @@
     </script>
     {%block script%}
     {%endblock script%}
-    {%include 'theme/'+GetConfig('theme')+'/header.html'%}
+    {%include 'theme/'+GetConfig('theme')+'/footer.html'%}
 </body>
 
 </html>

@@ -141,9 +141,21 @@ $('#image_view').change(function(){
    }
 });
 
-function py_find(){
-    key_word=$('#key_word').val();
-    window.location.href="/py_find/"+key_word;
+function py_find() {
+        var key_word = document.getElementById("key_word"); //获取key_word那个div
+        var patrn = /[@#\$%\^&\*\\/]+/g; //正则表达式
+        if (patrn.exec(key_word.value)) {
+            $('.alert').css('display', '');
+            $('#error_msg').html('关键词不能包含特殊字符！');
+            return false;
+        }
+        if (key_word.value == '') {
+            $('.alert').css('display', '');
+            $('#error_msg').html('关键词不能为空！');
+            return false;
+        }
+        $('.alert').css('display', 'none');
+        window.location.href = "/py_find/" + key_word.value;
 }
 </script>
 {%endblock content%}
