@@ -532,7 +532,9 @@ def index(path='A:/'):
             info={}
             if image_mode==1 and file_ico(d)=='image':
                 continue
-            if file_ico(d)=='image':
+            if d['type']=='folder':
+                ico='<i class="fa fa-folder-o"></i>'
+            elif file_ico(d)=='image':
                 ico='<i class="fa fa-file-image-o"></i>'
             elif file_ico(d)=='ondemand_video':
                 ico='<i class="fa fa-video-camera"></i>'
