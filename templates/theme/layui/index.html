@@ -1,4 +1,6 @@
 {%extends 'theme/'+GetConfig('theme')+'/layout.html'%}
+{% import 'theme/'+GetConfig('theme')+'/_macro.html' as macros %}
+
 {%block content%}
 <div class="layui-container">
     <!-- 看图模式 -->
@@ -10,9 +12,10 @@
     <!-- head -->
      {%include 'theme/'+GetConfig('theme')+'/head.html'%}
     <!-- 文件列表 -->
+    {%if all_image!=True or image_mode==0%}
     <div class="layui-row">
         <div class="layui-col-lg12">
-            <table class="layui-table" lay-data="{url:'{{url_for('.index',ajax="yes",path=path)}}', page:true,limit:50, id:'test'}" lay-filter="filelist">
+            <table class="layui-table" lay-filter="filelist">
               <thead>
                 <tr>
                   <th lay-data="{field: 'name', width:400, sort: true, fixed: 'left',unresize:true}">标题</th>
@@ -21,9 +24,30 @@
                   <th lay-data="{field: 'size', width:200, sort: true,unresize:true}", fixed: 'right'>大小</th>
                 </tr>
               </thead>
+              <tbody>
+                    {%for data in items%}
+                    <tr>
+                        {%if data['type']=='folder' %}
+                            <td><a href="{{url_for('.index',path=data['path'])}}"><i class="fa fa-folder-o"></i>{{data['name']}}</a></td>
+                        {%else%}
+                            {%if image_mode==1%}
+                                {%if file_ico(data)!='image'%}
+                                <td><a href="{{url_for('.index',path=data['path'])}}">{{ macros.get_ico(file_ico(data)) }}{{data['name']}}</a></td>
+                                {%endif%}
+                            {%else%}
+                                <td><a href="{{url_for('.index',path=data['path'])}}">{{ macros.get_ico(file_ico(data)) }}{{data['name']}}</a></td>
+                            {%endif%}
+                        {%endif%}
+                        <td>{{data['lastModtime']}}</td>
+                        <td>{{data['type']}}</td>
+                        <td>{{data['size']}}</td>
+                    </tr>
+                    {%endfor%}
+              </tbody>
             </table>
         </div>
     </div>
+    {%endif%}
     {%if image_mode==1%}
         <center>
         {%for data in items%}
@@ -33,6 +57,11 @@
         {%endfor%}
         </center>
     {%endif%}
+    {%if pagination%}
+    <center>
+        <div id="pagination"></div>
+    </center>   
+    {%endif%}
 
     <!-- readme -->
     {%include 'theme/'+GetConfig('theme')+'/readme.html'%}
@@ -41,12 +70,23 @@
 {%block script%}
 <script>
 layui.use('table', function(){
-  var table = layui.table;
-    table.render({
-    elem: '#filelist',
-    loading:true
-    });
+    var table = layui.table;
+    table.init('filelist', {
+        limit: 50 //注意：请务必确保 limit 参数（默认：10）是与你服务端限定的数据条数一致
+        ,done: function(res, curr, count){
+            //如果是异步请求数据方式，res即为你接口返回的信息。
+            //如果是直接赋值的方式，res即为：{data: [], count: 99} data为当前页数据、count为数据总长度
+            console.log(res);
+            
+            //得到当前页码
+            console.log(curr); 
+            
+            //得到数据总量
+            console.log(count);
+          }
+    }); 
 });
+
 function setCookie(c_name, value, exdays) {
     var exdate = new Date();
     exdate.setDate(exdate.getDate() + exdays);
@@ -68,22 +108,18 @@ layui.use('form', function() {
     });
 });
 
-
-$('.file a').each(function() {
-    $(this).on('click', function() {
-        layui.use('layer', function() {
-            var layer = layui.layer;
-            layer.open({
-                type: 2,
-                title: 'PyOne播放窗口',
-                shadeClose: true,
-                shade: 0.8,
-                area: ['100%', '100%'],
-                content: $(this).attr('href') + "?action=share" //iframe的url
-            });
+{%if pagination%}
+layui.use('laypage', function(){
+    var laypage = layui.laypage;
+    //执行一个laypage实例
+    laypage.render({
+        elem: 'pagination' //注意，这里的 test1 是 ID，不用加 # 号
+        ,count:"{{pagination.total}}"
+        ,curr:"{{pagination.page}}"
+        ,curr:"{{pagination.page}}"
+        ,limit:50
         });
-        return false;
     });
-});
+{%endif%}
 </script>
 {%endblock script%}

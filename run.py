@@ -493,7 +493,6 @@ def index(path='A:/'):
     user,n_path=path.split(':')
     if n_path=='':
         path=':'.join([user,'/'])
-    ajax=request.args.get('ajax','no')
     page=request.args.get('page',1,type=int)
     image_mode=GetCookie(key='image_mode',default=0)
     sortby=GetCookie(key='sortby',default='lastModtime')
@@ -522,38 +521,10 @@ def index(path='A:/'):
             return render_template('theme/{}/password.html'.format(GetConfig('theme')),path=path,cur_user=user)
     if total=='files':
         return show(data['id'],user,action)
-    if ajax=='yes':
-        retdata={}
-        retdata['code']=0
-        retdata['msg']=""
-        retdata['total']=total
-        retdata['data']=[]
-        for d in data:
-            info={}
-            if image_mode==1 and file_ico(d)=='image':
-                continue
-            if d['type']=='folder':
-                ico='<i class="fa fa-folder-o"></i>'
-            elif file_ico(d)=='image':
-                ico='<i class="fa fa-file-image-o"></i>'
-            elif file_ico(d)=='ondemand_video':
-                ico='<i class="fa fa-video-camera"></i>'
-            else:
-                ico='<i class="fa fa-file"></i>'
-            if d['type']=='folder':
-                info['name']=ico+'<a href="'+url_for('.index',path=d['path'])+'">'+d['name']+'</a>'
-            else:
-                info['name']=ico+'<a href="'+url_for('.index',path=d['path'],action='share')+'" target="_blank">'+d['name']+'</a>'   
-            info['type']=d['type']
-            info['lastModtime']=d['lastModtime']
-            info['size']=d['size']
-            info['path']=d['path']
-            info['id']=d['id']
-            retdata['data'].append(info)
-        return jsonify(retdata)
     readme,ext_r=GetReadMe(path)
     head,ext_d=GetHead(path)
     #参数
+    all_image=False if sum([file_ico(i)!='image' for i in data])>0 else True
     pagination=Pagination(query=None,page=page, per_page=50, total=total, items=None)
     if path.split(':',1)[-1]=='/':
         path=':'.join([path.split(':',1)[0],''])
@@ -569,6 +540,7 @@ def index(path='A:/'):
                     ,sortby=sortby
                     ,order=order
                     ,cur_user=user
+                    ,all_image=all_image
                     ,endpoint='.index'))
     resp.set_cookie('image_mode',str(image_mode))
     resp.set_cookie('sortby',str(sortby))
