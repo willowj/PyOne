@@ -89,7 +89,6 @@ def GetThemeList():
         p=os.path.join(theme_dir,l)
         if os.path.isdir(p):
             tlist.append(l)
-    rd.set(key,','.join(tlist))
     return tlist
 
 
