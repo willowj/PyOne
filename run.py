@@ -493,6 +493,7 @@ def index(path='A:/'):
     user,n_path=path.split(':')
     if n_path=='':
         path=':'.join([user,'/'])
+    ajax=request.args.get('ajax','no')
     page=request.args.get('page',1,type=int)
     image_mode=GetCookie(key='image_mode',default=0)
     sortby=GetCookie(key='sortby',default='lastModtime')
@@ -502,7 +503,7 @@ def index(path='A:/'):
     #     action=re.findall('action=(.*)',request.url)[0]
     # except:
     #     action='download'
-    resp,total = FetchData(path=path,page=page,per_page=50,sortby=sortby,order=order,dismiss=True)
+    data,total = FetchData(path=path,page=page,per_page=50,sortby=sortby,order=order,dismiss=True)
     #是否有密码
     password,_,cur=has_item(path,'.password')
     md5_p=md5(path)
@@ -517,10 +518,37 @@ def index(path='A:/'):
     if password!=False:
         if (not request.cookies.get(md5_p) or request.cookies.get(md5_p)!=password) and has_verify_==False:
             if total=='files' and GetConfig('encrypt_file')=="no":
-                return show(resp['id'],user,action)
+                return show(data['id'],user,action)
             return render_template('theme/{}/password.html'.format(GetConfig('theme')),path=path,cur_user=user)
     if total=='files':
-        return show(resp['id'],user,action)
+        return show(data['id'],user,action)
+    if ajax=='yes':
+        retdata={}
+        retdata['code']=0
+        retdata['msg']=""
+        retdata['total']=total
+        retdata['data']=[]
+        for d in data:
+            info={}
+            if image_mode==1 and file_ico(d)=='image':
+                continue
+            if file_ico(d)=='image':
+                ico='<i class="fa fa-file-image-o"></i>'
+            elif file_ico(d)=='ondemand_video':
+                ico='<i class="fa fa-video-camera"></i>'
+            else:
+                ico='<i class="fa fa-file"></i>'
+            if d['type']=='folder':
+                info['name']=ico+'<a href="'+url_for('.index',path=d['path'])+'">'+d['name']+'</a>'
+            else:
+                info['name']=ico+'<a href="'+url_for('.index',path=d['path'],action='share')+'" target="_blank">'+d['name']+'</a>'   
+            info['type']=d['type']
+            info['lastModtime']=d['lastModtime']
+            info['size']=d['size']
+            info['path']=d['path']
+            info['id']=d['id']
+            retdata['data'].append(info)
+        return jsonify(retdata)
     readme,ext_r=GetReadMe(path)
     head,ext_d=GetHead(path)
     #参数
@@ -529,7 +557,7 @@ def index(path='A:/'):
         path=':'.join([path.split(':',1)[0],''])
     resp=make_response(render_template('theme/{}/index.html'.format(GetConfig('theme'))
                     ,pagination=pagination
-                    ,items=resp
+                    ,items=data
                     ,path=path
                     ,image_mode=image_mode
                     ,readme=readme
@@ -595,15 +623,35 @@ def show(fileid,user,action='download'):
 @app.route('/py_find/<key_word>')
 def find(key_word):
     page=request.args.get('page',1,type=int)
+    ajax=request.args.get('ajax','no')
     image_mode=request.args.get('image_mode')
     sortby=request.args.get('sortby')
     order=request.args.get('order')
     action=request.args.get('action','download')
-    resp,total=FetchData(path=key_word,page=page,per_page=50,sortby=sortby,order=order,dismiss=True,search_mode=True)
+    data,total=FetchData(path=key_word,page=page,per_page=50,sortby=sortby,order=order,dismiss=True,search_mode=True)
     pagination=Pagination(query=None,page=page, per_page=50, total=total, items=None)
+    if ajax=='yes':
+        retdata={}
+        retdata['code']=0
+        retdata['msg']=""
+        retdata['total']=total
+        retdata['data']=[]
+        for d in data:
+            info={}
+            if d['type']=='folder':
+                info['name']='<a href="'+url_for('.index',path=d['path'])+'">'+d['name']+'</a>'
+            else:
+                info['name']='<a href="'+url_for('.index',path=d['path'],action='share')+'" target="_blank">'+d['name']+'</a>'   
+            info['type']=d['type']
+            info['lastModtime']=d['lastModtime']
+            info['size']=d['size']
+            info['path']=d['path']
+            info['id']=d['id']
+            retdata['data'].append(info)
+        return jsonify(retdata)
     resp=make_response(render_template('theme/{}/find.html'.format(GetConfig('theme'))
                     ,pagination=pagination
-                    ,items=resp
+                    ,items=data
                     ,path='/'
                     ,sortby=sortby
                     ,order=order

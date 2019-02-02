@@ -1,0 +1,89 @@
+{%extends 'theme/'+GetConfig('theme')+'/layout.html'%}
+{%block content%}
+<div class="layui-container">
+    <!-- 看图模式 -->
+    <div class="layui-form">
+        <div class="layui-form-item">
+            <input type="checkbox" name="switch" title="看图模式" lay-filter="image_view" {%if image_mode==1%}checked{%endif%}>
+        </div>
+    </div>
+    <!-- head -->
+     {%include 'theme/'+GetConfig('theme')+'/head.html'%}
+    <!-- 文件列表 -->
+    <div class="layui-row">
+        <div class="layui-col-lg12">
+            <table class="layui-table" lay-data="{url:'{{url_for('.index',ajax="yes",path=path)}}', page:true,limit:50, id:'test'}" lay-filter="filelist">
+              <thead>
+                <tr>
+                  <th lay-data="{field: 'name', width:400, sort: true, fixed: 'left',unresize:true}">标题</th>
+                  <th lay-data="{field: 'lastModtime', width:200,unresize:true}" class="layui-hide-xs">修改时间</th>
+                  <th lay-data="{field: 'type', width:200, sort: true,unresize:true}" class="layui-hide-xs">类型</th>
+                  <th lay-data="{field: 'size', width:200, sort: true,unresize:true}", fixed: 'right'>大小</th>
+                </tr>
+              </thead>
+            </table>
+        </div>
+    </div>
+    {%if image_mode==1%}
+        <center>
+        {%for data in items%}
+            {%if file_ico(data)=='image'%}  
+                <img class="img-responsive" src="{{url_for('.show',fileid=data['id'],user=cur_user,action='download')}}"/>
+            {%endif%}
+        {%endfor%}
+        </center>
+    {%endif%}
+
+    <!-- readme -->
+    {%include 'theme/'+GetConfig('theme')+'/readme.html'%}
+</div>
+{%endblock content%}
+{%block script%}
+<script>
+layui.use('table', function(){
+  var table = layui.table;
+    table.render({
+    elem: '#filelist',
+    loading:true
+    });
+});
+function setCookie(c_name, value, exdays) {
+    var exdate = new Date();
+    exdate.setDate(exdate.getDate() + exdays);
+    var c_value = escape(value) + ((exdays == null) ? "" : "; expires=" + exdate.toUTCString());
+    document.cookie = c_name + "=" + c_value;
+}
+
+layui.use('form', function() {
+    var form = layui.form;
+    form.on('checkbox(image_view)', function(data) {
+        var ckname = 'image_mode';
+        if (data.elem.checked) {
+            setCookie(ckname, 0, 1);
+            window.location.href = "{{url_for('.index',path=path,image_mode=1)}}";
+        } else {
+            setCookie(ckname, 1, 1);
+            window.location.href = "{{url_for('.index',path=path,image_mode=0)}}";
+        }
+    });
+});
+
+
+$('.file a').each(function() {
+    $(this).on('click', function() {
+        layui.use('layer', function() {
+            var layer = layui.layer;
+            layer.open({
+                type: 2,
+                title: 'PyOne播放窗口',
+                shadeClose: true,
+                shade: 0.8,
+                area: ['100%', '100%'],
+                content: $(this).attr('href') + "?action=share" //iframe的url
+            });
+        });
+        return false;
+    });
+});
+</script>
+{%endblock script%}

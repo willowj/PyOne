@@ -1,6 +1,6 @@
 {%extends 'theme/'+GetConfig('theme')+'/layout.html'%}
 {%block content%}
-<div class="container">
+<div class="layui-container">
     <link class="dplayer-css" rel="stylesheet" href="https://cdn.jsdelivr.net/npm/dplayer/dist/DPlayer.min.css">
     <script src="https://cdn.jsdelivr.net/npm/dashjs/dist/dash.all.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/dplayer/dist/DPlayer.min.js"></script>
@@ -8,21 +8,21 @@
     <div id="dplayer"></div>
     <br>
     <!-- 固定标签 -->
-    <div class="form-horizontal">
-        <div class="input-group">
-            <span class="input-group-addon" id="basic-addon1">
-                    <i class="fa fa-share-alt" aria-hidden="true"></i>分享地址
-                </span>
-            <input id="share" class="form-control" type="text" value="{{url}}?action=share" />
-            <a class="input-group-addon" onclick="copyUrl('share')">点击复制</a>
+    <div class="layui-form layui-form-pane">
+      <div class="layui-form-item" pane>
+        <label class="layui-form-label"><a onclick="copyUrl('share')"><i class="fa fa-share-alt" aria-hidden="true"></i>分享地址(点击复制)</a></label>
+        <div class="layui-input-block">
+          <input type="text" id="share" class="layui-input" value="{{url}}?action=share" >
         </div>
-        <div class="input-group">
-            <span class="input-group-addon" id="basic-addon1">
-                    <i class="fa fa-link" aria-hidden="true"></i>调用地址
-                </span>
-            <input id="use_outer" class="form-control" type="text" value="{{url}}" />
-            <a class="input-group-addon" onclick="copyUrl('use_outer')">点击复制</a>
+      </div>
+    </div>
+    <div class="layui-form layui-form-pane">
+      <div class="layui-form-item" pane>
+        <label class="layui-form-label"><a onclick="copyUrl('use_outer')"><i class="fa fa-link" aria-hidden="true"></i>调用地址(点击复制)</a></label>
+        <div class="layui-input-block">
+          <input type="text"  id="use_outer" class="layui-input" value="{{url}}" >
         </div>
+      </div>
     </div>
     <script>
     const dp = new DPlayer({

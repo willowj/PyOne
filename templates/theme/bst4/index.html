@@ -50,7 +50,7 @@
                         <a href="{{url_for('.index',path=data['path'])}}" target="_blank">
                             {%if image_mode==1%}
                                 {%if file_ico(data)=='image'%}
-                                    <img class="mdui-img-fluid" src="{{url_for('.show',fileid=data['id'],user=cur_user,action='download')}}"/>
+                                    <img class="img-responsive" src="{{url_for('.show',fileid=data['id'],user=cur_user,action='download')}}"/>
                                 {%else%}
                                     <div class="col-xs-8 col-md-6 text-left cut">{{ macros.get_ico(file_ico(data)) }}{{data['name']}}</div>
                                     <div class="col-xs-4 col-md-2">{{data['lastModtime']}}</div>
