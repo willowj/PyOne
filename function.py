@@ -1027,7 +1027,7 @@ def MoveFile(fileid,new_folder_path,user='A'):
         folder_id=GetRootid(user)
         parent=''
         grandid=0
-        path=GetName(fileid)
+        path='{}:/{}'.format(user,GetName(fileid))
     else:
         path='{}:/{}'.format(user,new_folder_path)
         print path
