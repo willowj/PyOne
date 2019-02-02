@@ -32,10 +32,10 @@
                         {%else%}
                             {%if image_mode==1%}
                                 {%if file_ico(data)!='image'%}
-                                <td><a href="{{url_for('.index',path=data['path'])}}">{{ macros.get_ico(file_ico(data)) }}{{data['name']}}</a></td>
+                                <td><a href="{{url_for('.index',path=data['path'],action='share')}}" target="_blank">{{ macros.get_ico(file_ico(data)) }}{{data['name']}}</a></td>
                                 {%endif%}
                             {%else%}
-                                <td><a href="{{url_for('.index',path=data['path'])}}">{{ macros.get_ico(file_ico(data)) }}{{data['name']}}</a></td>
+                                <td><a href="{{url_for('.index',path=data['path'],action='share')}}" target="_blank">{{ macros.get_ico(file_ico(data)) }}{{data['name']}}</a></td>
                             {%endif%}
                         {%endif%}
                         <td>{{data['lastModtime']}}</td>
@@ -49,13 +49,17 @@
     </div>
     {%endif%}
     {%if image_mode==1%}
-        <center>
+    <center>
+        <div style="max-width: 400px;">
         {%for data in items%}
             {%if file_ico(data)=='image'%}  
+                <a href="{{url_for('.index',path=data['path'],action='share')}}" target="_blank">
                 <img class="img-responsive" src="{{url_for('.show',fileid=data['id'],user=cur_user,action='download')}}"/>
+                </a>
             {%endif%}
         {%endfor%}
-        </center>
+        </div>
+    </center>
     {%endif%}
     {%if pagination%}
     <center>
