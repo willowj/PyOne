@@ -50,7 +50,7 @@
     {%endif%}
     {%if image_mode==1%}
     <center>
-        <div style="max-width: 400px;">
+        <div style="max-width: 600px;">
         {%for data in items%}
             {%if file_ico(data)=='image'%}  
                 <a href="{{url_for('.index',path=data['path'],action='share')}}" target="_blank">
