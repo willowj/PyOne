@@ -1,36 +1,23 @@
 {% macro pagination_widget(pagination, endpoint) %}
     {%if pagination.pages>1%}
-        <nav aria-label="Page navigation">
-          <ul class="pagination">
-            {% if pagination.has_prev %}
-                <li>
-                  <a href="{{ url_for(endpoint,page = pagination.page - 1, **kwargs) |safe}}" aria-label="Previous">
-                    <span aria-hidden="true">&laquo;</span>
-                  </a>
-                </li>
-            {%endif%}
-
+        <div class="layui-box layui-laypage layui-laypage-default" id="layui-laypage-1">
+            <a href="{% if pagination.has_prev %}{{ url_for(endpoint,page = pagination.page - 1, **kwargs) |safe}}{%else%}javascript:;{%endif%}" class="layui-laypage-prev {% if pagination.has_prev==False %}layui-disabled{%endif%}" data-page="0">上一页</a>
             {% for p in pagination.iter_pages() %}
                 {% if p %}
                     {%if p == pagination.page%}
-                        <li><a href="javascript:void(0);" class="active">{{ p }}</a></li>
+                        <span class="layui-laypage-curr">
+                        <em class="layui-laypage-em"></em>
+                        <em>{{p}}</em>
+                        </span>
                     {%else%}
-                        <li><a href="{{ url_for(endpoint, page = p,**kwargs) }}">{{ p }}</a></li>
+                        <a href="{{ url_for(endpoint, page = p,**kwargs) }}" data-page="{{ p }}">{{ p }}</a>
                     {%endif%}
                 {%else%}
-                    <li><a href="javascript:void(0);">&hellip;</a></li>
+                    <span class="layui-laypage-spr">…</span>
                 {%endif%}
             {%endfor%}
-
-            {% if pagination.has_next %}
-            <li>
-              <a href="{{ url_for(endpoint,page = pagination.page + 1, **kwargs) |safe}}" aria-label="Next">
-                <span aria-hidden="true">&raquo;</span>
-              </a>
-            </li>
-            {%endif%}
-          </ul>
-        </nav>
+            <a href="{% if pagination.has_next %}{{ url_for(endpoint,page = pagination.page + 1, **kwargs) |safe}}{%else%}javascript:;{%endif%}" class="layui-laypage-next {% if pagination.has_next==False %}layui-disabled{%endif%}" data-page="2">下一页</a>
+        </div>
     {%endif%}
 {% endmacro %}
 
