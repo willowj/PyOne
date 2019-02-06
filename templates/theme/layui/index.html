@@ -25,22 +25,48 @@
                 </tr>
               </thead>
               <tbody>
+                    {%if path.split(':')[-1]!=''%}
+                        <tr>
+                            <td>
+                            {%if '/'.join(path_list(path)[:-1])==''%}
+                                <a href="{{url_for('.index',path=cur_user+':/')|safe}}">
+                            {%else%}
+                                <a href="{{url_for('.index',path='/'.join(path_list(path)[:-1]))|safe}}">
+                            {%endif%}
+                                <i class="fa fa-level-up" aria-hidden="true"></i> 返回上一层</a>
+                            </td>
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                        </tr>
+                    {%endif%}
                     {%for data in items%}
-                    <tr>
                         {%if data['type']=='folder' %}
+                        <tr>
                             <td><a href="{{url_for('.index',path=data['path'])}}"><i class="fa fa-folder-o"></i> {{data['name']}}</a></td>
+                            <td>{{data['lastModtime']}}</td>
+                            <td>{{data['type']}}</td>
+                            <td>{{data['size']}}</td>
+                        </tr>
                         {%else%}
                             {%if image_mode==1%}
                                 {%if file_ico(data)!='image'%}
+                                <tr>
                                 <td><a href="{{url_for('.index',path=data['path'],action='share')}}" target="_blank">{{ macros.get_ico(file_ico(data)) }} {{data['name']}}</a></td>
+                                <td>{{data['lastModtime']}}</td>
+                                <td>{{data['type']}}</td>
+                                <td>{{data['size']}}</td>
+                                </tr>
                                 {%endif%}
                             {%else%}
+                            <tr>
                                 <td><a href="{{url_for('.index',path=data['path'],action='share')}}" target="_blank">{{ macros.get_ico(file_ico(data)) }} {{data['name']}}</a></td>
+                                <td>{{data['lastModtime']}}</td>
+                                <td>{{data['type']}}</td>
+                                <td>{{data['size']}}</td>
+                            </tr>
                             {%endif%}
                         {%endif%}
-                        <td>{{data['lastModtime']}}</td>
-                        <td>{{data['type']}}</td>
-                        <td>{{data['size']}}</td>
                     </tr>
                     {%endfor%}
               </tbody>
