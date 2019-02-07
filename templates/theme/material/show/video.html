@@ -10,7 +10,11 @@
   <!-- 固定标签 -->
   <div class="mdui-textfield">
     <label class="mdui-textfield-label">分享地址</label>
-    <input class="mdui-textfield-input" type="text" value="{{url}}?action=share"/>
+    <input class="mdui-textfield-input" type="text" id="share" value="{{url}}?action=share" onclick="copyUrl('share')"/>
+  </div>
+  <div class="mdui-textfield">
+    <label class="mdui-textfield-label">调用地址</label>
+    <input class="mdui-textfield-input" type="text" id="out_use" value="{{url}}" onclick="copyUrl('out_use')"/>
   </div>
 </div>
 <script>

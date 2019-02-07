@@ -38,6 +38,15 @@
     {%endblock content%}
     </div>
     {%include 'theme/'+GetConfig('theme')+'/footer.html'%}
+    <script type="text/javascript">
+        function copyUrl(eid) {
+            var Url=document.getElementById(eid);
+            Url.select();
+            document.execCommand("Copy");
+            $('.alert').css('display', '');
+            $('#error_msg').html('复制成功');
+        }
+    </script>
 </body>
 
 </html>
