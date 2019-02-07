@@ -130,8 +130,16 @@ def setting():
         rd.set('encrypt_file',encrypt_file)
         rd.set('password',new_password)
         flash('更新成功')
-        return render_template('admin/setting/setting.html')
-    return render_template('admin/setting/setting.html')
+        resp=make_response(render_template('admin/setting/setting.html'))
+        resp.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+        resp.headers['Pragma'] = 'no-cache'
+        resp.headers['Expires'] = '0'
+        return resp
+    resp=make_response(render_template('admin/setting/setting.html'))
+    resp.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    resp.headers['Pragma'] = 'no-cache'
+    resp.headers['Expires'] = '0'
+    return resp
 
 
 @admin.route('/setCode',methods=['GET','POST'])
@@ -152,8 +160,16 @@ def setCode():
         rd.set('footCode',footCode)
         rd.set('cssCode',cssCode)
         flash('更新成功')
-        return render_template('admin/setCode/setCode.html')
-    return render_template('admin/setCode/setCode.html')
+        resp=make_response(render_template('admin/setCode/setCode.html'))
+        resp.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+        resp.headers['Pragma'] = 'no-cache'
+        resp.headers['Expires'] = '0'
+        return resp
+    resp=make_response(render_template('admin/setCode/setCode.html'))
+    resp.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    resp.headers['Pragma'] = 'no-cache'
+    resp.headers['Expires'] = '0'
+    return resp
 
 
 @admin.route('/upload',methods=["POST","GET"])
@@ -169,8 +185,16 @@ def upload():
             action='Upload'
         else:
             action='UploadDir'
-        return render_template('admin/upload.html',remote=remote,local=local,action=action,user=user)
-    return render_template('admin/upload.html')
+        resp=make_response(render_template('admin/upload.html',remote=remote,local=local,action=action,user=user))
+        resp.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+        resp.headers['Pragma'] = 'no-cache'
+        resp.headers['Expires'] = '0'
+        return resp
+    resp=make_response(render_template('admin/upload.html'))
+    resp.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    resp.headers['Pragma'] = 'no-cache'
+    resp.headers['Expires'] = '0'
+    return resp
 
 
 
@@ -182,7 +206,11 @@ def cache():
         subprocess.Popen(cmd,shell=True)
         msg='后台刷新数据中...请不要多次点击！否则服务器出问题别怪PyOne'
         return jsonify(dict(msg=msg))
-    return render_template('admin/cache.html')
+    resp=make_response(render_template('admin/cache.html'))
+    resp.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    resp.headers['Pragma'] = 'no-cache'
+    resp.headers['Expires'] = '0'
+    return resp
 
 
 @admin.route('/manage',methods=["POST","GET"])
@@ -214,6 +242,9 @@ def manage():
     resp=make_response(render_template('admin/manage/manage.html',pagination=pagination,items=resp,path=path,sortby=sortby,order=order,cur_user=user,endpoint='admin.manage'))
     resp.set_cookie('admin_sortby',str(sortby))
     resp.set_cookie('admin_order',str(order))
+    resp.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    resp.headers['Pragma'] = 'no-cache'
+    resp.headers['Expires'] = '0'
     return resp
 
 
@@ -264,13 +295,21 @@ def edit():
     if language is None:
         language='Text'
     content=_remote_content(fileid,user)
-    return render_template('admin/setFile/edit.html',content=content,fileid=fileid,name=name,language=language,cur_user=user)
+    resp=make_response(render_template('admin/setFile/edit.html',content=content,fileid=fileid,name=name,language=language,cur_user=user))
+    resp.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    resp.headers['Pragma'] = 'no-cache'
+    resp.headers['Expires'] = '0'
+    return resp
 
 ###本地上传文件只onedrive，通过服务器中转
 @admin.route('/upload_local',methods=['POST','GET'])
 def upload_local():
     user,remote_folder=request.args.get('path').split(':')
-    return render_template('admin/manage/upload_local.html',remote_folder=remote_folder,cur_user=user)
+    resp=make_response(render_template('admin/manage/upload_local.html',remote_folder=remote_folder,cur_user=user))
+    resp.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    resp.headers['Pragma'] = 'no-cache'
+    resp.headers['Expires'] = '0'
+    return resp
 
 @admin.route('/checkChunk', methods=['POST'])
 def checkChunk():
@@ -511,10 +550,22 @@ def login():
             session['login']='true'
             if len(os.listdir(os.path.join(config_dir,'data')))<=1:
                 return redirect(url_for('admin.install',step=0,user='A'))
-            return redirect(url_for('admin.setting'))
+            resp=make_response(redirect(url_for('admin.setting')))
+            resp.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+            resp.headers['Pragma'] = 'no-cache'
+            resp.headers['Expires'] = '0'
         else:
-            return render_template('admin/login.html')
-    return render_template('admin/login.html')
+            resp=make_response(render_template('admin/login.html'))
+            resp.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+            resp.headers['Pragma'] = 'no-cache'
+            resp.headers['Expires'] = '0'
+        return resp
+    resp=make_response(render_template('admin/login.html'))
+    resp.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    resp.headers['Pragma'] = 'no-cache'
+    resp.headers['Expires'] = '0'
+    return resp
+
 
 
 @admin.route('/logout',methods=['GET','POST'])
@@ -564,7 +615,10 @@ def install():
                 return jsonify(Atoken)
     step=request.args.get('step',type=int)
     user=request.args.get('user','A')
-    resp=render_template('admin/install/install_0.html',step=step,cur_user=user,redirectUrl=redirect_uri)
+    resp=make_response(render_template('admin/install/install_0.html',step=step,cur_user=user,redirectUrl=redirect_uri))
+    resp.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    resp.headers['Pragma'] = 'no-cache'
+    resp.headers['Expires'] = '0'
     return resp
 
 
@@ -584,8 +638,16 @@ def panage():
             text=f.read()
         rd.set('users',re.findall('od_users=([\w\W]*})',text)[0])
         flash('更新成功')
-        return render_template('admin/pan_manage/pan_manage.html')
-    return render_template('admin/pan_manage/pan_manage.html')
+        resp=make_response(render_template('admin/pan_manage/pan_manage.html'))
+        resp.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+        resp.headers['Pragma'] = 'no-cache'
+        resp.headers['Expires'] = '0'
+        return resp
+    resp=make_response(render_template('admin/pan_manage/pan_manage.html'))
+    resp.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    resp.headers['Pragma'] = 'no-cache'
+    resp.headers['Expires'] = '0'
+    return resp
 
 
 @admin.route('/add_pan',methods=["POST","GET"])

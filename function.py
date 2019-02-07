@@ -79,6 +79,8 @@ def GetConfig(key):
         value=rd.get('allow_site') if rd.exists('allow_site') else ','.join(allow_site)
     else:
         value=rd.get(key) if rd.exists(key) else eval(key)
+    if not rd.exists(key):
+        rd.set(key,value)
     return value
 
 def GetThemeList():
@@ -90,8 +92,6 @@ def GetThemeList():
         if os.path.isdir(p):
             tlist.append(l)
     return tlist
-
-
 
 
 ################################################################################

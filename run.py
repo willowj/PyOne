@@ -513,12 +513,19 @@ def index(path='A:/'):
             resp=make_response(redirect(url_for('.index',path=path)))
             resp.delete_cookie(md5_p)
             resp.set_cookie(md5_p,password)
+            resp.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+            resp.headers['Pragma'] = 'no-cache'
+            resp.headers['Expires'] = '0'
             return resp
     if password!=False:
         if (not request.cookies.get(md5_p) or request.cookies.get(md5_p)!=password) and has_verify_==False:
             if total=='files' and GetConfig('encrypt_file')=="no":
                 return show(data['id'],user,action)
-            return render_template('theme/{}/password.html'.format(GetConfig('theme')),path=path,cur_user=user)
+            resp=make_response(render_template('theme/{}/password.html'.format(GetConfig('theme')),path=path,cur_user=user))
+            resp.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+            resp.headers['Pragma'] = 'no-cache'
+            resp.headers['Expires'] = '0'
+            return resp
     if total=='files':
         return show(data['id'],user,action)
     readme,ext_r=GetReadMe(path)
@@ -545,6 +552,9 @@ def index(path='A:/'):
     resp.set_cookie('image_mode',str(image_mode))
     resp.set_cookie('sortby',str(sortby))
     resp.set_cookie('order',str(order))
+    resp.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    resp.headers['Pragma'] = 'no-cache'
+    resp.headers['Expires'] = '0'
     return resp
 
 @app.route('/file/<user>/<fileid>/<action>')
@@ -559,38 +569,45 @@ def show(fileid,user,action='download'):
         if ext in ['csv','doc','docx','odp','ods','odt','pot','potm','potx','pps','ppsx','ppsxm','ppt','pptm','pptx','rtf','xls','xlsx']:
             downloadUrl,play_url=GetDownloadUrl(fileid,user)
             url = 'https://view.officeapps.live.com/op/view.aspx?src='+urllib.quote(downloadUrl)
-            return redirect(url)
+            resp=make_response(redirect(url))
         elif ext in ['bmp','jpg','jpeg','png','gif']:
-            return render_template('theme/{}/show/image.html'.format(GetConfig('theme')),url=url,inner_url=inner_url,path=path,cur_user=user)
+            resp=make_response(render_template('theme/{}/show/image.html'.format(GetConfig('theme')),url=url,inner_url=inner_url,path=path,cur_user=user))
         elif ext in ['mp4','webm']:
-            return render_template('theme/{}/show/video.html'.format(GetConfig('theme')),url=url,inner_url=inner_url,path=path,cur_user=user)
+            resp=make_response(render_template('theme/{}/show/video.html'.format(GetConfig('theme')),url=url,inner_url=inner_url,path=path,cur_user=user))
         elif ext in ['avi','mpg', 'mpeg', 'rm', 'rmvb', 'mov', 'wmv', 'mkv', 'asf']:
-            return render_template('theme/{}/show/video2.html'.format(GetConfig('theme')),url=url,inner_url=inner_url,path=path,cur_user=user)
+            resp=make_response(render_template('theme/{}/show/video2.html'.format(GetConfig('theme')),url=url,inner_url=inner_url,path=path,cur_user=user))
         elif ext in ['ogg','mp3','wav']:
-            return render_template('theme/{}/show/audio.html'.format(GetConfig('theme')),url=url,inner_url=inner_url,path=path,cur_user=user)
+            resp=make_response(render_template('theme/{}/show/audio.html'.format(GetConfig('theme')),url=url,inner_url=inner_url,path=path,cur_user=user))
         elif CodeType(ext) is not None:
             content=_remote_content(fileid,user)
-            return render_template('theme/{}/show/code.html'.format(GetConfig('theme')),content=content,url=url,inner_url=inner_url,language=CodeType(ext),path=path,cur_user=user)
+            resp=make_response(render_template('theme/{}/show/code.html'.format(GetConfig('theme')),content=content,url=url,inner_url=inner_url,language=CodeType(ext),path=path,cur_user=user))
         elif name=='.password':
-            return abort(404)
+            resp=make_response(abort(404))
         else:
             downloadUrl,play_url=GetDownloadUrl(fileid,user)
-            return redirect(downloadUrl)
+            resp=make_response(redirect(downloadUrl))
+        resp.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+        resp.headers['Pragma'] = 'no-cache'
+        resp.headers['Expires'] = '0'
+        return resp
     print('action:{}'.format(action))
     if name=='.password':
-        return abort(404)
+        resp=make_response(abort(404))
     if 'no-referrer' in GetConfig('allow_site').split(',') or sum([i in referrer for i in GetConfig('allow_site').split(',')])>0:
         downloadUrl,play_url=GetDownloadUrl(fileid,user)
         if ext in ['webm','avi','mpg', 'mpeg', 'rm', 'rmvb', 'mov', 'wmv', 'mkv', 'asf']:
             if action=='play':
-                resp=redirect(play_url)
+                resp=make_response(redirect(play_url))
             else:
-                resp=redirect(downloadUrl)
+                resp=make_response(redirect(downloadUrl))
         else:
-            resp=redirect(play_url)
-        return resp
+            resp=make_response(redirect(play_url))
     else:
-        return abort(404)
+        resp=make_response(abort(404))
+    resp.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    resp.headers['Pragma'] = 'no-cache'
+    resp.headers['Expires'] = '0'
+    return resp
 
 
 
@@ -635,6 +652,9 @@ def find(key_word):
     resp.set_cookie('image_mode',str(image_mode))
     resp.set_cookie('sortby',str(sortby))
     resp.set_cookie('order',str(order))
+    resp.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    resp.headers['Pragma'] = 'no-cache'
+    resp.headers['Expires'] = '0'
     return resp
 
 @app.route('/robots.txt')
