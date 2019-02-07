@@ -116,3 +116,5 @@ AppUrl
 *.json
 supervisord.conf
 .install
+*.log
+
