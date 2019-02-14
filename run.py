@@ -632,7 +632,7 @@ def find(key_word):
             if d['type']=='folder':
                 info['name']='<a href="'+url_for('.index',path=d['path'])+'">'+d['name']+'</a>'
             else:
-                info['name']='<a href="'+url_for('.index',path=d['path'],action='share')+'" target="_blank">'+d['name']+'</a>'   
+                info['name']='<a href="'+url_for('.index',path=d['path'],action='share')+'" target="_blank">'+d['name']+'</a>'
             info['type']=d['type']
             info['lastModtime']=d['lastModtime']
             info['size']=d['size']
