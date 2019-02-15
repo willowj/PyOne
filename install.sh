@@ -48,7 +48,7 @@ function config_file(){
     cp supervisord.conf.sample supervisord.conf
     mkdir /var/run/supervisor
     chmod +x /var/run/supervisor
-    sed -i "s|/root/PyOne|$cur_dir|" app/self_config.py
+    sed -i "s|/root/PyOne|$cur_dir|" self_config.py
     sed -i "s|/root/PyOne|$cur_dir|" supervisord.conf
 }
 
