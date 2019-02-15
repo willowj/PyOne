@@ -111,10 +111,9 @@ venv.bak/
 dmypy.json
 
 # PyOne config_file
-config.py
 AppUrl
 *.json
 supervisord.conf
 .install
 *.log
-
+self_config.conf
