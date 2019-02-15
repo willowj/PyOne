@@ -38,7 +38,11 @@ def index(path='A:/'):
     if path=='favicon.ico':
         return redirect('https://onedrive.live.com/favicon.ico')
     if od_users.get('A').get('client_id')=='':
-        return redirect(url_for('admin.install',step=0,user='A'))
+        resp=make_response(redirect(url_for('admin.install',step=0,user='A')))
+        resp.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+        resp.headers['Pragma'] = 'no-cache'
+        resp.headers['Expires'] = '0'
+        return resp
     try:
         path.split(':')
     except:
