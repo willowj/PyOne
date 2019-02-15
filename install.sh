@@ -44,7 +44,7 @@ function install_(){
 function config_file(){
     echo "5. 配置文件";
     cur_dir=`pwd`
-    cp self_config.py.sample app/self_config.py
+    cp self_config.py.sample self_config.py
     cp supervisord.conf.sample supervisord.conf
     mkdir /var/run/supervisor
     chmod +x /var/run/supervisor

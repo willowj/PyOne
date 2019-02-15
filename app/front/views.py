@@ -37,11 +37,8 @@ def index(path='A:/'):
     path=urllib.unquote(path).replace('&action=play','')
     if path=='favicon.ico':
         return redirect('https://onedrive.live.com/favicon.ico')
-    if items.count()==0:
-        if not os.path.exists(os.path.join(config_dir,'data/.install')):
-            return redirect(url_for('admin.install',step=0,user='A'))
-        else:
-            return make_response('<h1>正在更新数据！如果您是网站管理员，请在后台运行命令：python function.py UpdateFile</h1>')
+    if od_users.get('A').get('client_id')=='':
+        return redirect(url_for('admin.install',step=0,user='A'))
     try:
         path.split(':')
     except:
