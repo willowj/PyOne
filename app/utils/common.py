@@ -259,7 +259,7 @@ def _remote_content(fileid,user):
         if downloadUrl:
             r=requests.get(downloadUrl)
             # r.encoding='utf-8'
-            content=r.content.decode(r.encoding)
+            content=r.text
             rd.set(kc,content)
             return content
         else:
