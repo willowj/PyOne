@@ -258,8 +258,8 @@ def _remote_content(fileid,user):
         downloadUrl,play_url=GetDownloadUrl(fileid,user)
         if downloadUrl:
             r=requests.get(downloadUrl)
-            r.encoding='utf-8'
-            content=r.content
+            # r.encoding='utf-8'
+            content=r.content.decode(r.encoding)
             rd.set(kc,content)
             return content
         else:
