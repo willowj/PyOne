@@ -1,5 +1,6 @@
 #-*- coding=utf-8 -*-
 from header import *
+from upload import *
 
 def download_and_upload(url,remote_dir,user,gid=None):
     p,status=get_aria2()
