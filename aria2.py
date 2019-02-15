@@ -10,7 +10,7 @@ if sys.version_info[0]==2:
     import xmlrpclib
 else:
     import xmlrpc.client as xmlrpclib
-from config import *
+from self_config import *
 
 DEFAULT_HOST = ARIA2_HOST
 DEFAULT_PORT = ARIA2_PORT
