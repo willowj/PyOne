@@ -539,6 +539,12 @@ def RPCserver():
             ret=ret2
     return jsonify(ret)
 
+@admin.route('/clearHist',methods=['POST'])
+def clearHist():
+    down_db.delete_many({})
+    ret={'msg':'清除成功！'}
+    return jsonify(ret)
+
 
 
 ###
@@ -621,7 +627,28 @@ def install():
     resp.headers['Expires'] = '0'
     return resp
 
+###########################################卸载
+@admin.route('/uninstall',methods=['POST'])
+def uninstall():
+    type_=request.form.get('type')
+    if type_=='mongodb':
+        items.remove()
+        down_db.remove()
+        msg='删除mongodb数据成功'
+    elif type_=='redis':
+        rd.flushdb()
+        msg='删除redis数据成功'
+    elif type_=='directory':
+        subprocess.Popen('rm -rf {}/data/*.json'.format(config_dir),shell=True)
+        msg='删除网站数据成功'
+    else:
+        msg='数据已清除！如果需要删除目录请运行:rm -rf {}'.format(config_dir)
+    ret={'msg':msg}
+    return jsonify(ret)
 
+
+
+###########################################网盘管理
 @admin.route('/',methods=['GET','POST'])
 @admin.route('/panage',methods=['GET','POST'])
 def panage():
