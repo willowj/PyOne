@@ -116,4 +116,4 @@ AppUrl
 supervisord.conf
 .install
 *.log
-self_config.conf
+self_config.py
