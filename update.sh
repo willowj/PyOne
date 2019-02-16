@@ -15,54 +15,20 @@ update_sp(){
 
 #2019.01.18
 update_config(){
-    num=`cat config.py | grep "show_secret" | wc -l`
+    num=`cat self_config.py | grep "show_secret" | wc -l`
     if [ $num == 0 ]; then
-        echo '' >> config.py
-        echo 'show_secret="no"' >> config.py
+        echo '' >> self_config.py
+        echo 'show_secret="no"' >> self_config.py
     fi
-
-    num=`cat config.py | grep "encrypt_file" | wc -l`
-    if [ $num == 0 ]; then
-        echo '' >> config.py
-        echo 'encrypt_file="no"' >> config.py
-    fi
-
-    num=`cat config.py | grep "headCode" | wc -l`
-    if [ $num == 0 ]; then
-        echo '' >> config.py
-        echo 'headCode=""""""' >> config.py
-    fi
-
-    num=`cat config.py | grep "footCode" | wc -l`
-    if [ $num == 0 ]; then
-        echo '' >> config.py
-        echo 'footCode=""""""' >> config.py
-    fi
-
-    num=`cat config.py | grep "cssCode" | wc -l`
-    if [ $num == 0 ]; then
-        echo '' >> config.py
-        echo 'cssCode=""""""' >> config.py
-    fi
-
-    num=`cat config.py | grep "title_pre" | wc -l`
-    if [ $num == 0 ]; then
-        echo '' >> config.py
-        echo 'title_pre="index of "' >> config.py
-    fi
-
-    num=`cat config.py | grep "theme" | wc -l`
-    if [ $num == 0 ]; then
-        echo '' >> config.py
-        echo 'theme="material"' >> config.py
-    fi
-
 }
 
 
 #2019.02.15
 upgrade_to4(){
-    mv config.py self_config.py
+    echo '-------------------------------'
+    echo '2019.02.15，PyOne升级为4.0版本！！'
+    echo '2019.02.15之前安装的PyOne需重新安装！'
+    echo '-------------------------------'
 }
 
 restart(){
@@ -86,7 +52,6 @@ echo "2019.01.28更新版本：支持自定义代码！"
 echo "2019.01.29更新版本：支持设置网站标题前缀；支持自定义主题（待更新设计标准）"
 echo "2019.01.30更新版本：提交新主题"
 echo "2019.02.15更新版本：新增一键卸载PyOne功能！"
-update_config
 upgrade_to4
 restart
 echo "---------------------------------------------------------------"
