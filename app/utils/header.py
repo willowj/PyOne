@@ -83,8 +83,14 @@ def GetConfig(key):
         value=rd.get('allow_site') if rd.exists('allow_site') else ','.join(allow_site)
     else:
         value=rd.get(key) if rd.exists(key) else eval(key)
+    #这里是为了储存
+    if key=='od_users' and isinstance(value,dict):
+        value=json.dumps(value)
     if not rd.exists(key):
         rd.set(key,value)
+    #这里是为了转为字典
+    if key=='od_users':
+        value=json.loads(value)
     return value
 
 def GetThemeList():
