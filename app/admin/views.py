@@ -612,6 +612,7 @@ def install():
                 token=ReFreshToken(refresh_token,user)
                 with open(os.path.join(config_dir,'data/{}_token.json'.format(user)),'w') as f:
                     json.dump(token,f,ensure_ascii=False)
+                rd.delete('od_users')
                 return make_response('<h1>授权成功!<a href="/?t={}">点击进入首页</a><br>请先在<B>后台-页面缓存</B>，运行更新数据操作<！/h1>'.format(time.time()))
             else:
                 return jsonify(Atoken)
