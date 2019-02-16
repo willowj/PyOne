@@ -594,6 +594,10 @@ def install():
             set('client_secret',client_secret,user)
             set('client_id',client_id,user)
             login_url=LoginUrl.format(client_id=client_id,redirect_uri=redirect_uri)
+            print 'install delete od_users'
+            rd.delete('od_users')
+            print 'install set od_users'
+            GetConfig('od_users')
             return render_template('admin/install/install_1.html',client_secret=client_secret,client_id=client_id,login_url=login_url,cur_user=user)
         else:
             client_secret=request.form.get('client_secret')
@@ -612,8 +616,7 @@ def install():
                 token=ReFreshToken(refresh_token,user)
                 with open(os.path.join(config_dir,'data/{}_token.json'.format(user)),'w') as f:
                     json.dump(token,f,ensure_ascii=False)
-                rd.delete('od_users')
-                return make_response('<h1>授权成功!<a href="/?t={}">点击进入首页</a><br>请先在<B>后台-页面缓存</B>，运行更新数据操作<！/h1>'.format(time.time()))
+                return make_response('<h1>授权成功!<br>请先在<B><a href="admin/cache" target="_blank">后台-更新列表</a></B>，全量更新数据</h1><br>然后<a href="/?t={}">点击进入首页</a><br>'.format(time.time()))
             else:
                 return jsonify(Atoken)
     step=request.args.get('step',type=int)
@@ -721,4 +724,5 @@ def rm_pan():
         data=dict(msg='删除盘符[{}]成功'.format(pan),status=1)
         return jsonify(data)
     return render_template('admin/pan_manage/rm_pan.html')
+
 
