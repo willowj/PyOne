@@ -618,7 +618,11 @@ def install():
                     json.dump(token,f,ensure_ascii=False)
                 with open(os.path.join(config_dir,'.install'),'w') as f:
                     f.write('4.0')
-                return make_response('<h1>授权成功!<br>请先在<B><a href="admin/cache" target="_blank">后台-更新列表</a></B>，全量更新数据<br>然后<a href="/?t={}">点击进入首页</a></h1><br>'.format(time.time()))
+                config_path=os.path.join(config_dir,'self_config.py')
+                with open(config_path,'r') as f:
+                    text=f.read()
+                rd.set('users',re.findall('od_users=([\w\W]*})',text)[0])
+                return make_response('<h1>授权成功!<br>请先在<B><a href="/admin/cache" target="_blank">后台-更新列表</a></B>，全量更新数据<br>然后<a href="/?t={}">点击进入首页</a></h1><br>'.format(time.time()))
             else:
                 return jsonify(Atoken)
     step=request.args.get('step',type=int)
@@ -642,6 +646,7 @@ def uninstall():
         msg='删除redis数据成功'
     elif type_=='directory':
         subprocess.Popen('rm -rf {}/data/*.json'.format(config_dir),shell=True)
+        subprocess.Popen('rm -rf {}/.install'.format(config_dir),shell=True)
         msg='删除网站数据成功'
     else:
         msg='数据已清除！如果需要删除目录请运行:rm -rf {}'.format(config_dir)
