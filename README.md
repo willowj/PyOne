@@ -4,7 +4,7 @@
 
 如果是2019.02.15之前安装的PyOne，升级到4.0需要重新安装！
 
-重新安装教程：
+升级4.0教程：
 
 1. 备份config.py，并改名为self_config.py；备份supervisord.conf
 
@@ -15,6 +15,8 @@
 4. 重新git clone https://www.github.com/abbeyokgo/PyOne.git
 
 5. 将self_config.py、supervisord.conf和data目录复制回去
+
+6. 创建一个锁定文件：touch .install
 
 6. 安装新的依赖包：pip install flask_script
 
