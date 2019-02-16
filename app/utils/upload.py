@@ -45,7 +45,7 @@ def _upload_part(uploadUrl, filepath, offset, length,trytime=1):
     length=length if offset+length<size else size-offset
     endpos=offset+length-1 if offset+length<size else size-1
     print('upload file {} {}%'.format(filepath,round(float(endpos)/size*100,1)))
-    filebin=_file_content(filepath,offset,length)
+    filebin=header._file_content(filepath,offset,length)
     headers={}
     # headers['Authorization']='bearer {}'.format(token)
     headers['Content-Length']=str(length)
