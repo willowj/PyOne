@@ -13,3 +13,4 @@ eventlet
 flask_caching
 flask_limiter
 Flask-PyMongo
+flask_script
