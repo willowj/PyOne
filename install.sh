@@ -114,8 +114,8 @@ install_aria2
 open_port
 echo "---------------------------------------------------------------"
 echo "一键脚本运行完成！请检查以下文件："
-echo "  > 1. app/self_config.py、supervisord.conf是否存在！"
-echo "  > 2. 检查app/self_config.py、supervisord.conf脚本里面的目录是否正确！"
+echo "  > 1. self_config.py、supervisord.conf是否存在！"
+echo "  > 2. 检查self_config.py、supervisord.conf脚本里面的目录是否正确！"
 echo "  > 3. 请确保已经安装Nginx、Redis、MongoDB，并已经运行！"
 echo "  > 4. 检查/data/aria2是否存在。"
 echo "  > 5. 检查aria2是否运行：pgrep 'aria2c'"

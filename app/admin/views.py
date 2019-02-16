@@ -550,8 +550,12 @@ def login():
         password1=request.form.get('password')
         if password1==GetConfig('password'):
             session['login']='true'
-            if len(os.listdir(os.path.join(config_dir,'data')))<=1:
-                return redirect(url_for('admin.install',step=0,user='A'))
+            if not os.path.exists(os.path.join(config_dir,'.install')):
+                resp=make_response(redirect(url_for('admin.install',step=0,user='A')))
+                resp.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+                resp.headers['Pragma'] = 'no-cache'
+                resp.headers['Expires'] = '0'
+                return resp
             resp=make_response(redirect(url_for('admin.setting')))
             resp.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
             resp.headers['Pragma'] = 'no-cache'
@@ -589,15 +593,11 @@ def install():
         step=request.form.get('step',type=int)
         user=request.form.get('user')
         if step==1:
-            client_secret=request.form.get('client_secret')
             client_id=request.form.get('client_id')
-            set('client_secret',client_secret,user)
+            client_secret=request.form.get('client_secret')
             set('client_id',client_id,user)
+            set('client_secret',client_secret,user)
             login_url=LoginUrl.format(client_id=client_id,redirect_uri=redirect_uri)
-            print 'install delete od_users'
-            rd.delete('od_users')
-            print 'install set od_users'
-            GetConfig('od_users')
             return render_template('admin/install/install_1.html',client_secret=client_secret,client_id=client_id,login_url=login_url,cur_user=user)
         else:
             client_secret=request.form.get('client_secret')
@@ -616,7 +616,9 @@ def install():
                 token=ReFreshToken(refresh_token,user)
                 with open(os.path.join(config_dir,'data/{}_token.json'.format(user)),'w') as f:
                     json.dump(token,f,ensure_ascii=False)
-                return make_response('<h1>授权成功!<br>请先在<B><a href="admin/cache" target="_blank">后台-更新列表</a></B>，全量更新数据</h1><br>然后<a href="/?t={}">点击进入首页</a><br>'.format(time.time()))
+                with open(os.path.join(config_dir,'.install'),'w') as f:
+                    f.write('4.0')
+                return make_response('<h1>授权成功!<br>请先在<B><a href="admin/cache" target="_blank">后台-更新列表</a></B>，全量更新数据<br>然后<a href="/?t={}">点击进入首页</a></h1><br>'.format(time.time()))
             else:
                 return jsonify(Atoken)
     step=request.args.get('step',type=int)
@@ -724,5 +726,6 @@ def rm_pan():
         data=dict(msg='删除盘符[{}]成功'.format(pan),status=1)
         return jsonify(data)
     return render_template('admin/pan_manage/rm_pan.html')
+
 
 

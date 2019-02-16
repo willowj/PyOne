@@ -31,6 +31,15 @@ upgrade_to4(){
     echo '-------------------------------'
 }
 
+#2019.02.16
+upgrade(){
+    num=`ls | grep .install | wc -l`
+    if [ $num == 0 ]; then
+        touch .install
+    fi
+}
+
+
 restart(){
     supervisorctl -c supervisord.conf restart pyone
 }
@@ -52,7 +61,9 @@ echo "2019.01.28更新版本：支持自定义代码！"
 echo "2019.01.29更新版本：支持设置网站标题前缀；支持自定义主题（待更新设计标准）"
 echo "2019.01.30更新版本：提交新主题"
 echo "2019.02.15更新版本：新增一键卸载PyOne功能！"
+echo "2019.02.16更新版本：优化PyOne4.0安装流程！"
 upgrade_to4
+upgrade
 restart
 echo "---------------------------------------------------------------"
 echo "更新完成！"

@@ -37,7 +37,7 @@ def index(path='A:/'):
     path=urllib.unquote(path).replace('&action=play','')
     if path=='favicon.ico':
         return redirect('https://onedrive.live.com/favicon.ico')
-    if GetConfig('od_users').get('A').get('client_id')=='':
+    if not os.path.exists(os.path.join(config_dir,'.install')):
         resp=make_response(redirect(url_for('admin.install',step=0,user='A')))
         resp.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
         resp.headers['Pragma'] = 'no-cache'
@@ -224,3 +224,4 @@ Disallow:  /
     resp=make_response(resp)
     resp.headers['Content-Type'] = 'text/javascript; charset=utf-8'
     return resp
+
