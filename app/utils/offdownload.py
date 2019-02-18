@@ -148,7 +148,6 @@ def upload_status(gid,idx,remote_dir,user):
         remote_dir=remote_dir+'/'
     remote_path=os.path.join(remote_dir,item['name'])
     if not os.path.exists(localpath) and down_db.find_one({'_id':item['_id']})['status']!=0:
-        print down_db.find_one({'_id':item['_id']})
         new_value={}
         new_value['up_status']=u'本地文件不存在。检查：{}'.format(localpath)
         new_value['status']=-1
