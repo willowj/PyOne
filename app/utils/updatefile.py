@@ -144,7 +144,7 @@ def UpdateFile(renew='all'):
     tasks=[]
     if renew=='all':
         items.remove()
-        rd.flushdb()
+        clearRedis()
         for user,item in od_users.items():
             if item.get('client_id')!='':
                 share_path='{}:{}'.format(user,item['share_path'])

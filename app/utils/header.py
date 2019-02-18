@@ -559,3 +559,7 @@ class GetItemThread(Thread):
         r=requests.get(url,headers=header)
         data=json.loads(r.content)
         return data
+
+def clearRedis():
+    keys=rd.keys('path:*')+rd.keys('name:*')+rd.keys('*has_item*')+rd.keys('*has_item*')
+    rd.delete(*keys)
