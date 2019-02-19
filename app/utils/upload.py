@@ -5,6 +5,7 @@ import header
 def _upload(filepath,remote_path,user='A'): #remote_path like 'share/share.mp4'
     token=GetToken(user=user)
     headers={'Authorization':'bearer {}'.format(token)}
+    headers.update(default_headers)
     url=app_url+'v1.0/me/drive/root:{}:/content'.format(urllib.quote(convert2unicode(remote_path)))
     r=requests.put(url,headers=headers,data=open(filepath,'rb'))
     try:
@@ -50,6 +51,7 @@ def _upload_part(uploadUrl, filepath, offset, length,trytime=1):
     # headers['Authorization']='bearer {}'.format(token)
     headers['Content-Length']=str(length)
     headers['Content-Range']='bytes {}-{}/{}'.format(offset,endpos,size)
+    headers.update(default_headers)
     try:
         r=requests.put(uploadUrl,headers=headers,data=filebin)
         data=json.loads(r.content)
@@ -82,6 +84,7 @@ def _upload_part(uploadUrl, filepath, offset, length,trytime=1):
 def CreateUploadSession(path,user='A'):
     token=GetToken(user=user)
     headers={'Authorization':'bearer {}'.format(token),'Content-Type':'application/json'}
+    headers.update(default_headers)
     url=app_url+u'v1.0/me/drive/root:{}:/createUploadSession'.format(urllib.quote(convert2unicode(path)))
     data={
           "item": {
@@ -163,6 +166,7 @@ def Upload_for_server(filepath,remote_path=None,user='A'):
 
 def ContinueUpload(filepath,uploadUrl,user):
     headers={'Content-Type':'application/json'}
+    headers.update(default_headers)
     r=requests.get(uploadUrl,headers=headers)
     data=json.loads(r.text)
     offset=data.get('nextExpectedRanges')[0].split('-')[0]

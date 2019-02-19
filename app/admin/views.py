@@ -253,6 +253,7 @@ def edit():
         token=GetToken(user=user)
         app_url=GetAppUrl()
         headers={'Authorization':'bearer {}'.format(token)}
+        headers.update(default_headers)
         url=app_url+'v1.0/me/drive/items/{}/content'.format(fileid)
         try:
             r=requests.put(url,headers=headers,data=content,timeout=10)
@@ -397,6 +398,7 @@ def setFile(filename=None):
         token=GetToken(user=user)
         app_url=GetAppUrl()
         headers={'Authorization':'bearer {}'.format(token)}
+        headers.update(default_headers)
         url=app_url+'v1.0/me/drive/items/root:{}:/content'.format(remote_file)
         r=requests.put(url,headers=headers,data=content,timeout=10)
         data=json.loads(r.content)

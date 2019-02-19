@@ -134,8 +134,9 @@ def GetRootid(user='A'):
         app_url=GetAppUrl()
         token=GetToken(user=user)
         url=app_url+u'v1.0/me/drive/root/'
-        header={'Authorization': 'Bearer {}'.format(token)}
-        r=requests.get(url,headers=header)
+        headers={'Authorization': 'Bearer {}'.format(token)}
+        headers.update(default_headers)
+        r=requests.get(url,headers=headers)
         data=json.loads(r.content)
         rd.set(key,data['id'],3600)
         return data['id']
@@ -178,6 +179,7 @@ def UpdateFile(renew='all'):
 def FileExists(filename,user='A'):
     token=GetToken(user=user)
     headers={'Authorization':'bearer {}'.format(token),'Content-Type':'application/json'}
+    headers.update(default_headers)
     search_url=app_url+"v1.0/me/drive/root/search(q='{}')".format(convert2unicode(filename))
     r=requests.get(search_url,headers=headers)
     jsondata=json.loads(r.text)
@@ -189,6 +191,7 @@ def FileExists(filename,user='A'):
 def FileInfo(fileid,user='A'):
     token=GetToken(user=user)
     headers={'Authorization':'bearer {}'.format(token),'Content-Type':'application/json'}
+    headers.update(default_headers)
     search_url=app_url+"v1.0/me/drive/items/{}".format(fileid)
     r=requests.get(search_url,headers=headers)
     jsondata=json.loads(r.text)

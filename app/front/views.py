@@ -24,6 +24,10 @@ def before_request():
         return redirect('http://www.baidu.com')
     # print '{}:{}:{}'.format(request.endpoint,ip,ua)
     referrer=request.referrer if request.referrer is not None else 'no-referrer'
+    if request.endpoint.startswith('front'):
+        msg,status=CheckServer()
+        if not status:
+            return make_response(msg)
 
 @front.errorhandler(500)
 def page_not_found(e):

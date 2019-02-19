@@ -122,6 +122,7 @@ def _thunbnail(id,user):
     app_url=GetAppUrl()
     token=GetToken(user=user)
     headers={'Authorization':'bearer {}'.format(token),'Content-type':'application/json'}
+    headers.update(default_headers)
     url=app_url+'v1.0/me/drive/items/{}/thumbnails/0?select=large'.format(id)
     r=requests.get(url,headers=headers)
     data=json.loads(r.content)
@@ -139,6 +140,7 @@ def _getdownloadurl(id,user):
     filename=GetName(id)
     ext=filename.split('.')[-1].lower()
     headers={'Authorization':'bearer {}'.format(token),'Content-type':'application/json'}
+    headers.update(default_headers)
     url=app_url+'v1.0/me/drive/items/'+id
     r=requests.get(url,headers=headers)
     data=json.loads(r.content)

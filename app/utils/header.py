@@ -41,7 +41,7 @@ OAuthUrl=BaseAuthUrl+'/common/oauth2/v2.0/token'
 AuthData='client_id={client_id}&redirect_uri={redirect_uri}&client_secret={client_secret}&code={code}&grant_type=authorization_code'
 ReFreshData='client_id={client_id}&redirect_uri={redirect_uri}&client_secret={client_secret}&refresh_token={refresh_token}&grant_type=refresh_token'
 
-headers={'User-Agent':'ISV|PyOne|PyOne/2.0'}
+default_headers={'User-Agent':'ISV|PyOne|PyOne/4.0'}
 
 #转字符串
 def convert2unicode(string):
@@ -122,7 +122,8 @@ def open_json(filepath):
 def ReFreshToken(refresh_token,user='A'):
     client_id=get_value('client_id',user)
     client_secret=get_value('client_secret',user)
-    headers['Content-Type']='application/x-www-form-urlencoded'
+    headers={'Content-Type':'application/x-www-form-urlencoded'}
+    headers.update(default_headers)
     data=ReFreshData.format(client_id=client_id,redirect_uri=urllib.quote(redirect_uri),client_secret=client_secret,refresh_token=refresh_token)
     url=OAuthUrl
     r=requests.post(url,data=data,headers=headers)
@@ -174,6 +175,7 @@ def CheckTimeOut(fileid):
     app_url=GetAppUrl()
     token=GetToken()
     headers={'Authorization':'bearer {}'.format(token),'Content-Type':'application/json'}
+    headers.update(default_headers)
     url=app_url+'v1.0/me/drive/items/'+fileid
     r=requests.get(url,headers=headers)
     data=json.loads(r.content)
@@ -359,6 +361,7 @@ def CheckTimeOut(fileid):
     app_url=GetAppUrl()
     token=GetToken()
     headers={'Authorization':'bearer {}'.format(token),'Content-Type':'application/json'}
+    headers.update(default_headers)
     url=app_url+'v1.0/me/drive/items/'+fileid
     r=requests.get(url,headers=headers)
     data=json.loads(r.content)
@@ -412,9 +415,10 @@ class GetItemThread(Thread):
         app_url=GetAppUrl()
         token=GetToken(user=self.user)
         print(u'[start] getting files from url {}'.format(url))
-        header={'Authorization': 'Bearer {}'.format(token)}
+        headers={'Authorization': 'Bearer {}'.format(token)}
+        headers.update(default_headers)
         try:
-            r=requests.get(url,headers=header,timeout=10)
+            r=requests.get(url,headers=headers,timeout=10)
             data=json.loads(r.content)
             if data.get('error'):
                 print('error:{}! waiting 180s'.format(data.get('error').get('message')))
@@ -547,19 +551,41 @@ class GetItemThread(Thread):
             url=app_url+u'v1.0/me/drive/root/'
         else:
             url=app_url+u'v1.0/me/drive/root:{}:/'.format(path)
-        header={'Authorization': 'Bearer {}'.format(token)}
-        r=requests.get(url,headers=header)
+        headers={'Authorization': 'Bearer {}'.format(token)}
+        headers.update(default_headers)
+        r=requests.get(url,headers=headers)
         data=json.loads(r.content)
         return data
 
     def GetItemByUrl(self,url):
         app_url=GetAppUrl()
         token=GetToken(user=self.user)
-        header={'Authorization': 'Bearer {}'.format(token)}
-        r=requests.get(url,headers=header)
+        headers={'Authorization': 'Bearer {}'.format(token)}
+        headers.update(default_headers)
+        r=requests.get(url,headers=headers)
         data=json.loads(r.content)
         return data
 
 def clearRedis():
-    keys=rd.keys('path:*')+rd.keys('name:*')+rd.keys('*has_item*')+rd.keys('*has_item*')
-    rd.delete(*keys)
+    key_lists=['path:*','name:*','*has_item*','*root*']
+    for k in key_lists:
+        try:
+            rd.delete(*rd.keys(k))
+        except:
+            print('empty keys {}'.format(k))
+
+def CheckServer():
+    mongo_cmd='lsof -i:27017 | grep LISTEN'
+    redis_cmd='lsof -i:6379 | grep LISTEN'
+    r1=len(subprocess.Popen(mongo_cmd,shell=True,stdout=subprocess.PIPE).stdout.readlines())
+    r2=len(subprocess.Popen(redis_cmd,shell=True,stdout=subprocess.PIPE).stdout.readlines())
+    msg='<h1><br>'
+    if r1==0:
+        msg+='<p>MongoDB未运行</p>'
+    if r2==0:
+        msg+='<p>Redis未运行</p>'
+    msg+='</h1>'
+    if r1==0 or r2==0:
+        return msg,False
+    else:
+        return msg,True

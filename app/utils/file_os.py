@@ -9,6 +9,7 @@ def DeleteRemoteFile(fileid,user='A'):
     app_url=GetAppUrl()
     token=GetToken(user=user)
     headers={'Authorization':'bearer {}'.format(token)}
+    headers.update(default_headers)
     url=app_url+'v1.0/me/drive/items/'+fileid
     r=requests.delete(url,headers=headers)
     if r.status_code==204:
@@ -33,6 +34,7 @@ def CreateFolder(folder_name,grand_path,user='A'):
         grandid=parent['grandid']+1
         url=app_url+'v1.0/me/drive/items/{}/children'.format(parent['id'])
     headers={'Authorization':'bearer {}'.format(token),'Content-Type':'application/json'}
+    headers.update(default_headers)
     payload={
       "name": folder_name,
       "folder": {},
@@ -87,6 +89,7 @@ def MoveFile(fileid,new_folder_path,user='A'):
         path=parent_item['path']+'/'+GetName(fileid)
     url=app_url+'v1.0/me/drive/items/{}'.format(fileid)
     headers={'Authorization':'bearer {}'.format(token),'Content-Type':'application/json'}
+    headers.update(default_headers)
     payload={
       "parentReference": {
         "id": folder_id
@@ -116,6 +119,7 @@ def ReName(fileid,new_name,user='A'):
     token=GetToken(user=user)
     url=app_url+'v1.0/me/drive/items/{}'.format(fileid)
     headers={'Authorization':'bearer {}'.format(token),'Content-Type':'application/json'}
+    headers.update(default_headers)
     payload={
       "name": new_name
     }
