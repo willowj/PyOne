@@ -8,7 +8,7 @@ def Dir(path=u'A:/'):
     print('update {}\'s file'.format(user))
     if n_path=='/':
         BaseUrl=app_url+u'v1.0/me/drive/root/children?expand=thumbnails'
-        # items.remove()
+        # mongo.db.items.remove()
         queue=Queue()
         # queue.put(dict(url=BaseUrl,grandid=grandid,parent=parent,trytime=1))
         g=GetItemThread(queue,user)
@@ -66,7 +66,7 @@ def Dir_all(path=u'A:/'):
     print('update {}\'s {} file'.format(user,n_path))
     if n_path=='/':
         BaseUrl=app_url+u'v1.0/me/drive/root/children?expand=thumbnails'
-        items.remove({'user':user})
+        mongo.db.items.remove({'user':user})
         queue=Queue()
         g=GetItemThread(queue,user)
         g.GetItem(BaseUrl)
@@ -78,14 +78,14 @@ def Dir_all(path=u'A:/'):
             n_path=n_path[:-1]
         if not n_path.startswith('/'):
             n_path='/'+n_path
-        if items.find_one({'grandid':0,'type':'folder','user':user}):
+        if mongo.db.items.find_one({'grandid':0,'type':'folder','user':user}):
             parent_id=0
             for idx,p in enumerate(n_path[1:].split('/')):
                 if parent_id==0:
-                    parent_id=items.find_one({'name':p,'grandid':idx,'user':user})['id']
+                    parent_id=mongo.db.items.find_one({'name':p,'grandid':idx,'user':user})['id']
                 else:
-                    parent_id=items.find_one({'name':p,'grandid':idx,'parent':parent_id})['id']
-                items.delete_many({'parent':parent_id})
+                    parent_id=mongo.db.items.find_one({'name':p,'grandid':idx,'parent':parent_id})['id']
+                mongo.db.items.delete_many({'parent':parent_id})
             grandid=idx+1
             parent=parent_id
         n_path=urllib.quote(n_path.encode('utf-8'))
@@ -128,8 +128,8 @@ def Dir_all(path=u'A:/'):
 
 def GetRootid(user='A'):
     key='{}:rootid'.format(user)
-    if rd.exists(key):
-        return rd.get(key)
+    if redis_client.exists(key):
+        return redis_client.get(key)
     else:
         app_url=GetAppUrl()
         token=GetToken(user=user)
@@ -138,13 +138,13 @@ def GetRootid(user='A'):
         headers.update(default_headers)
         r=requests.get(url,headers=headers)
         data=json.loads(r.content)
-        rd.set(key,data['id'],3600)
+        redis_client.set(key,data['id'],3600)
         return data['id']
 
 def UpdateFile(renew='all'):
     tasks=[]
     if renew=='all':
-        items.remove()
+        mongo.db.items.remove()
         clearRedis()
         for user,item in od_users.items():
             if item.get('client_id')!='':

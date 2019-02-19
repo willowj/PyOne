@@ -6,6 +6,7 @@ from flask_script import Manager, Shell
 from app import create_app
 from self_config import *
 from function import *
+from redis import Redis,ConnectionPool
 
 app = create_app()
 manager = Manager(app)
@@ -18,21 +19,23 @@ def test():
     unittest.TextTestRunner(verbosity=2).run(tests)
 
 ######################初始化变量
-rd.set('title',title)
-rd.set('tj_code',tj_code)
-rd.set('downloadUrl_timeout',downloadUrl_timeout)
-rd.set('allow_site',','.join(allow_site))
-rd.set('ARIA2_HOST',ARIA2_HOST)
-rd.set('ARIA2_PORT',ARIA2_PORT)
-rd.set('ARIA2_SECRET',ARIA2_SECRET)
-rd.set('ARIA2_SCHEME',ARIA2_SCHEME)
-rd.set('password',password)
+pool = ConnectionPool(host='localhost', port=6379, db=0)
+tmp_rd=Redis(connection_pool=pool)
+tmp_rd.set('title',title)
+tmp_rd.set('tj_code',tj_code)
+tmp_rd.set('downloadUrl_timeout',downloadUrl_timeout)
+tmp_rd.set('allow_site',','.join(allow_site))
+tmp_rd.set('ARIA2_HOST',ARIA2_HOST)
+tmp_rd.set('ARIA2_PORT',ARIA2_PORT)
+tmp_rd.set('ARIA2_SECRET',ARIA2_SECRET)
+tmp_rd.set('ARIA2_SCHEME',ARIA2_SCHEME)
+tmp_rd.set('password',password)
 config_path=os.path.join(config_dir,'self_config.py')
 with open(config_path,'r') as f:
     text=f.read()
-rd.set('users',re.findall('od_users=([\w\W]*})',text)[0])
+tmp_rd.set('users',re.findall('od_users=([\w\W]*})',text)[0])
 key='themelist'
-rd.delete(key)
+tmp_rd.delete(key)
 ######################函数
 app.jinja_env.globals['FetchData']=FetchData
 app.jinja_env.globals['path_list']=path_list

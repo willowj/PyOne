@@ -14,17 +14,17 @@ def md5(string):
 
 def GetTotal(path='A:/'):
     key='total:{}'.format(path)
-    if rd.exists(key):
-        return int(rd.get(key))
+    if redis_client.exists(key):
+        return int(redis_client.get(key))
     else:
         user,n_path=path.split(':')
         if n_path=='/':
-            total=items.find({'grandid':0}).count()
+            total=mongo.db.items.find({'grandid':0}).count()
         else:
-            f=items.find_one({'path':path})
+            f=mongo.db.items.find_one({'path':path})
             pid=f['id']
-            total=items.find({'parent':pid}).count()
-        rd.set(key,total,300)
+            total=mongo.db.items.find({'parent':pid}).count()
+        redis_client.set(key,total,300)
         return total
 
 
@@ -32,7 +32,7 @@ def GetTotal(path='A:/'):
 def FetchData(path='A:/',page=1,per_page=50,sortby='lastModtime',order='desc',dismiss=False,search_mode=False):
     if search_mode:
         show_secret=GetConfig('show_secret')
-        query=items.find({'name':re.compile(path)})
+        query=mongo.db.items.find({'name':re.compile(path)})
         resp=[]
         data=query.limit(per_page).collation({"locale": "zh", 'numericOrdering':True})\
                 .sort([('order',ASCENDING)])\
@@ -73,7 +73,7 @@ def FetchData(path='A:/',page=1,per_page=50,sortby='lastModtime',order='desc',di
     try:
         user,n_path=path.split(':')
         if n_path=='/':
-            data=items.find({'grandid':0,'user':user}).collation({"locale": "zh", 'numericOrdering':True})\
+            data=mongo.db.items.find({'grandid':0,'user':user}).collation({"locale": "zh", 'numericOrdering':True})\
                 .sort([('order',ASCENDING),(sortby,order)])\
                 .limit(per_page).skip((page-1)*per_page)
             for d in data:
@@ -91,11 +91,11 @@ def FetchData(path='A:/',page=1,per_page=50,sortby='lastModtime',order='desc',di
                     resp.append(item)
             total=GetTotal(path)
         else:
-            f=items.find_one({'path':path})
+            f=mongo.db.items.find_one({'path':path})
             pid=f['id']
             if f['type']!='folder':
                 return f,'files'
-            data=items.find({'parent':pid}).collation({"locale": "zh", 'numericOrdering':True})\
+            data=mongo.db.items.find({'parent':pid}).collation({"locale": "zh", 'numericOrdering':True})\
                 .sort([('order',ASCENDING),(sortby,order)])\
                 .limit(per_page).skip((page-1)*per_page)
             for d in data:
@@ -159,14 +159,14 @@ def _getdownloadurl(id,user):
 
 def GetDownloadUrl(id,user):
     key_='downloadUrl:{}'.format(id)
-    if rd.exists(key_):
-        downloadUrl,play_url,ftime=rd.get(key_).split('####')
+    if redis_client.exists(key_):
+        downloadUrl,play_url,ftime=redis_client.get(key_).split('####')
         if time.time()-int(ftime)>=600:
             # print('{} downloadUrl expired!'.format(id))
             downloadUrl,play_url=_getdownloadurl(id,user)
             ftime=int(time.time())
             k='####'.join([downloadUrl,play_url,str(ftime)])
-            rd.set(key_,k)
+            redis_client.set(key_,k)
         else:
             # print('get {}\'s downloadUrl from cache'.format(id))
             downloadUrl=downloadUrl
@@ -176,7 +176,7 @@ def GetDownloadUrl(id,user):
         downloadUrl,play_url=_getdownloadurl(id,user)
         ftime=int(time.time())
         k='####'.join([downloadUrl,play_url,str(ftime)])
-        rd.set(key_,k)
+        redis_client.set(key_,k)
     return downloadUrl,play_url
 
 
@@ -254,27 +254,27 @@ def file_ico(item):
 
 def _remote_content(fileid,user):
     kc='{}:content'.format(fileid)
-    if rd.exists(kc):
-        return rd.get(kc)
+    if redis_client.exists(kc):
+        return redis_client.get(kc)
     else:
         downloadUrl,play_url=GetDownloadUrl(fileid,user)
         if downloadUrl:
             r=requests.get(downloadUrl)
             # r.encoding='utf-8'
             content=r.text
-            rd.set(kc,content)
+            redis_client.set(kc,content)
             return content
         else:
             return False
 
 # @cache.memoize(timeout=60)
 def has_item(path,name):
-    if items.count()==0:
+    if mongo.db.items.count()==0:
         return False,False,False
     key='has_item$#$#$#$#{}$#$#$#$#{}'.format(path,name)
     print('get key:{}'.format(key))
-    if rd.exists(key):
-        values=rd.get(key)
+    if redis_client.exists(key):
+        values=redis_client.get(key)
         item,fid,cur=values.split('########')
         if item=='False':
             item=False
@@ -295,32 +295,32 @@ def has_item(path,name):
         try:
             user,n_path=path.split(':')
             if n_path=='/':
-                if items.find_one({'grandid':0,'name':name,'user':user}):
-                    fid=items.find_one({'grandid':0,'name':name,'user':user})['id']
+                if mongo.db.items.find_one({'grandid':0,'name':name,'user':user}):
+                    fid=mongo.db.items.find_one({'grandid':0,'name':name,'user':user})['id']
                     item=_remote_content(fid,user).strip()
             else:
                 route=n_path[1:].split('/')
                 if name=='.password':
                     for idx,r in enumerate(route):
                         p=user+':/'+'/'.join(route[:idx+1])
-                        f=items.find_one({'path':p})
+                        f=mongo.db.items.find_one({'path':p})
                         pid=f['id']
-                        data=items.find_one({'name':name,'parent':pid})
+                        data=mongo.db.items.find_one({'name':name,'parent':pid})
                         if data:
                             fid=data['id']
                             item=_remote_content(fid,user).strip()
                             if idx==len(route)-1:
                                 cur=True
                 else:
-                    f=items.find_one({'path':path})
+                    f=mongo.db.items.find_one({'path':path})
                     pid=f['id']
-                    data=items.find_one({'name':name,'parent':pid})
+                    data=mongo.db.items.find_one({'name':name,'parent':pid})
                     if data:
                         fid=data['id']
                         item=_remote_content(fid,user).strip()
         except:
             item=False
-        rd.set(key,'{}########{}########{}'.format(item,fid,cur))
+        redis_client.set(key,'{}########{}########{}'.format(item,fid,cur))
         return item,fid,cur
 
 
@@ -373,12 +373,12 @@ def get_od_user():
     with open(config_path,'r') as f:
         text=f.read()
     key='users'
-    if rd.exists(key):
-        users=json.loads(rd.get(key))
+    if redis_client.exists(key):
+        users=json.loads(redis_client.get(key))
     else:
         value=re.findall('od_users=([\w\W]*})',text)[0]
         users=json.loads(value)
-        rd.set(key,value)
+        redis_client.set(key,value)
     ret=[]
     for user,value in users.items():
         if value.get('client_id')!='':

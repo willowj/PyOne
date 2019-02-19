@@ -3,6 +3,7 @@ from flask import render_template,redirect,abort,make_response,jsonify,request,u
 from flask_sqlalchemy import Pagination
 from self_config import *
 from ..utils import *
+from ..extend import *
 from .. import *
 from . import admin
 import os
@@ -112,18 +113,18 @@ def setting():
         set('encrypt_file',encrypt_file)
         set('password',new_password)
         # reload()
-        rd.set('title',title)
-        rd.set('title_pre',title_pre)
-        rd.set('theme',theme)
-        rd.set('downloadUrl_timeout',downloadUrl_timeout)
-        rd.set('allow_site',','.join(allow_site.split(',')))
-        rd.set('ARIA2_HOST',ARIA2_HOST)
-        rd.set('ARIA2_PORT',ARIA2_PORT)
-        rd.set('ARIA2_SECRET',ARIA2_SECRET)
-        rd.set('ARIA2_SCHEME',ARIA2_SCHEME)
-        rd.set('show_secret',show_secret)
-        rd.set('encrypt_file',encrypt_file)
-        rd.set('password',new_password)
+        redis_client.set('title',title)
+        redis_client.set('title_pre',title_pre)
+        redis_client.set('theme',theme)
+        redis_client.set('downloadUrl_timeout',downloadUrl_timeout)
+        redis_client.set('allow_site',','.join(allow_site.split(',')))
+        redis_client.set('ARIA2_HOST',ARIA2_HOST)
+        redis_client.set('ARIA2_PORT',ARIA2_PORT)
+        redis_client.set('ARIA2_SECRET',ARIA2_SECRET)
+        redis_client.set('ARIA2_SCHEME',ARIA2_SCHEME)
+        redis_client.set('show_secret',show_secret)
+        redis_client.set('encrypt_file',encrypt_file)
+        redis_client.set('password',new_password)
         flash('更新成功')
         resp=make_response(render_template('admin/setting/setting.html'))
         resp.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
@@ -150,10 +151,10 @@ def setCode():
         set('footCode',footCode)
         set('cssCode',cssCode)
         # reload()
-        rd.set('tj_code',tj_code)
-        rd.set('headCode',headCode)
-        rd.set('footCode',footCode)
-        rd.set('cssCode',cssCode)
+        redis_client.set('tj_code',tj_code)
+        redis_client.set('headCode',headCode)
+        redis_client.set('footCode',footCode)
+        redis_client.set('cssCode',cssCode)
         flash('更新成功')
         resp=make_response(render_template('admin/setCode/setCode.html'))
         resp.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
@@ -261,8 +262,8 @@ def edit():
             if data.get('id'):
                 info['status']=0
                 info['msg']='修改成功'
-                rd.delete('{}:content'.format(fileid))
-                file=items.find_one({'id':fileid})
+                redis_client.delete('{}:content'.format(fileid))
+                file=mongo.db.items.find_one({'id':fileid})
                 name=file['name']
                 path=file['path'].replace(name,'',1)
                 if len(path.split('/'))>2 and path.split('/')[-1]=='':
@@ -274,7 +275,7 @@ def edit():
                 # path='{}:{}'.format(user,path)
                 key='has_item$#$#$#$#{}$#$#$#$#{}'.format(path,name)
                 print('edit key:{}'.format(key))
-                rd.delete(key)
+                redis_client.delete(key)
             else:
                 info['status']=0
                 info['msg']=data.get('error').get('message')
@@ -408,7 +409,7 @@ def setFile(filename=None):
             info['msg']='添加成功'
             key='has_item$#$#$#$#{}$#$#$#$#{}'.format(path,filename)
             print('set key:{}'.format(key))
-            rd.delete(key)
+            redis_client.delete(key)
         else:
             info['status']=0
             info['msg']=data.get('error').get('message')
@@ -436,16 +437,16 @@ def delete():
     infos['fail']=0
     for id in ids:
         print 'delete {}'.format(id)
-        file=items.find_one({'id':id})
+        file=mongo.db.items.find_one({'id':id})
         name=file['name']
         path=file['path'].replace(name,'')
         if len(path.split('/'))>2 and path.split('/')[-1]=='':
             path=path[:-1]
         key='has_item$#$#$#$#{}$#$#$#$#{}'.format(path,name)
         print('delete key:{}'.format(key))
-        rd.delete(key)
+        redis_client.delete(key)
         kc='{}:content'.format(id)
-        rd.delete(kc)
+        redis_client.delete(kc)
         status=DeleteRemoteFile(id,user)
         if status:
             infos['delete']+=1
@@ -539,7 +540,7 @@ def RPCserver():
 
 @admin.route('/clearHist',methods=['POST'])
 def clearHist():
-    down_db.delete_many({})
+    mongo.db.down_db.delete_many({})
     ret={'msg':'清除成功！'}
     return jsonify(ret)
 
@@ -583,7 +584,7 @@ def logout():
 
 @admin.route('/reload',methods=['GET','POST'])
 def reload():
-    cmd='supervisorctl -c {} restart pyone'.format(os.path.join(config_dir,'supervisord.conf'))
+    cmd='supervisorctl -c {} restart pyone'.format(os.path.join(config_dir,'supervisoredis_client.conf'))
     subprocess.Popen(cmd,shell=True)
     flash('正在重启网站...如果更改了分享目录，请更新缓存')
     return redirect(url_for('admin.setting'))
@@ -623,7 +624,7 @@ def install():
                 config_path=os.path.join(config_dir,'self_config.py')
                 with open(config_path,'r') as f:
                     text=f.read()
-                rd.set('users',re.findall('od_users=([\w\W]*})',text)[0])
+                redis_client.set('users',re.findall('od_users=([\w\W]*})',text)[0])
                 return make_response('<h1>授权成功!<br>请先在<B><a href="/admin/cache" target="_blank">后台-更新列表</a></B>，全量更新数据<br>然后<a href="/?t={}">点击进入首页</a></h1><br>'.format(time.time()))
             else:
                 return jsonify(Atoken)
@@ -640,11 +641,11 @@ def install():
 def uninstall():
     type_=request.form.get('type')
     if type_=='mongodb':
-        items.remove()
-        down_db.remove()
+        mongo.db.items.remove()
+        mongo.db.down_db.remove()
         msg='删除mongodb数据成功'
     elif type_=='redis':
-        rd.flushdb()
+        redis_client.flushdb()
         msg='删除redis数据成功'
     elif type_=='directory':
         subprocess.Popen('rm -rf {}/data/*.json'.format(config_dir),shell=True)
@@ -672,7 +673,7 @@ def panage():
         config_path=os.path.join(config_dir,'self_config.py')
         with open(config_path,'r') as f:
             text=f.read()
-        rd.set('users',re.findall('od_users=([\w\W]*})',text)[0])
+        redis_client.set('users',re.findall('od_users=([\w\W]*})',text)[0])
         flash('更新成功')
         resp=make_response(render_template('admin/pan_manage/pan_manage.html'))
         resp.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
@@ -709,7 +710,7 @@ def add_pan():
             f.write(new_text)
         flash('添加盘符[{}]成功'.format(pan))
         key='users'
-        rd.delete(key)
+        redis_client.delete(key)
         return render_template('admin/pan_manage/add_pan.html')
     return render_template('admin/pan_manage/add_pan.html')
 
@@ -728,8 +729,8 @@ def rm_pan():
             new_text=old_text.replace(old_od,new_od,1)
             f.write(new_text)
         key='users'
-        rd.delete(key)
-        items.delete_many({'user':pan})
+        redis_client.delete(key)
+        mongo.db.items.delete_many({'user':pan})
         data=dict(msg='删除盘符[{}]成功'.format(pan),status=1)
         return jsonify(data)
     return render_template('admin/pan_manage/rm_pan.html')

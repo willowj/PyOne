@@ -21,18 +21,10 @@ import signal
 from dateutil.parser import parse
 from Queue import Queue
 from threading import Thread,Event
-from redis import Redis
 from pymongo import MongoClient,ASCENDING,DESCENDING
 from self_config import *
 from aria2 import PyAria2
-from ..extend import cache
-
-######mongodb
-client = MongoClient('localhost',27017)
-db=client.three
-items=db.items
-down_db=db.down_db
-rd=Redis(host='localhost',port=6379)
+from ..extend import *
 
 #######授权链接
 LoginUrl=BaseAuthUrl+'/common/oauth2/v2.0/authorize?response_type=code\
@@ -62,32 +54,32 @@ def get_value(key,user='A'):
 
 def GetName(id):
     key='name:{}'.format(id)
-    if rd.exists(key):
-        return rd.get(key)
+    if redis_client.exists(key):
+        return redis_client.get(key)
     else:
-        item=items.find_one({'id':id})
-        rd.set(key,item['name'])
+        item=mongo.db.items.find_one({'id':id})
+        redis_client.set(key,item['name'])
         return item['name']
 
 def GetPath(id):
     key='path:{}'.format(id)
-    if rd.exists(key):
-        return rd.get(key)
+    if redis_client.exists(key):
+        return redis_client.get(key)
     else:
-        item=items.find_one({'id':id})
-        rd.set(key,item['path'])
+        item=mongo.db.items.find_one({'id':id})
+        redis_client.set(key,item['path'])
         return item['path']
 
 def GetConfig(key):
     if key=='allow_site':
-        value=rd.get('allow_site') if rd.exists('allow_site') else ','.join(allow_site)
+        value=redis_client.get('allow_site') if redis_client.exists('allow_site') else ','.join(allow_site)
     else:
-        value=rd.get(key) if rd.exists(key) else eval(key)
+        value=redis_client.get(key) if redis_client.exists(key) else eval(key)
     #这里是为了储存
     if key=='od_users' and isinstance(value,dict):
         value=json.dumps(value)
-    if not rd.exists(key):
-        rd.set(key,value)
+    if not redis_client.exists(key):
+        redis_client.set(key,value)
     #这里是为了转为字典
     if key=='od_users':
         value=json.loads(value)
@@ -176,7 +168,7 @@ def CheckTimeOut(fileid):
     token=GetToken()
     headers={'Authorization':'bearer {}'.format(token),'Content-Type':'application/json'}
     headers.update(default_headers)
-    url=app_url+'v1.0/me/drive/items/'+fileid
+    url=app_url+'v1.0/me/drive/mongo.db.items/'+fileid
     r=requests.get(url,headers=headers)
     data=json.loads(r.content)
     if data.get('@microsoft.graph.downloadUrl'):
@@ -190,7 +182,7 @@ def CheckTimeOut(fileid):
 
 def RemoveRepeatFile():
     """
-    db.items.aggregate([
+    db.mongo.db.items.aggregate([
         {
             $group:{_id:{id:'$id'},count:{$sum:1},dups:{$addToSet:'$_id'}}
         },
@@ -201,11 +193,11 @@ def RemoveRepeatFile():
         ]).forEach(function(it){
 
              it.dups.shift();
-            db.items.remove({_id: {$in: it.dups}});
+            db.mongo.db.items.remove({_id: {$in: it.dups}});
 
         });
     """
-    deleteData=items.aggregate([
+    deleteData=mongo.db.items.aggregate([
     {'$group': {
         '_id': { 'id': "$id"},
         'uniqueIds': { '$addToSet': "$_id" },
@@ -221,7 +213,7 @@ def RemoveRepeatFile():
             first=True
             for did in d['uniqueIds']:
                 if not first:
-                    items.delete_one({'_id':did});
+                    mongo.db.items.delete_one({'_id':did});
                 first=False
     except Exception as e:
         print(e)
@@ -301,7 +293,7 @@ def AddResource(data,user='A'):
             parent_path='/'
             pid=''
             for idx,p in enumerate(grand_path.split('/')):
-                parent=items.find_one({'name':p,'grandid':idx,'parent':pid})
+                parent=mongo.db.items.find_one({'name':p,'grandid':idx,'parent':pid})
                 if parent is not None:
                     pid=parent['id']
                     parent_path='/'.join([parent_path,parent['name']])
@@ -322,7 +314,7 @@ def AddResource(data,user='A'):
                     item['grandid']=idx
                     item['parent']=pid
                     item['path']=path
-                    items.insert_one(item)
+                    mongo.db.items.insert_one(item)
                     pid=fdata.get('id')
     #插入数据
     item={}
@@ -349,20 +341,20 @@ def AddResource(data,user='A'):
         item['order']=3
         # key1='name:{}'.format(data['id'])
         # key2='path:{}'.format(data['id'])
-        # rd.set(key1,data['name'])
-        # rd.set(key2,path)
+        # redis_client.set(key1,data['name'])
+        # redis_client.set(key2,path)
     elif data['name']=='.password':
         item['order']=1
     else:
         item['order']=2
-    items.insert_one(item)
+    mongo.db.items.insert_one(item)
 
 def CheckTimeOut(fileid):
     app_url=GetAppUrl()
     token=GetToken()
     headers={'Authorization':'bearer {}'.format(token),'Content-Type':'application/json'}
     headers.update(default_headers)
-    url=app_url+'v1.0/me/drive/items/'+fileid
+    url=app_url+'v1.0/me/drive/mongo.db.items/'+fileid
     r=requests.get(url,headers=headers)
     data=json.loads(r.content)
     if data.get('@microsoft.graph.downloadUrl'):
@@ -430,12 +422,12 @@ class GetItemThread(Thread):
                 for value in values:
                     item={}
                     if value.get('folder'):
-                        folder=items.find_one({'id':value['id']})
+                        folder=mongo.db.items.find_one({'id':value['id']})
                         if folder is not None:
                             if folder['size_order']==value['size']: #文件夹大小未变化，不更新
                                 print(u'path:{},origin size:{},current size:{}--------no change'.format(value['name'],folder['size_order'],value['size']))
                             else:
-                                items.delete_one({'id':value['id']})
+                                mongo.db.items.delete_one({'id':value['id']})
                                 item['type']='folder'
                                 item['user']=self.user
                                 item['order']=0
@@ -457,7 +449,7 @@ class GetItemThread(Thread):
                                     path=convert2unicode(value['name'])
                                 path=urllib.unquote('{}:/{}'.format(self.user,path))
                                 item['path']=path
-                                subfodler=items.insert_one(item)
+                                subfodler=mongo.db.items.insert_one(item)
                                 if value.get('folder').get('childCount')==0:
                                     continue
                                 else:
@@ -466,7 +458,7 @@ class GetItemThread(Thread):
                                     url=app_url+'v1.0/me/drive/root:{}:/children?expand=thumbnails'.format(path)
                                     self.queue.put(dict(url=url,grandid=grandid+1,parent=item['id'],trytime=1))
                         else:
-                            items.delete_one({'id':value['id']})
+                            mongo.db.items.delete_one({'id':value['id']})
                             item['type']='folder'
                             item['user']=self.user
                             item['order']=0
@@ -488,7 +480,7 @@ class GetItemThread(Thread):
                                 path=convert2unicode(value['name'])
                             path=urllib.unquote('{}:/{}'.format(self.user,path))
                             item['path']=path
-                            subfodler=items.insert_one(item)
+                            subfodler=mongo.db.items.insert_one(item)
                             if value.get('folder').get('childCount')==0:
                                 continue
                             else:
@@ -497,7 +489,7 @@ class GetItemThread(Thread):
                                 url=app_url+'v1.0/me/drive/root:{}:/children?expand=thumbnails'.format(path)
                                 self.queue.put(dict(url=url,grandid=grandid+1,parent=item['id'],trytime=1))
                     else:
-                        if items.find_one({'id':value['id']}) is not None: #文件存在
+                        if mongo.db.items.find_one({'id':value['id']}) is not None: #文件存在
                             continue
                         else:
                             item['type']=GetExt(value['name'])
@@ -524,13 +516,13 @@ class GetItemThread(Thread):
                                 item['order']=3
                                 key1='name:{}'.format(value['id'])
                                 key2='path:{}'.format(value['id'])
-                                rd.set(key1,value['name'])
-                                rd.set(key2,path)
+                                redis_client.set(key1,value['name'])
+                                redis_client.set(key2,path)
                             elif value['name']=='.password':
                                 item['order']=1
                             else:
                                 item['order']=2
-                            items.insert_one(item)
+                            mongo.db.items.insert_one(item)
             else:
                 print('{}\'s size is zero'.format(url))
             if data.get('@odata.nextLink'):
@@ -570,7 +562,7 @@ def clearRedis():
     key_lists=['path:*','name:*','*has_item*','*root*']
     for k in key_lists:
         try:
-            rd.delete(*rd.keys(k))
+            redis_client.delete(*redis_client.keys(k))
         except:
             print('empty keys {}'.format(k))
 

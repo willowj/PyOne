@@ -3,7 +3,7 @@ from header import *
 
 ########################删除文件
 def DeleteLocalFile(fileid):
-    items.remove({'id':fileid})
+    mongo.db.items.remove({'id':fileid})
 
 def DeleteRemoteFile(fileid,user='A'):
     app_url=GetAppUrl()
@@ -29,7 +29,7 @@ def CreateFolder(folder_name,grand_path,user='A'):
         grandid=0
     else:
         path='{}:/{}'.format(user,grand_path)
-        parent=items.find_one({'path':path})
+        parent=mongo.db.mongo.db.items.find_one({'path':path})
         parent_id=parent['id']
         grandid=parent['grandid']+1
         url=app_url+'v1.0/me/drive/items/{}/children'.format(parent['id'])
@@ -64,7 +64,7 @@ def CreateFolder(folder_name,grand_path,user='A'):
         path='{}:{}'.format(user,path)
         item['path']=path
         item['order']=0
-        items.insert_one(item)
+        mongo.db.items.insert_one(item)
         return True
     else:
         print(data.get('error').get('msg'))
@@ -82,7 +82,7 @@ def MoveFile(fileid,new_folder_path,user='A'):
     else:
         path='{}:/{}'.format(user,new_folder_path)
         print path
-        parent_item=items.find_one({'path':path})
+        parent_item=mongo.db.items.find_one({'path':path})
         folder_id=parent_item['id']
         parent=parent_item['id']
         grandid=parent_item['grandid']+1
@@ -100,15 +100,15 @@ def MoveFile(fileid,new_folder_path,user='A'):
     data=json.loads(r.content)
     if data.get('id'):
         new_value={'parent':parent,'grandid':grandid,'path':path}
-        items.find_one_and_update({'id':fileid},{'$set':new_value})
-        file=items.find_one({'id':fileid})
+        mongo.db.items.find_one_and_update({'id':fileid},{'$set':new_value})
+        file=mongo.db.items.find_one({'id':fileid})
         filename=file['name']
         if file['parent']=='':
             path='/'
         else:
-            path=items.find_one({'id':file['parent']})['path']
+            path=mongo.db.items.find_one({'id':file['parent']})['path']
         key='has_item$#$#$#$#{}$#$#$#$#{}'.format(path,filename)
-        rd.delete(key)
+        redis_client.delete(key)
         return True
     else:
         print(data.get('error').get('msg'))
@@ -126,21 +126,21 @@ def ReName(fileid,new_name,user='A'):
     r=requests.patch(url,headers=headers,data=json.dumps(payload))
     data=json.loads(r.content)
     if data.get('id'):
-        it=items.find_one({'id':fileid})
+        it=mongo.db.items.find_one({'id':fileid})
         old_name=it['name']
         path=it['path'].replace(old_name,new_name,1)
         new_value={'path':path,'name':new_name}
-        items.find_one_and_update({'id':fileid},{'$set':new_value})
+        mongo.db.items.find_one_and_update({'id':fileid},{'$set':new_value})
         key='path:{}'.format(fileid)
-        rd.delete(key)
+        redis_client.delete(key)
         key='name:{}'.format(fileid)
-        rd.delete(key)
+        redis_client.delete(key)
         if it['type']=='folder':
-            files=items.find({'parent':it['id']})
+            files=mongo.db.items.find({'parent':it['id']})
             for file in files:
                 new_path=file['path'].replace(old_name,new_name,1)
                 new_value={'path':new_path}
-                items.find_one_and_update({'id':file['id']},{'$set':new_value})
+                mongo.db.items.find_one_and_update({'id':file['id']},{'$set':new_value})
         return True
     else:
         print(data.get('error').get('msg'))
