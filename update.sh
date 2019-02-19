@@ -39,6 +39,7 @@ upgrade(){
     fi
 
     pip install -r requirements.txt
+    yum install lsof
 }
 
 
@@ -71,6 +72,7 @@ restart
 echo "---------------------------------------------------------------"
 echo "更新完成！"
 echo "如果网站无法访问，请检查config.py!"
+echo "如果一直提示mongodb或者redis未运行，请自行安装lsof"
 echo "---------------------------------------------------------------"
 echo
 echo "PyOne交流群：864996565"
