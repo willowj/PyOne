@@ -607,7 +607,8 @@ def install():
             client_id=request.form.get('client_id')
             code=request.form.get('code')
             #授权
-            headers['Content-Type']='application/x-www-form-urlencoded'
+            headers={'Content-Type':'application/x-www-form-urlencoded'}
+            headers.update(default_headers)
             data=AuthData.format(client_id=client_id,redirect_uri=urllib.quote(redirect_uri),client_secret=client_secret,code=code)
             url=OAuthUrl
             r=requests.post(url,data=data,headers=headers)
