@@ -3,7 +3,7 @@ from header import *
 
 ########################删除文件
 def DeleteLocalFile(fileid):
-    mongo.db.items.remove({'id':fileid})
+    mon_db.items.remove({'id':fileid})
 
 def DeleteRemoteFile(fileid,user='A'):
     app_url=GetAppUrl()
@@ -29,7 +29,7 @@ def CreateFolder(folder_name,grand_path,user='A'):
         grandid=0
     else:
         path='{}:/{}'.format(user,grand_path)
-        parent=mongo.db.mongo.db.items.find_one({'path':path})
+        parent=mon_db.items.find_one({'path':path})
         parent_id=parent['id']
         grandid=parent['grandid']+1
         url=app_url+'v1.0/me/drive/items/{}/children'.format(parent['id'])
@@ -64,11 +64,72 @@ def CreateFolder(folder_name,grand_path,user='A'):
         path='{}:{}'.format(user,path)
         item['path']=path
         item['order']=0
-        mongo.db.items.insert_one(item)
+        mon_db.items.insert_one(item)
         return True
     else:
         print(data.get('error').get('msg'))
         return False
+
+def CreateFile(filename,path,content,user='A'):
+    token=GetToken(user=user)
+    app_url=GetAppUrl()
+    if not path.startswith('/'):
+        path='/'+path
+    share_path=od_users.get(user).get('share_path')
+    if share_path!='/':
+        remote_file=os.path.join(os.path.join(share_path,path[1:]),filename)
+    else:
+        remote_file=os.path.join(path,filename)
+    print(u'remote path:{}'.format(remote_file))
+    info={}
+    headers={'Authorization':'bearer {}'.format(token)}
+    headers.update(default_headers)
+    url=app_url+'v1.0/me/drive/items/root:{}:/content'.format(remote_file)
+    r=requests.put(url,headers=headers,data=content,timeout=10)
+    data=json.loads(r.content)
+    if data.get('id'):
+        AddResource(data,user)
+        info['status']=0
+        info['msg']='添加成功'
+        key='has_item$#$#$#$#{}:{}$#$#$#$#{}'.format(user,path,filename)
+        print('set key:{}'.format(key))
+        redis_client.delete(key)
+    else:
+        info['status']=0
+        info['msg']=data.get('error').get('message')
+    return info
+
+def EditFile(fileid,content,user='A'):
+    token=GetToken(user=user)
+    app_url=GetAppUrl()
+    info={}
+    headers={'Authorization':'bearer {}'.format(token)}
+    headers.update(default_headers)
+    url=app_url+'v1.0/me/drive/items/{}/content'.format(fileid)
+    try:
+        r=requests.put(url,headers=headers,data=content,timeout=10)
+        data=json.loads(r.content)
+        if data.get('id'):
+            info['status']=0
+            info['msg']='修改成功'
+            redis_client.delete('{}:content'.format(fileid))
+            file=mon_db.items.find_one({'id':fileid})
+            name=file['name']
+            path=file['path'].replace(name,'',1)
+            if len(path.split('/'))>2 and path.split('/')[-1]=='':
+                path=path[:-1]
+            key='has_item$#$#$#$#{}$#$#$#$#{}'.format(path,name)
+            print('edit key:{}'.format(key))
+            redis_client.delete(key)
+        else:
+            info['status']=0
+            info['msg']=data.get('error').get('message')
+    except Exception as e:
+        print e
+        info['status']=0
+        info['msg']='修改超时'
+    return info
+
 
 def MoveFile(fileid,new_folder_path,user='A'):
     app_url=GetAppUrl()
@@ -82,7 +143,7 @@ def MoveFile(fileid,new_folder_path,user='A'):
     else:
         path='{}:/{}'.format(user,new_folder_path)
         print path
-        parent_item=mongo.db.items.find_one({'path':path})
+        parent_item=mon_db.items.find_one({'path':path})
         folder_id=parent_item['id']
         parent=parent_item['id']
         grandid=parent_item['grandid']+1
@@ -100,13 +161,13 @@ def MoveFile(fileid,new_folder_path,user='A'):
     data=json.loads(r.content)
     if data.get('id'):
         new_value={'parent':parent,'grandid':grandid,'path':path}
-        mongo.db.items.find_one_and_update({'id':fileid},{'$set':new_value})
-        file=mongo.db.items.find_one({'id':fileid})
+        mon_db.items.find_one_and_update({'id':fileid},{'$set':new_value})
+        file=mon_db.items.find_one({'id':fileid})
         filename=file['name']
         if file['parent']=='':
             path='/'
         else:
-            path=mongo.db.items.find_one({'id':file['parent']})['path']
+            path=mon_db.items.find_one({'id':file['parent']})['path']
         key='has_item$#$#$#$#{}$#$#$#$#{}'.format(path,filename)
         redis_client.delete(key)
         return True
@@ -126,21 +187,21 @@ def ReName(fileid,new_name,user='A'):
     r=requests.patch(url,headers=headers,data=json.dumps(payload))
     data=json.loads(r.content)
     if data.get('id'):
-        it=mongo.db.items.find_one({'id':fileid})
+        it=mon_db.items.find_one({'id':fileid})
         old_name=it['name']
         path=it['path'].replace(old_name,new_name,1)
         new_value={'path':path,'name':new_name}
-        mongo.db.items.find_one_and_update({'id':fileid},{'$set':new_value})
+        mon_db.items.find_one_and_update({'id':fileid},{'$set':new_value})
         key='path:{}'.format(fileid)
         redis_client.delete(key)
         key='name:{}'.format(fileid)
         redis_client.delete(key)
         if it['type']=='folder':
-            files=mongo.db.items.find({'parent':it['id']})
+            files=mon_db.items.find({'parent':it['id']})
             for file in files:
                 new_path=file['path'].replace(old_name,new_name,1)
                 new_value={'path':new_path}
-                mongo.db.items.find_one_and_update({'id':file['id']},{'$set':new_value})
+                mon_db.items.find_one_and_update({'id':file['id']},{'$set':new_value})
         return True
     else:
         print(data.get('error').get('msg'))

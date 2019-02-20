@@ -7,14 +7,14 @@ def download_and_upload(url,remote_dir,user,gid=None):
     down_path=os.path.join(config_dir,'upload')
     #重新下载
     if gid is not None:
-        task=mongo.db.down_db.find_one({'gid':gid})
+        task=mon_db.down_db.find_one({'gid':gid})
         if task is None:
             return False
         if task['up_status']!='100.0%':
             new_value={}
             new_value['up_status']=u'待机'
             new_value['status']=1
-            mongo.db.down_db.update_many({'gid':gid},{'$set':new_value})
+            mon_db.down_db.update_many({'gid':gid},{'$set':new_value})
     else:
         if not url.lower().startswith('http') and not url.lower().startswith('magnet'):
             item={}
@@ -32,9 +32,9 @@ def download_and_upload(url,remote_dir,user,gid=None):
             item['down_status']='-'
             item['up_status']='-'
             item['status']=-1
-            mongo.db.down_db.insert_one(item)
+            mon_db.down_db.insert_one(item)
             return
-        cur_order=mongo.db.down_db.count()
+        cur_order=mon_db.down_db.count()
         option={"dir":down_path,"split":"16","max-connection-per-server":"8","seed-ratio":"0.1","bt-save-metadata":"false","bt-max-peers":"200","header":["User-Agent:Transmission/2.77"]}
         item={}
         r=p.addUri(url,option)
@@ -61,7 +61,7 @@ def download_and_upload(url,remote_dir,user,gid=None):
         item['down_status']=u'{}%'.format(round(float(a['completedLength'])/(float(a['totalLength'])+0.1)*100,0))
         item['up_status']=u'待机'
         item['status']=1
-        mongo.db.down_db.insert_one(item)
+        mon_db.down_db.insert_one(item)
     while 1:
         a=json.loads(p.tellStatus(gid))[0]["result"]
         if a.get('followedBy'):
@@ -69,8 +69,8 @@ def download_and_upload(url,remote_dir,user,gid=None):
             old_status['status']=0
             old_status['down_status']='100.0%'
             old_status['up_status']=u'磁力文件，无需上传'
-            mongo.db.down_db.find_one_and_update({'gid':gid},{'$set':old_status})
-            magnet=re.findall('magnet:\?xt=urn:btih:(.{,40})',mongo.db.down_db.find_one({'gid':gid})['downloadUrl'])[0].lower()+'.torrent'
+            mon_db.down_db.find_one_and_update({'gid':gid},{'$set':old_status})
+            magnet=re.findall('magnet:\?xt=urn:btih:(.{,40})',mon_db.down_db.find_one({'gid':gid})['downloadUrl'])[0].lower()+'.torrent'
             old_path=os.path.join(down_path,magnet)
             try:
                 os.remove(old_path)
@@ -95,16 +95,16 @@ def download_and_upload(url,remote_dir,user,gid=None):
                 new_item['down_status']=u'{}%'.format(round(float(file['completedLength'])/(float(file['length'])+0.1)*100,0))
                 new_item['up_status']=u'待机'
                 new_item['status']=1
-                mongo.db.down_db.insert_one(new_item)
+                mon_db.down_db.insert_one(new_item)
             a=json.loads(p.tellStatus(gid))[0]["result"]
         total=len(a['files'])
         complete=0
         for idx,file in enumerate(a['files']):
-            t=mongo.db.down_db.find_one({'gid':gid,'idx':idx})
+            t=mon_db.down_db.find_one({'gid':gid,'idx':idx})
             if t['down_status']=='100.0%':
                 if t['up_status']=='待机':
                     new_value['up_status']=u'准备上传'
-                    mongo.db.down_db.find_one_and_update({'gid':gid,'idx':idx},{'$set':new_value})
+                    mon_db.down_db.find_one_and_update({'gid':gid,'idx':idx},{'$set':new_value})
                     upload_status(gid,idx,remote_dir,user)
                 elif t['up_status']=='上传成功！':
                     complete+=1
@@ -121,20 +121,20 @@ def download_and_upload(url,remote_dir,user,gid=None):
             new_value['localpath']=file['path']
             if a['status']=='complete' or (file['completedLength']==file['length'] and int(file['length'])!=0):
                 new_value['up_status']=u'准备上传'
-                mongo.db.down_db.find_one_and_update({'gid':gid,'idx':idx},{'$set':new_value})
+                mon_db.down_db.find_one_and_update({'gid':gid,'idx':idx},{'$set':new_value})
                 upload_status(gid,idx,remote_dir,user)
                 complete+=1
             elif a['status']=='active' or a['status']=='waiting':
                 time.sleep(1)
-                mongo.db.down_db.find_one_and_update({'gid':gid,'idx':idx},{'$set':new_value})
+                mon_db.down_db.find_one_and_update({'gid':gid,'idx':idx},{'$set':new_value})
             elif a['status']=='paused':
                 new_value['down_status']=u'暂停下载'
-                mongo.db.down_db.find_one_and_update({'gid':gid,'idx':idx},{'$set':new_value})
+                mon_db.down_db.find_one_and_update({'gid':gid,'idx':idx},{'$set':new_value})
             else:
                 print('下载出错')
                 new_value['down_status']=u'下载出错'
                 new_value['status']=-1
-                mongo.db.down_db.find_one_and_update({'gid':gid,'idx':idx},{'$set':new_value})
+                mon_db.down_db.find_one_and_update({'gid':gid,'idx':idx},{'$set':new_value})
                 complete+=1
         # time.sleep(2)
         if complete==total:
@@ -142,16 +142,16 @@ def download_and_upload(url,remote_dir,user,gid=None):
             break
 
 def upload_status(gid,idx,remote_dir,user):
-    item=mongo.db.down_db.find_one({'gid':gid,'idx':idx})
+    item=mon_db.down_db.find_one({'gid':gid,'idx':idx})
     localpath=item['localpath']
     if not remote_dir.endswith('/'):
         remote_dir=remote_dir+'/'
     remote_path=os.path.join(remote_dir,item['name'])
-    if not os.path.exists(localpath) and mongo.db.down_db.find_one({'_id':item['_id']})['status']!=0:
+    if not os.path.exists(localpath) and mon_db.down_db.find_one({'_id':item['_id']})['status']!=0:
         new_value={}
         new_value['up_status']=u'本地文件不存在。检查：{}'.format(localpath)
         new_value['status']=-1
-        mongo.db.down_db.find_one_and_update({'_id':item['_id']},{'$set':new_value})
+        mon_db.down_db.find_one_and_update({'_id':item['_id']},{'$set':new_value})
         return
     _upload_session=Upload_for_server(localpath,remote_path,user)
     while 1:
@@ -180,26 +180,26 @@ def upload_status(gid,idx,remote_dir,user):
             elif 'partition upload fail' in msg:
                 new_value['up_status']='上传失败，已经超过重试次数'
                 new_value['status']=-1
-                mongo.db.down_db.find_one_and_update({'_id':item['_id']},{'$set':new_value})
+                mon_db.down_db.find_one_and_update({'_id':item['_id']},{'$set':new_value})
                 break
             elif 'file exists' in msg:
                 new_value['up_status']='远程文件已存在'
                 new_value['status']=-1
-                mongo.db.down_db.find_one_and_update({'_id':item['_id']},{'$set':new_value})
+                mon_db.down_db.find_one_and_update({'_id':item['_id']},{'$set':new_value})
                 break
             elif 'create upload session fail' in msg:
                 new_value['up_status']='创建实例失败！'
                 new_value['status']=-1
-                mongo.db.down_db.find_one_and_update({'_id':item['_id']},{'$set':new_value})
+                mon_db.down_db.find_one_and_update({'_id':item['_id']},{'$set':new_value})
                 break
             else:
                 new_value['up_status']='上传成功！'
                 new_value['status']=0
-                mongo.db.down_db.find_one_and_update({'_id':item['_id']},{'$set':new_value})
+                mon_db.down_db.find_one_and_update({'_id':item['_id']},{'$set':new_value})
                 time.sleep(2)
                 os.remove(localpath)
                 break
-            mongo.db.down_db.find_one_and_update({'_id':item['_id']},{'$set':new_value})
+            mon_db.down_db.find_one_and_update({'_id':item['_id']},{'$set':new_value})
         except Exception as e:
             print(e)
             break
@@ -207,7 +207,7 @@ def upload_status(gid,idx,remote_dir,user):
 
 
 def get_tasks(status):
-    tasks=mongo.db.down_db.find({'status':status})
+    tasks=mon_db.down_db.find({'status':status})
     #获取所有的gid
     gids=[]
     for t in tasks:
@@ -223,7 +223,7 @@ def get_tasks(status):
         info['files']=[]
         total_size=0
         complete=0
-        for file in mongo.db.down_db.find({'gid':gid}):
+        for file in mon_db.down_db.find({'gid':gid}):
             file_info={}
             total_size+=int(file['size'])
             try:
@@ -284,7 +284,7 @@ def Aria2Method(action,**kwargs):
             selected_dict.setdefault(gid,[]).append(idx+1)
         #之前本就选择下载的gid&idx放进字典
         for gid in selected_dict.keys():
-            tasks=mongo.db.down_db.find({'gid':gid,'selected':'true'})
+            tasks=mon_db.down_db.find({'gid':gid,'selected':'true'})
             for t in tasks:
                 selected_dict[gid].append(t['idx']+1)
         #重新处理可下载文件
@@ -301,7 +301,7 @@ def Aria2Method(action,**kwargs):
             result.append(info)
             for idx in idxs:
                 new_value={'selected':'true','down_status':'选择下载','status':1}
-                mongo.db.down_db.find_one_and_update({'gid':gid,'idx':int(idx)-1},{'$set':new_value})
+                mon_db.down_db.find_one_and_update({'gid':gid,'idx':int(idx)-1},{'$set':new_value})
         retdata['result']=result
         return retdata
     elif action=='unselected':
@@ -311,7 +311,7 @@ def Aria2Method(action,**kwargs):
         #先创建围表
         for gid in kwargs['gids']:
             gid,idx=gid.split('#')
-            nums=mongo.db.down_db.find({'gid':gid}).count()
+            nums=mon_db.down_db.find({'gid':gid}).count()
             if nums<=1:
                 result=[{'gid':gid,'msg':'当前磁力只有一个文件，无法选择'}]
                 retdata['result']=result
@@ -323,11 +323,11 @@ def Aria2Method(action,**kwargs):
             if r=='active':
                 p.forcePause(gid)
             new_value={'selected':'false','down_status':'选择不下载','status':2}
-            mongo.db.down_db.find_one_and_update({'gid':gid,'idx':idx},{'$set':new_value})
+            mon_db.down_db.find_one_and_update({'gid':gid,'idx':idx},{'$set':new_value})
             selected_dict.setdefault(gid,[])
         #之前本就选择下载的gid&idx放进字典
         for gid in selected_dict.keys():
-            tasks=mongo.db.down_db.find({'gid':gid,'selected':'true'})
+            tasks=mon_db.down_db.find({'gid':gid,'selected':'true'})
             for t in tasks:
                 selected_dict[gid].append(int(t['idx']+1))
         #选择不下载的gid&idx从字典移除
@@ -359,7 +359,7 @@ def DBMethod(action,**kwargs):
         result=[]
         for gid in kwargs['gids']:
             info={'gid':gid}
-            task=mongo.db.down_db.find_one({'gid':gid})
+            task=mon_db.down_db.find_one({'gid':gid})
             if task['down_status']=='100.0%':
                 info['msg']='文件下载完成！无法更改上传状态'
             elif task['down_status']=='下载出错':
@@ -370,7 +370,7 @@ def DBMethod(action,**kwargs):
                     new_value['down_status']='暂停下载'
                 else:
                     new_value['down_status']='开始下载'
-                mongo.db.down_db.update_many({'gid':gid},{'$set':new_value})
+                mon_db.down_db.update_many({'gid':gid},{'$set':new_value})
                 info['msg']='更改状态成功'
             result.append(info)
     elif action in ['remove']:
@@ -378,11 +378,11 @@ def DBMethod(action,**kwargs):
         for gid in kwargs['gids']:
             gid,idx=gid.split('#')
             info={'gid':gid,'idx':int(idx)}
-            task=mongo.db.down_db.find_one({'gid':gid,'idx':int(idx)})
+            task=mon_db.down_db.find_one({'gid':gid,'idx':int(idx)})
             if task['down_status']=='100.0%' and 'partition upload success' in task['up_status']:
                 info['msg']='正在上传的任务，无法更改状态'
             else:
-                mongo.db.down_db.remove(info)
+                mon_db.down_db.remove(info)
                 info['msg']='删除任务成功'
             try:
                 os.remove(task['localpath'])
@@ -394,11 +394,11 @@ def DBMethod(action,**kwargs):
         result=[]
         for gid in kwargs['gids']:
             info={'gid':gid}
-            task=mongo.db.down_db.find_one({'gid':gid})
+            task=mon_db.down_db.find_one({'gid':gid})
             if task['down_status']=='100.0%' and 'partition upload success' in task['up_status']:
                 info['msg']='正在上传的任务，无法更改状态'
             else:
-                mongo.db.down_db.delete_many(info)
+                mon_db.down_db.delete_many(info)
                 info['msg']='删除任务成功'
             try:
                 os.delete_many(task['localpath'])
@@ -411,9 +411,9 @@ def DBMethod(action,**kwargs):
         for gid in kwargs['gids']:
             info={'gid':gid}
             new_value={'status':1}
-            mongo.db.down_db.update_many({'gid':gid},{'$set':new_value})
+            mon_db.down_db.update_many({'gid':gid},{'$set':new_value})
             info['msg']='更改状态成功'
-            it=mongo.db.down_db.find_one({'gid':gid})
+            it=mon_db.down_db.find_one({'gid':gid})
             user=it['user']
             remote_dir=it['remote_dir']
             cmd=u'python {} download_and_upload "{}" "{}" {} {}'.format(os.path.join(config_dir,'function.py'),1,remote_dir,user,gid)

@@ -19,11 +19,11 @@ def GetTotal(path='A:/'):
     else:
         user,n_path=path.split(':')
         if n_path=='/':
-            total=mongo.db.items.find({'grandid':0}).count()
+            total=mon_db.items.find({'grandid':0}).count()
         else:
-            f=mongo.db.items.find_one({'path':path})
+            f=mon_db.items.find_one({'path':path})
             pid=f['id']
-            total=mongo.db.items.find({'parent':pid}).count()
+            total=mon_db.items.find({'parent':pid}).count()
         redis_client.set(key,total,300)
         return total
 
@@ -32,7 +32,7 @@ def GetTotal(path='A:/'):
 def FetchData(path='A:/',page=1,per_page=50,sortby='lastModtime',order='desc',dismiss=False,search_mode=False):
     if search_mode:
         show_secret=GetConfig('show_secret')
-        query=mongo.db.items.find({'name':re.compile(path)})
+        query=mon_db.items.find({'name':re.compile(path)})
         resp=[]
         data=query.limit(per_page).collation({"locale": "zh", 'numericOrdering':True})\
                 .sort([('order',ASCENDING)])\
@@ -73,7 +73,7 @@ def FetchData(path='A:/',page=1,per_page=50,sortby='lastModtime',order='desc',di
     try:
         user,n_path=path.split(':')
         if n_path=='/':
-            data=mongo.db.items.find({'grandid':0,'user':user}).collation({"locale": "zh", 'numericOrdering':True})\
+            data=mon_db.items.find({'grandid':0,'user':user}).collation({"locale": "zh", 'numericOrdering':True})\
                 .sort([('order',ASCENDING),(sortby,order)])\
                 .limit(per_page).skip((page-1)*per_page)
             for d in data:
@@ -91,11 +91,11 @@ def FetchData(path='A:/',page=1,per_page=50,sortby='lastModtime',order='desc',di
                     resp.append(item)
             total=GetTotal(path)
         else:
-            f=mongo.db.items.find_one({'path':path})
+            f=mon_db.items.find_one({'path':path})
             pid=f['id']
             if f['type']!='folder':
                 return f,'files'
-            data=mongo.db.items.find({'parent':pid}).collation({"locale": "zh", 'numericOrdering':True})\
+            data=mon_db.items.find({'parent':pid}).collation({"locale": "zh", 'numericOrdering':True})\
                 .sort([('order',ASCENDING),(sortby,order)])\
                 .limit(per_page).skip((page-1)*per_page)
             for d in data:
@@ -255,13 +255,18 @@ def file_ico(item):
 def _remote_content(fileid,user):
     kc='{}:content'.format(fileid)
     if redis_client.exists(kc):
-        return redis_client.get(kc)
+        content=unicode(redis_client.get(kc), errors='ignore')
+        return content
     else:
         downloadUrl,play_url=GetDownloadUrl(fileid,user)
         if downloadUrl:
             r=requests.get(downloadUrl)
             # r.encoding='utf-8'
-            content=r.text
+            if r.encoding=='ISO-8859-1':
+                content=r.content
+            else:
+                content=r.text
+            print(content)
             redis_client.set(kc,content)
             return content
         else:
@@ -269,7 +274,7 @@ def _remote_content(fileid,user):
 
 # @cache.memoize(timeout=60)
 def has_item(path,name):
-    if mongo.db.items.count()==0:
+    if mon_db.items.count()==0:
         return False,False,False
     key='has_item$#$#$#$#{}$#$#$#$#{}'.format(path,name)
     print('get key:{}'.format(key))
@@ -295,26 +300,26 @@ def has_item(path,name):
         try:
             user,n_path=path.split(':')
             if n_path=='/':
-                if mongo.db.items.find_one({'grandid':0,'name':name,'user':user}):
-                    fid=mongo.db.items.find_one({'grandid':0,'name':name,'user':user})['id']
+                if mon_db.items.find_one({'grandid':0,'name':name,'user':user}):
+                    fid=mon_db.items.find_one({'grandid':0,'name':name,'user':user})['id']
                     item=_remote_content(fid,user).strip()
             else:
                 route=n_path[1:].split('/')
                 if name=='.password':
                     for idx,r in enumerate(route):
                         p=user+':/'+'/'.join(route[:idx+1])
-                        f=mongo.db.items.find_one({'path':p})
+                        f=mon_db.items.find_one({'path':p})
                         pid=f['id']
-                        data=mongo.db.items.find_one({'name':name,'parent':pid})
+                        data=mon_db.items.find_one({'name':name,'parent':pid})
                         if data:
                             fid=data['id']
                             item=_remote_content(fid,user).strip()
                             if idx==len(route)-1:
                                 cur=True
                 else:
-                    f=mongo.db.items.find_one({'path':path})
+                    f=mon_db.items.find_one({'path':path})
                     pid=f['id']
-                    data=mongo.db.items.find_one({'name':name,'parent':pid})
+                    data=mon_db.items.find_one({'name':name,'parent':pid})
                     if data:
                         fid=data['id']
                         item=_remote_content(fid,user).strip()

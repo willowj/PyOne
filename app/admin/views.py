@@ -250,39 +250,7 @@ def edit():
         fileid=request.form.get('fileid')
         user=request.form.get('user')
         content=request.form.get('content').encode('utf-8')
-        info={}
-        token=GetToken(user=user)
-        app_url=GetAppUrl()
-        headers={'Authorization':'bearer {}'.format(token)}
-        headers.update(default_headers)
-        url=app_url+'v1.0/me/drive/items/{}/content'.format(fileid)
-        try:
-            r=requests.put(url,headers=headers,data=content,timeout=10)
-            data=json.loads(r.content)
-            if data.get('id'):
-                info['status']=0
-                info['msg']='修改成功'
-                redis_client.delete('{}:content'.format(fileid))
-                file=mongo.db.items.find_one({'id':fileid})
-                name=file['name']
-                path=file['path'].replace(name,'',1)
-                if len(path.split('/'))>2 and path.split('/')[-1]=='':
-                    path=path[:-1]
-                # if path=='':
-                #     path='/'
-                # if not path.startswith('/'):
-                #     path='/'+path
-                # path='{}:{}'.format(user,path)
-                key='has_item$#$#$#$#{}$#$#$#$#{}'.format(path,name)
-                print('edit key:{}'.format(key))
-                redis_client.delete(key)
-            else:
-                info['status']=0
-                info['msg']=data.get('error').get('message')
-        except Exception as e:
-            print e
-            info['status']=0
-            info['msg']='修改超时'
+        info=EditFile(fileid=fileid,content=content,user=user)
         return jsonify(info)
     fileid=request.args.get('fileid')
     user=request.args.get('user')
@@ -310,7 +278,6 @@ def upload_local():
 
 @admin.route('/checkChunk', methods=['POST'])
 def checkChunk():
-    GetToken=request.form.get('fil GetToken')
     fileName=request.form.get('name').encode('utf-8')
     chunk=request.form.get('chunk',0,type=int)
     filename = u'./upload/{}-{}'.format(fileName, chunk)
@@ -386,33 +353,8 @@ def setFile(filename=None):
             path=path.split(':')[0]+':/'
         user,n_path=path.split(':')
         filename=request.form.get('filename')
-        if not n_path.startswith('/'):
-            n_path='/'+n_path
-        share_path=od_users.get(user).get('share_path')
-        if share_path!='/':
-            remote_file=os.path.join(os.path.join(share_path,n_path[1:]),filename)
-        else:
-            remote_file=os.path.join(n_path,filename)
-        print(u'remote path:{}'.format(remote_file))
         content=request.form.get('content').encode('utf-8')
-        info={}
-        token=GetToken(user=user)
-        app_url=GetAppUrl()
-        headers={'Authorization':'bearer {}'.format(token)}
-        headers.update(default_headers)
-        url=app_url+'v1.0/me/drive/items/root:{}:/content'.format(remote_file)
-        r=requests.put(url,headers=headers,data=content,timeout=10)
-        data=json.loads(r.content)
-        if data.get('id'):
-            AddResource(data,user)
-            info['status']=0
-            info['msg']='添加成功'
-            key='has_item$#$#$#$#{}$#$#$#$#{}'.format(path,filename)
-            print('set key:{}'.format(key))
-            redis_client.delete(key)
-        else:
-            info['status']=0
-            info['msg']=data.get('error').get('message')
+        info=CreateFile(filename=filename,path=n_path,content=content,user=user)
         return jsonify(info)
     path=urllib.unquote(request.args.get('path'))
     if path.split(':')[-1]=='':
@@ -437,7 +379,7 @@ def delete():
     infos['fail']=0
     for id in ids:
         print 'delete {}'.format(id)
-        file=mongo.db.items.find_one({'id':id})
+        file=mon_db.items.find_one({'id':id})
         name=file['name']
         path=file['path'].replace(name,'')
         if len(path.split('/'))>2 and path.split('/')[-1]=='':
@@ -540,7 +482,7 @@ def RPCserver():
 
 @admin.route('/clearHist',methods=['POST'])
 def clearHist():
-    mongo.db.down_db.delete_many({})
+    mon_db.down_db.delete_many({})
     ret={'msg':'清除成功！'}
     return jsonify(ret)
 
@@ -642,8 +584,8 @@ def install():
 def uninstall():
     type_=request.form.get('type')
     if type_=='mongodb':
-        mongo.db.items.remove()
-        mongo.db.down_db.remove()
+        mon_db.items.remove()
+        mon_db.down_db.remove()
         msg='删除mongodb数据成功'
     elif type_=='redis':
         redis_client.flushdb()
@@ -731,7 +673,7 @@ def rm_pan():
             f.write(new_text)
         key='users'
         redis_client.delete(key)
-        mongo.db.items.delete_many({'user':pan})
+        mon_db.items.delete_many({'user':pan})
         data=dict(msg='删除盘符[{}]成功'.format(pan),status=1)
         return jsonify(data)
     return render_template('admin/pan_manage/rm_pan.html')

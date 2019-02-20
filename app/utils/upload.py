@@ -242,7 +242,7 @@ class MultiUpload(Thread):
         while not self.queue.empty():
             localpath,remote_dir=self.queue.get()
             cp='{}:/{}'.format(self.user,remote_dir)
-            if mongo.db.items.find_one({'path':cp}):
+            if mon_db.items.find_one({'path':cp}):
                 print(u'{} exists!'.format(cp))
             else:
                 Upload(localpath,remote_dir,self.user)

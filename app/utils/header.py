@@ -21,15 +21,31 @@ import signal
 from dateutil.parser import parse
 from Queue import Queue
 from threading import Thread,Event
+import redis
 from pymongo import uri_parser,MongoClient,ASCENDING,DESCENDING
 from self_config import *
 from aria2 import PyAria2
 from ..extend import *
-from config import config
 
-#######Mongodb
 
-mongo = MongoClient(config.MONGO_URI,**{'connect':False})
+
+def GetConfig_pre(key):
+    if key=='allow_site':
+        value=','.join(allow_site)
+    else:
+        value=eval(key)
+    return value
+
+
+#######Mongodb & redis
+mongo = MongoClient(host=GetConfig_pre('MONGO_HOST'),port=int(GetConfig_pre('MONGO_PORT')),connect=False)
+mon_db=eval('mongo.{}'.format(GetConfig_pre('MONGO_DB')))
+if GetConfig_pre('MONGO_PASSWORD')!='':
+    mon_db.authenticate(GetConfig_pre('MONGO_USER'),GetConfig_pre('MONGO_PASSWORD'))
+if GetConfig_pre('REDIS_PASSWORD')!='':
+    redis_client=redis.Redis(host=GetConfig_pre('REDIS_HOST'),port=int(GetConfig_pre('REDIS_PORT')),db=GetConfig_pre('REDIS_DB'),password=GetConfig_pre('REDIS_PASSWORD'))
+else:
+    redis_client=redis.Redis(host=GetConfig_pre('REDIS_HOST'),port=int(GetConfig_pre('REDIS_PORT')),db=GetConfig_pre('REDIS_DB'))
 
 #######授权链接
 LoginUrl=BaseAuthUrl+'/common/oauth2/v2.0/authorize?response_type=code\
@@ -62,7 +78,7 @@ def GetName(id):
     if redis_client.exists(key):
         return redis_client.get(key)
     else:
-        item=mongo.db.items.find_one({'id':id})
+        item=mon_db.items.find_one({'id':id})
         redis_client.set(key,item['name'])
         return item['name']
 
@@ -71,24 +87,9 @@ def GetPath(id):
     if redis_client.exists(key):
         return redis_client.get(key)
     else:
-        item=mongo.db.items.find_one({'id':id})
+        item=mon_db.items.find_one({'id':id})
         redis_client.set(key,item['path'])
         return item['path']
-
-def GetConfig(key):
-    if key=='allow_site':
-        value=redis_client.get('allow_site') if redis_client.exists('allow_site') else ','.join(allow_site)
-    else:
-        value=redis_client.get(key) if redis_client.exists(key) else eval(key)
-    #这里是为了储存
-    if key=='od_users' and isinstance(value,dict):
-        value=json.dumps(value)
-    if not redis_client.exists(key):
-        redis_client.set(key,value)
-    #这里是为了转为字典
-    if key=='od_users':
-        value=json.loads(value)
-    return value
 
 def GetThemeList():
     tlist=[]
@@ -173,7 +174,7 @@ def CheckTimeOut(fileid):
     token=GetToken()
     headers={'Authorization':'bearer {}'.format(token),'Content-Type':'application/json'}
     headers.update(default_headers)
-    url=app_url+'v1.0/me/drive/mongo.db.items/'+fileid
+    url=app_url+'v1.0/me/drive/mon_db.items/'+fileid
     r=requests.get(url,headers=headers)
     data=json.loads(r.content)
     if data.get('@microsoft.graph.downloadUrl'):
@@ -187,7 +188,7 @@ def CheckTimeOut(fileid):
 
 def RemoveRepeatFile():
     """
-    db.mongo.db.items.aggregate([
+    db.mon_db.items.aggregate([
         {
             $group:{_id:{id:'$id'},count:{$sum:1},dups:{$addToSet:'$_id'}}
         },
@@ -198,11 +199,11 @@ def RemoveRepeatFile():
         ]).forEach(function(it){
 
              it.dups.shift();
-            db.mongo.db.items.remove({_id: {$in: it.dups}});
+            db.mon_db.items.remove({_id: {$in: it.dups}});
 
         });
     """
-    deleteData=mongo.db.items.aggregate([
+    deleteData=mon_db.items.aggregate([
     {'$group': {
         '_id': { 'id': "$id"},
         'uniqueIds': { '$addToSet': "$_id" },
@@ -218,7 +219,7 @@ def RemoveRepeatFile():
             first=True
             for did in d['uniqueIds']:
                 if not first:
-                    mongo.db.items.delete_one({'_id':did});
+                    mon_db.items.delete_one({'_id':did});
                 first=False
     except Exception as e:
         print(e)
@@ -276,6 +277,21 @@ def _file_content(path,offset,length):
     return content
 
 
+def GetConfig(key):
+    if key=='allow_site':
+        value=redis_client.get('allow_site') if redis_client.exists('allow_site') else ','.join(allow_site)
+    else:
+        value=redis_client.get(key) if redis_client.exists(key) else eval(key)
+    #这里是为了储存
+    if key=='od_users' and isinstance(value,dict):
+        value=json.dumps(value)
+    if not redis_client.exists(key):
+        redis_client.set(key,value)
+    #这里是为了转为字典
+    if key=='od_users':
+        value=json.loads(value)
+    return value
+
 
 def AddResource(data,user='A'):
     #检查父文件夹是否在数据库，如果不在则获取添加
@@ -298,7 +314,7 @@ def AddResource(data,user='A'):
             parent_path='/'
             pid=''
             for idx,p in enumerate(grand_path.split('/')):
-                parent=mongo.db.items.find_one({'name':p,'grandid':idx,'parent':pid})
+                parent=mon_db.items.find_one({'name':p,'grandid':idx,'parent':pid})
                 if parent is not None:
                     pid=parent['id']
                     parent_path='/'.join([parent_path,parent['name']])
@@ -319,7 +335,7 @@ def AddResource(data,user='A'):
                     item['grandid']=idx
                     item['parent']=pid
                     item['path']=path
-                    mongo.db.items.insert_one(item)
+                    mon_db.items.insert_one(item)
                     pid=fdata.get('id')
     #插入数据
     item={}
@@ -352,14 +368,14 @@ def AddResource(data,user='A'):
         item['order']=1
     else:
         item['order']=2
-    mongo.db.items.insert_one(item)
+    mon_db.items.insert_one(item)
 
 def CheckTimeOut(fileid):
     app_url=GetAppUrl()
     token=GetToken()
     headers={'Authorization':'bearer {}'.format(token),'Content-Type':'application/json'}
     headers.update(default_headers)
-    url=app_url+'v1.0/me/drive/mongo.db.items/'+fileid
+    url=app_url+'v1.0/me/drive/mon_db.items/'+fileid
     r=requests.get(url,headers=headers)
     data=json.loads(r.content)
     if data.get('@microsoft.graph.downloadUrl'):
@@ -377,7 +393,6 @@ class GetItemThread(Thread):
         super(GetItemThread,self).__init__()
         self.queue=queue
         self.user=user
-        self._stop_event = Event()
         share_path=od_users.get(user).get('share_path')
         if share_path=='/':
             self.share_path=share_path
@@ -399,14 +414,7 @@ class GetItemThread(Thread):
             trytime=info['trytime']
             self.GetItem(url,grandid,parent,trytime)
             if self.queue.empty():
-                # print('{} queue empty!break'.format(self.user))
                 break
-
-    def stop(self):
-        self._stop_event.set()
-
-    def stopped(self):
-        return self._stop_event.is_set()
 
     def GetItem(self,url,grandid=0,parent='',trytime=1):
         app_url=GetAppUrl()
@@ -427,12 +435,12 @@ class GetItemThread(Thread):
                 for value in values:
                     item={}
                     if value.get('folder'):
-                        folder=mongo.db.items.find_one({'id':value['id']})
+                        folder=mon_db.items.find_one({'id':value['id']})
                         if folder is not None:
                             if folder['size_order']==value['size']: #文件夹大小未变化，不更新
                                 print(u'path:{},origin size:{},current size:{}--------no change'.format(value['name'],folder['size_order'],value['size']))
                             else:
-                                mongo.db.items.delete_one({'id':value['id']})
+                                mon_db.items.delete_one({'id':value['id']})
                                 item['type']='folder'
                                 item['user']=self.user
                                 item['order']=0
@@ -454,7 +462,7 @@ class GetItemThread(Thread):
                                     path=convert2unicode(value['name'])
                                 path=urllib.unquote('{}:/{}'.format(self.user,path))
                                 item['path']=path
-                                subfodler=mongo.db.items.insert_one(item)
+                                subfodler=mon_db.items.insert_one(item)
                                 if value.get('folder').get('childCount')==0:
                                     continue
                                 else:
@@ -463,7 +471,7 @@ class GetItemThread(Thread):
                                     url=app_url+'v1.0/me/drive/root:{}:/children?expand=thumbnails'.format(path)
                                     self.queue.put(dict(url=url,grandid=grandid+1,parent=item['id'],trytime=1))
                         else:
-                            mongo.db.items.delete_one({'id':value['id']})
+                            mon_db.items.delete_one({'id':value['id']})
                             item['type']='folder'
                             item['user']=self.user
                             item['order']=0
@@ -485,7 +493,7 @@ class GetItemThread(Thread):
                                 path=convert2unicode(value['name'])
                             path=urllib.unquote('{}:/{}'.format(self.user,path))
                             item['path']=path
-                            subfodler=mongo.db.items.insert_one(item)
+                            subfodler=mon_db.items.insert_one(item)
                             if value.get('folder').get('childCount')==0:
                                 continue
                             else:
@@ -494,7 +502,7 @@ class GetItemThread(Thread):
                                 url=app_url+'v1.0/me/drive/root:{}:/children?expand=thumbnails'.format(path)
                                 self.queue.put(dict(url=url,grandid=grandid+1,parent=item['id'],trytime=1))
                     else:
-                        if mongo.db.items.find_one({'id':value['id']}) is not None: #文件存在
+                        if mon_db.items.find_one({'id':value['id']}) is not None: #文件存在
                             continue
                         else:
                             item['type']=GetExt(value['name'])
@@ -527,7 +535,7 @@ class GetItemThread(Thread):
                                 item['order']=1
                             else:
                                 item['order']=2
-                            mongo.db.items.insert_one(item)
+                            mon_db.items.insert_one(item)
             else:
                 print('{}\'s size is zero'.format(url))
             if data.get('@odata.nextLink'):
@@ -564,7 +572,7 @@ class GetItemThread(Thread):
         return data
 
 def clearRedis():
-    key_lists=['path:*','name:*','*has_item*','*root*']
+    key_lists=['path:*','name:*','*has_item*','*root*','*:content']
     for k in key_lists:
         try:
             redis_client.delete(*redis_client.keys(k))
