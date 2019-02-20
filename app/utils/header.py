@@ -21,10 +21,15 @@ import signal
 from dateutil.parser import parse
 from Queue import Queue
 from threading import Thread,Event
-from pymongo import MongoClient,ASCENDING,DESCENDING
+from pymongo import uri_parser,MongoClient,ASCENDING,DESCENDING
 from self_config import *
 from aria2 import PyAria2
 from ..extend import *
+from config import config
+
+#######Mongodb
+
+mongo = MongoClient(config.MONGO_URI,**{'connect':False})
 
 #######授权链接
 LoginUrl=BaseAuthUrl+'/common/oauth2/v2.0/authorize?response_type=code\
@@ -581,3 +586,4 @@ def CheckServer():
         return msg,False
     else:
         return msg,True
+

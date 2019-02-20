@@ -11,7 +11,6 @@ def create_app():
     config.init_app(app)
     app.wsgi_app = ProxyFix(app.wsgi_app)
     cache.init_app(app)
-    mongo.init_app(app)
     redis_client.init_app(app)
     limiter.init_app(app)
 
