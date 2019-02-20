@@ -15,12 +15,58 @@ update_sp(){
 
 #2019.01.18
 update_config(){
-    num=`cat self_config.py | grep "show_secret" | wc -l`
+    num=`cat self_config.py | grep "MONGO_HOST" | wc -l`
     if [ $num == 0 ]; then
         echo '' >> self_config.py
-        echo 'show_secret="no"' >> self_config.py
+        echo 'MONGO_HOST="localhost"' >> self_config.py
     fi
+    num=`cat self_config.py | grep "MONGO_PORT" | wc -l`
+    if [ $num == 0 ]; then
+        echo '' >> self_config.py
+        echo 'MONGO_PORT="27017"' >> self_config.py
+    fi
+    num=`cat self_config.py | grep "MONGO_USER" | wc -l`
+    if [ $num == 0 ]; then
+        echo '' >> self_config.py
+        echo 'MONGO_USER=""' >> self_config.py
+    fi
+    num=`cat self_config.py | grep "MONGO_PASSWORD" | wc -l`
+    if [ $num == 0 ]; then
+        echo '' >> self_config.py
+        echo 'MONGO_PASSWORD=""' >> self_config.py
+    fi
+    num=`cat self_config.py | grep "MONGO_DB" | wc -l`
+    if [ $num == 0 ]; then
+        echo '' >> self_config.py
+        echo 'MONGO_DB="three"' >> self_config.py
+    fi
+    num=`cat self_config.py | grep "REDIS_HOST" | wc -l`
+    if [ $num == 0 ]; then
+        echo '' >> self_config.py
+        echo 'REDIS_HOST="localhost"' >> self_config.py
+    fi
+
+    num=`cat self_config.py | grep "REDIS_PORT" | wc -l`
+    if [ $num == 0 ]; then
+        echo '' >> self_config.py
+        echo 'REDIS_PORT="6379"' >> self_config.py
+    fi
+
+    num=`cat self_config.py | grep "REDIS_PASSWORD" | wc -l`
+    if [ $num == 0 ]; then
+        echo '' >> self_config.py
+        echo 'REDIS_PASSWORD=""' >> self_config.py
+    fi
+
+    num=`cat self_config.py | grep "REDIS_DB" | wc -l`
+    if [ $num == 0 ]; then
+        echo '' >> self_config.py
+        echo 'REDIS_DB="0"' >> self_config.py
+    fi
+
+
 }
+
 
 
 #2019.02.15
@@ -37,7 +83,7 @@ upgrade(){
     if [ $num == 0 ]; then
         touch .install
     fi
-
+    update_config
     pip install -r requirements.txt
     yum install lsof
 }

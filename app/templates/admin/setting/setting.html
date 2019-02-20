@@ -64,6 +64,46 @@
         </div>
 
         <div class="mdui-textfield">
+          <h4>MongoDB信息编辑</h4>
+          <div class="mdui-panel" mdui-panel>
+              <div class="mdui-panel-item">
+                <div class="mdui-panel-item-header">点击配置</div>
+                <div class="mdui-panel-item-body">
+                  <h5>主机（默认localhost）</h5>
+                  <input class="mdui-textfield-input" type="text" readonly="readonly" name="MONGO_HOST" placeholder="请输入MongoDB主机" value="{{GetConfig('MONGO_HOST')}}" />
+                  <h5>端口</h5>
+                  <input class="mdui-textfield-input" type="text" name="MONGO_PORT" placeholder="请输入MongoDB端口" value="{{GetConfig('MONGO_PORT')}}" />
+                  <h5>数据库（原则上不要修改）</h5>
+                  <input class="mdui-textfield-input" type="text" name="MONGO_DB" placeholder="请输入数据库名" value="{{GetConfig('MONGO_DB')}}" />
+                  <h5>用户名（如果有）</h5>
+                  <input class="mdui-textfield-input" type="text" name="MONGO_USER" placeholder="请输入用户名" value="{{GetConfig('MONGO_USER')}}" />
+                  <h5>密码（如果有）</h5>
+                  <input class="mdui-textfield-input" type="text" name="MONGO_PASSWORD" placeholder="请输入密码" value="{{GetConfig('MONGO_PASSWORD')}}" />
+                </div>
+              </div>
+          </div>
+        </div>
+
+        <div class="mdui-textfield">
+          <h4>Redis信息编辑</h4>
+          <div class="mdui-panel" mdui-panel>
+              <div class="mdui-panel-item">
+                <div class="mdui-panel-item-header">点击配置</div>
+                <div class="mdui-panel-item-body">
+                  <h5>主机（默认localhost）</h5>
+                  <input class="mdui-textfield-input" type="text" readonly="readonly" name="REDIS_HOST" placeholder="请输入Redis主机" value="{{GetConfig('REDIS_HOST')}}" />
+                  <h5>端口</h5>
+                  <input class="mdui-textfield-input" type="text" name="REDIS_PORT" placeholder="请输入Redis端口" value="{{GetConfig('REDIS_PORT')}}" />
+                  <h5>数据库（原则上不要修改）</h5>
+                  <input class="mdui-textfield-input" type="text" name="REDIS_DB" placeholder="请输入数据库名" value="{{GetConfig('REDIS_DB')}}" />
+                  <h5>密码（如果有）</h5>
+                  <input class="mdui-textfield-input" type="text" name="REDIS_PASSWORD" placeholder="请输入密码" value="{{GetConfig('REDIS_PASSWORD')}}" />
+                </div>
+              </div>
+          </div>
+        </div>
+
+        <div class="mdui-textfield">
           <h4>搜索结果是否展示“加密文件”（开启之后，前台搜索结果会展示出加密文件夹及加密文件夹下的文件）</h4>
           <label class="mdui-switch">
             <input type="checkbox" name="show_secret" {%if GetConfig('show_secret')=='on'%}checked{%endif%}/>

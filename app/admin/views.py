@@ -17,11 +17,6 @@ from shelljob import proc
 
 ############功能函数
 def set(key,value,user='A'):
-    allow_key=['title','downloadUrl_timeout','allow_site','password','client_secret','client_id','share_path'\
-    ,'other_name','tj_code','ARIA2_HOST','ARIA2_PORT','ARIA2_SECRET','ARIA2_SCHEME','show_secret','encrypt_file'\
-    ,'cssCode','headCode','footCode','title_pre','theme']
-    if key not in allow_key:
-        return u'禁止修改'
     print 'set {}:{}'.format(key,value)
     config_path=os.path.join(config_dir,'self_config.py')
     with open(config_path,'r') as f:
@@ -85,10 +80,24 @@ def setting():
         title_pre=request.form.get('title_pre','index of ')
         downloadUrl_timeout=request.form.get('downloadUrl_timeout',5*60)
         allow_site=request.form.get('allow_site','no-referrer')
+        #Aria2
         ARIA2_HOST=request.form.get('ARIA2_HOST','localhost').replace('https://','').replace('http://','')
         ARIA2_PORT=request.form.get('ARIA2_PORT',6800)
         ARIA2_SECRET=request.form.get('ARIA2_SECRET','')
         ARIA2_SCHEME=request.form.get('ARIA2_SCHEME','http')
+
+        #MongoDB
+        MONGO_HOST=request.form.get('MONGO_HOST','localhost').replace('https://','').replace('http://','')
+        MONGO_PORT=request.form.get('MONGO_PORT',27017)
+        MONGO_DB=request.form.get('MONGO_DB','three')
+        MONGO_USER=request.form.get('MONGO_USER','')
+        MONGO_PASSWORD=request.form.get('MONGO_PASSWORD','')
+        #Redis
+        REDIS_HOST=request.form.get('REDIS_HOST','localhost').replace('https://','').replace('http://','')
+        REDIS_PORT=request.form.get('REDIS_PORT',6379)
+        REDIS_DB=request.form.get('REDIS_DB','0')
+        REDIS_PASSWORD=request.form.get('REDIS_PASSWORD','')
+
         password1=request.form.get('password1')
         password2=request.form.get('password2')
         show_secret=request.form.get('show_secret','no')
@@ -105,10 +114,23 @@ def setting():
         set('theme',theme)
         set('downloadUrl_timeout',downloadUrl_timeout)
         set('allow_site',allow_site)
+        #Aria2
         set('ARIA2_HOST',ARIA2_HOST)
         set('ARIA2_PORT',ARIA2_PORT)
         set('ARIA2_SECRET',ARIA2_SECRET)
         set('ARIA2_SCHEME',ARIA2_SCHEME)
+        #MongoDB
+        set('MONGO_HOST',MONGO_HOST)
+        set('MONGO_PORT',MONGO_PORT)
+        set('MONGO_DB',MONGO_DB)
+        set('MONGO_USER',MONGO_USER)
+        set('MONGO_PASSWORD',MONGO_PASSWORD)
+        #Redis
+        set('REDIS_HOST',REDIS_HOST)
+        set('REDIS_PORT',REDIS_PORT)
+        set('REDIS_DB',REDIS_DB)
+        set('REDIS_PASSWORD',REDIS_PASSWORD)
+
         set('show_secret',show_secret)
         set('encrypt_file',encrypt_file)
         set('password',new_password)
@@ -118,10 +140,25 @@ def setting():
         redis_client.set('theme',theme)
         redis_client.set('downloadUrl_timeout',downloadUrl_timeout)
         redis_client.set('allow_site',','.join(allow_site.split(',')))
+        #Aria2
         redis_client.set('ARIA2_HOST',ARIA2_HOST)
         redis_client.set('ARIA2_PORT',ARIA2_PORT)
         redis_client.set('ARIA2_SECRET',ARIA2_SECRET)
         redis_client.set('ARIA2_SCHEME',ARIA2_SCHEME)
+
+        #MongoDB
+        redis_client.set('MONGO_HOST',MONGO_HOST)
+        redis_client.set('MONGO_PORT',MONGO_PORT)
+        redis_client.set('MONGO_DB',MONGO_DB)
+        redis_client.set('MONGO_USER',MONGO_USER)
+        redis_client.set('MONGO_PASSWORD',MONGO_PASSWORD)
+
+        #Redis
+        redis_client.set('REDIS_HOST',REDIS_HOST)
+        redis_client.set('REDIS_PORT',REDIS_PORT)
+        redis_client.set('REDIS_DB',REDIS_DB)
+        redis_client.set('REDIS_PASSWORD',REDIS_PASSWORD)
+
         redis_client.set('show_secret',show_secret)
         redis_client.set('encrypt_file',encrypt_file)
         redis_client.set('password',new_password)

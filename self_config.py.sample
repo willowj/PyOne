@@ -40,6 +40,18 @@ ARIA2_PORT=6800
 ARIA2_SECRET=""
 ARIA2_SCHEME="http"
 
+#MongoDB
+MONGO_HOST="localhost"
+MONGO_PORT="27017"
+MONGO_USER=""
+MONGO_PASSWORD=""
+MONGO_DB="three"
+
+#Redis
+REDIS_HOST="localhost"
+REDIS_PORT="6379"
+REDIS_PASSWORD=""
+REDIS_DB="0"
 
 #搜索模式
 show_secret="no"
