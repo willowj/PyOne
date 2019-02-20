@@ -127,7 +127,7 @@ def show(fileid,user,action='download'):
     url=request.url.replace(':80','').replace(':443','').encode('utf-8').split('?')[0]
     inner_url='/'+urllib.quote('/'.join(url.split('/')[3:]))
     if request.method=='POST' or action=='share':
-        print(u'share page:{}'.format(path))
+        InfoLogger().print_r(u'share page:{}'.format(path))
         if ext in ['csv','doc','docx','odp','ods','odt','pot','potm','potx','pps','ppsx','ppsxm','ppt','pptm','pptx','rtf','xls','xlsx']:
             downloadUrl,play_url=GetDownloadUrl(fileid,user)
             url = 'https://view.officeapps.live.com/op/view.aspx?src='+urllib.quote(downloadUrl)
@@ -152,7 +152,7 @@ def show(fileid,user,action='download'):
         resp.headers['Pragma'] = 'no-cache'
         resp.headers['Expires'] = '0'
         return resp
-    print('action:{}'.format(action))
+    InfoLogger().print_r('action:{}'.format(action))
     if name=='.password':
         resp=make_response(abort(404))
     if 'no-referrer' in GetConfig('allow_site').split(',') or sum([i in referrer for i in GetConfig('allow_site').split(',')])>0:

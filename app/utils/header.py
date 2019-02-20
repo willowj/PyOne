@@ -22,9 +22,11 @@ from dateutil.parser import parse
 from Queue import Queue
 from threading import Thread,Event
 import redis
+import traceback
 from pymongo import uri_parser,MongoClient,ASCENDING,DESCENDING
 from self_config import *
 from aria2 import PyAria2
+from logmanage import *
 from ..extend import *
 
 
@@ -63,7 +65,7 @@ def convert2unicode(string):
 #获取
 def get_value(key,user='A'):
     allow_key=['client_secret','client_id']
-    #print('get user {}\'s {}'.format(user,key))
+    #InfoLogger().print_r('get user {}\'s {}'.format(user,key))
     if key not in allow_key:
         return u'禁止获取'
     config_path=os.path.join(config_dir,'self_config.py')
@@ -135,14 +137,14 @@ def GetToken(Token_file='token.json',user='A'):
         token=open_json(token_path)
         try:
             if time.time()>float(token.get('expires_on')):
-                print 'token timeout'
+                InfoLogger().print_r('token timeout')
                 refresh_token=token.get('refresh_token')
                 token=ReFreshToken(refresh_token,user)
                 if token.get('access_token'):
                     with open(token_path,'w') as f:
                         json.dump(token,f,ensure_ascii=False)
                 else:
-                    print token
+                    InfoLogger().print_r(token)
         except:
             with open(os.path.join(data_dir,'{}_Atoken.json'.format(user)),'r') as f:
                 Atoken=json.load(f)
@@ -182,7 +184,7 @@ def CheckTimeOut(fileid):
         start_time=time.time()
         for i in range(10000):
             r=requests.head(downloadUrl)
-            print '{}\'s gone, status:{}'.format(time.time()-start_time,r.status_code)
+            InfoLogger().print_r('{}\'s gone, status:{}'.format(time.time()-start_time,r.status_code))
             if r.status_code==404:
                 break
 
@@ -222,12 +224,22 @@ def RemoveRepeatFile():
                     mon_db.items.delete_one({'_id':did});
                 first=False
     except Exception as e:
-        print(e)
+        exstr = traceback.format_exc()
+        ErrorLogger().print_r(exstr)
         return
 
 def get_aria2():
     try:
-        p=PyAria2()
+        p=PyAria2(host=GetConfig('ARIA2_HOST'),
+                 port=GetConfig('ARIA2_PORT'),
+                 secret=GetConfig('ARIA2_SECRET'),
+                 scheme=GetConfig('ARIA2_SCHEME'))
+        info=json.loads(p.getSessionInfo())[0]
+        if info.get('error'):
+            msg=info.get('error').get('message')
+            if msg=='Unauthorized':
+                msg='Aria2未验证！请检查Aria2信息！'
+            return msg,False
         return p,True
     except Exception as e:
         return e,False
@@ -235,7 +247,7 @@ def get_aria2():
 
 def _filesize(path):
     size=os.path.getsize(path)
-    # print('{}\'s size {}'.format(path,size))
+    # InfoLogger().print_r('{}\'s size {}'.format(path,size))
     return size
 
 def list_all_files(rootdir):
@@ -266,11 +278,11 @@ def _file_content(path,offset,length):
     size=_filesize(path)
     offset,length=map(int,(offset,length))
     if offset>size:
-        print('offset must smaller than file size')
+        InfoLogger().print_r('offset must smaller than file size')
         return False
     length=length if offset+length<size else size-offset
     endpos=offset+length-1 if offset+length<size else size-1
-    # print("read file {} from {} to {}".format(path,offset,endpos))
+    # InfoLogger().print_r("read file {} from {} to {}".format(path,offset,endpos))
     with open(path,'rb') as f:
         f.seek(offset)
         content=f.read(length)
@@ -356,7 +368,7 @@ def AddResource(data,user='A'):
         else:
             path=user+':/'+grand_path+'/'+convert2unicode(data['name'])
     path=path.replace('//','/')
-    print('new file path:{}'.format(path))
+    InfoLogger().print_r('new file path:{}'.format(path))
     item['path']=path
     if GetExt(data['name']) in ['bmp','jpg','jpeg','png','gif']:
         item['order']=3
@@ -383,7 +395,7 @@ def CheckTimeOut(fileid):
         start_time=time.time()
         for i in range(10000):
             r=requests.head(downloadUrl)
-            print '{}\'s gone, status:{}'.format(time.time()-start_time,r.status_code)
+            InfoLogger().print_r('{}\'s gone, status:{}'.format(time.time()-start_time,r.status_code))
             if r.status_code==404:
                 break
 
@@ -419,14 +431,14 @@ class GetItemThread(Thread):
     def GetItem(self,url,grandid=0,parent='',trytime=1):
         app_url=GetAppUrl()
         token=GetToken(user=self.user)
-        print(u'[start] getting files from url {}'.format(url))
+        InfoLogger().print_r(u'[start] getting files from url {}'.format(url))
         headers={'Authorization': 'Bearer {}'.format(token)}
         headers.update(default_headers)
         try:
             r=requests.get(url,headers=headers,timeout=10)
             data=json.loads(r.content)
             if data.get('error'):
-                print('error:{}! waiting 180s'.format(data.get('error').get('message')))
+                InfoLogger().print_r('error:{}! waiting 180s'.format(data.get('error').get('message')))
                 time.sleep(180)
                 self.queue.put(dict(url=url,grandid=grandid,parent=parent,trytime=trytime))
                 return
@@ -438,7 +450,7 @@ class GetItemThread(Thread):
                         folder=mon_db.items.find_one({'id':value['id']})
                         if folder is not None:
                             if folder['size_order']==value['size']: #文件夹大小未变化，不更新
-                                print(u'path:{},origin size:{},current size:{}--------no change'.format(value['name'],folder['size_order'],value['size']))
+                                InfoLogger().print_r(u'path:{},origin size:{},current size:{}--------no change'.format(value['name'],folder['size_order'],value['size']))
                             else:
                                 mon_db.items.delete_one({'id':value['id']})
                                 item['type']='folder'
@@ -537,13 +549,13 @@ class GetItemThread(Thread):
                                 item['order']=2
                             mon_db.items.insert_one(item)
             else:
-                print('{}\'s size is zero'.format(url))
+                InfoLogger().print_r('{}\'s size is zero'.format(url))
             if data.get('@odata.nextLink'):
                 self.queue.put(dict(url=data.get('@odata.nextLink'),grandid=grandid,parent=parent,trytime=1))
-            print(u'[success] getting files from url {}'.format(url))
+            InfoLogger().print_r(u'[success] getting files from url {}'.format(url))
         except Exception as e:
             trytime+=1
-            print(u'error to opreate GetItem("{}","{}","{}"),try times :{}, reason: {}'.format(url,grandid,parent,trytime,e))
+            ErrorLogger().print_r(u'error to opreate GetItem("{}","{}","{}"),try times :{}, reason: {}'.format(url,grandid,parent,trytime,e))
             if trytime<=3:
                 self.queue.put(dict(url=url,grandid=grandid,parent=parent,trytime=trytime))
 
@@ -577,7 +589,7 @@ def clearRedis():
         try:
             redis_client.delete(*redis_client.keys(k))
         except:
-            print('empty keys {}'.format(k))
+            ErrorLogger().print_r('empty keys {}'.format(k))
 
 def CheckServer():
     mongo_cmd='lsof -i:27017 | grep LISTEN'

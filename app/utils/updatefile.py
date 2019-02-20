@@ -4,7 +4,7 @@ from header import *
 def Dir(path=u'A:/'):
     app_url=GetAppUrl()
     user,n_path=path.split(':')
-    print('update {}\'s {} file'.format(user,n_path))
+    InfoLogger().print_r('update {}\'s {} file'.format(user,n_path))
     if n_path=='/':
         BaseUrl=app_url+u'v1.0/me/drive/root/children?expand=thumbnails'
         mon_db.items.remove({'user':user})
@@ -48,19 +48,19 @@ def Dir(path=u'A:/'):
     error_status=0
     while 1:
         for t in tasks:
-            print('thread {}\'s status {},qsize {}'.format(t.getName(),t.isAlive(),t.queue.qsize()))
+            InfoLogger().print_r('thread {}\'s status {},qsize {}'.format(t.getName(),t.isAlive(),t.queue.qsize()))
             if t.isAlive()==False and t.queue.qsize()==0:
                 tasks.pop(tasks.index(t))
             if t.queue.qsize()==0 and t.isAlive()==True:
                 error_status+=1
-                print('error status times:{}'.format(error_status))
+                InfoLogger().print_r('error status times:{}'.format(error_status))
             else:
                 error_status=1
             if error_status>=20 and t in tasks:
-                print('force kill thread:{}'.format(t.getName()))
+                InfoLogger().print_r('force kill thread:{}'.format(t.getName()))
                 tasks.pop(tasks.index(t))
         if len(tasks)==0:
-            print(u'{} all thread stop!'.format(path))
+            InfoLogger().print_r(u'{} all thread stop!'.format(path))
             break
         time.sleep(1)
     # RemoveRepeatFile()
@@ -93,10 +93,10 @@ def UpdateFile(renew='all'):
             if t.isAlive()==False:
                 tasks.pop(tasks.index(t))
         if len(tasks)==0:
-            print('all users update status is complete')
+            InfoLogger().print_r('all users update status is complete')
             break
         time.sleep(1)
-    print('update file success!')
+    InfoLogger().print_r('update file success!')
     os.kill(os.getpid(), signal.SIGKILL)
 
 

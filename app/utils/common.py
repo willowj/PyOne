@@ -162,17 +162,17 @@ def GetDownloadUrl(id,user):
     if redis_client.exists(key_):
         downloadUrl,play_url,ftime=redis_client.get(key_).split('####')
         if time.time()-int(ftime)>=600:
-            # print('{} downloadUrl expired!'.format(id))
+            # InfoLogger().print_r('{} downloadUrl expired!'.format(id))
             downloadUrl,play_url=_getdownloadurl(id,user)
             ftime=int(time.time())
             k='####'.join([downloadUrl,play_url,str(ftime)])
             redis_client.set(key_,k)
         else:
-            # print('get {}\'s downloadUrl from cache'.format(id))
+            # InfoLogger().print_r('get {}\'s downloadUrl from cache'.format(id))
             downloadUrl=downloadUrl
             play_url=play_url
     else:
-        # print('first time get downloadUrl from {}'.format(id))
+        # InfoLogger().print_r('first time get downloadUrl from {}'.format(id))
         downloadUrl,play_url=_getdownloadurl(id,user)
         ftime=int(time.time())
         k='####'.join([downloadUrl,play_url,str(ftime)])
@@ -266,7 +266,7 @@ def _remote_content(fileid,user):
                 content=r.content
             else:
                 content=r.text
-            print(content)
+            InfoLogger().print_r(content)
             redis_client.set(kc,content)
             return content
         else:
@@ -277,7 +277,7 @@ def has_item(path,name):
     if mon_db.items.count()==0:
         return False,False,False
     key='has_item$#$#$#$#{}$#$#$#$#{}'.format(path,name)
-    print('get key:{}'.format(key))
+    InfoLogger().print_r('get key:{}'.format(key))
     if redis_client.exists(key):
         values=redis_client.get(key)
         item,fid,cur=values.split('########')

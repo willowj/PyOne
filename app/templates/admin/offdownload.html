@@ -37,6 +37,9 @@
 </div>
 <script type="text/javascript" src="/static/js/offdownload.js?t=201902"></script>
 <script>
+{%if msg!=None%}
+ShowNotice("{{msg}}");
+{%endif%}
 function AddLink() {
     layer.prompt({
         formType: 2,
@@ -62,7 +65,7 @@ function AddLink() {
                 if (data.status) {
                     ShowNotice('添加任务成功！');
                 } else {
-                    ShowNotice(status);
+                    ShowNotice(data.msg);
                 }
             },
             complete: function(xhr) {

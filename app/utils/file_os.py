@@ -67,7 +67,8 @@ def CreateFolder(folder_name,grand_path,user='A'):
         mon_db.items.insert_one(item)
         return True
     else:
-        print(data.get('error').get('msg'))
+        ErrorLogger().print_r(data.get('error').get('msg'))
+        InfoLogger().print_r(data.get('error').get('msg'))
         return False
 
 def CreateFile(filename,path,content,user='A'):
@@ -80,7 +81,7 @@ def CreateFile(filename,path,content,user='A'):
         remote_file=os.path.join(os.path.join(share_path,path[1:]),filename)
     else:
         remote_file=os.path.join(path,filename)
-    print(u'remote path:{}'.format(remote_file))
+    InfoLogger().print_r(u'remote path:{}'.format(remote_file))
     info={}
     headers={'Authorization':'bearer {}'.format(token)}
     headers.update(default_headers)
@@ -92,7 +93,7 @@ def CreateFile(filename,path,content,user='A'):
         info['status']=0
         info['msg']='添加成功'
         key='has_item$#$#$#$#{}:{}$#$#$#$#{}'.format(user,path,filename)
-        print('set key:{}'.format(key))
+        InfoLogger().print_r('set key:{}'.format(key))
         redis_client.delete(key)
     else:
         info['status']=0
@@ -119,13 +120,14 @@ def EditFile(fileid,content,user='A'):
             if len(path.split('/'))>2 and path.split('/')[-1]=='':
                 path=path[:-1]
             key='has_item$#$#$#$#{}$#$#$#$#{}'.format(path,name)
-            print('edit key:{}'.format(key))
+            InfoLogger().print_r('edit key:{}'.format(key))
             redis_client.delete(key)
         else:
             info['status']=0
             info['msg']=data.get('error').get('message')
     except Exception as e:
-        print e
+        exstr = traceback.format_exc()
+        ErrorLogger().print_r(exstr)
         info['status']=0
         info['msg']='修改超时'
     return info
@@ -142,7 +144,7 @@ def MoveFile(fileid,new_folder_path,user='A'):
         path='{}:/{}'.format(user,GetName(fileid))
     else:
         path='{}:/{}'.format(user,new_folder_path)
-        print path
+        InfoLogger().print_r(path)
         parent_item=mon_db.items.find_one({'path':path})
         folder_id=parent_item['id']
         parent=parent_item['id']
@@ -172,7 +174,7 @@ def MoveFile(fileid,new_folder_path,user='A'):
         redis_client.delete(key)
         return True
     else:
-        print(data.get('error').get('msg'))
+        InfoLogger().print_r(data.get('error').get('msg'))
         return False
 
 def ReName(fileid,new_name,user='A'):
@@ -204,5 +206,5 @@ def ReName(fileid,new_name,user='A'):
                 mon_db.items.find_one_and_update({'id':file['id']},{'$set':new_value})
         return True
     else:
-        print(data.get('error').get('msg'))
+        InfoLogger().print_r(data.get('error').get('msg'))
         return False

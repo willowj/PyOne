@@ -75,7 +75,7 @@ def download_and_upload(url,remote_dir,user,gid=None):
             try:
                 os.remove(old_path)
             except:
-                print("删除种子文件失败")
+                ErrorLogger().print_r("删除种子文件失败")
             gid=a.get('followedBy')[0]
             aa=json.loads(p.tellStatus(gid))[0]["result"]
             for idx,file in enumerate(aa['files']):
@@ -131,14 +131,14 @@ def download_and_upload(url,remote_dir,user,gid=None):
                 new_value['down_status']=u'暂停下载'
                 mon_db.down_db.find_one_and_update({'gid':gid,'idx':idx},{'$set':new_value})
             else:
-                print('下载出错')
+                InfoLogger().print_r('下载出错')
                 new_value['down_status']=u'下载出错'
                 new_value['status']=-1
                 mon_db.down_db.find_one_and_update({'gid':gid,'idx':idx},{'$set':new_value})
                 complete+=1
         # time.sleep(2)
         if complete==total:
-            print('{} complete'.format(gid))
+            InfoLogger().print_r('{} complete'.format(gid))
             break
 
 def upload_status(gid,idx,remote_dir,user):
@@ -201,7 +201,8 @@ def upload_status(gid,idx,remote_dir,user):
                 break
             mon_db.down_db.find_one_and_update({'_id':item['_id']},{'$set':new_value})
         except Exception as e:
-            print(e)
+            exstr = traceback.format_exc()
+            ErrorLogger().print_r(exstr)
             break
         time.sleep(2)
 
@@ -387,7 +388,7 @@ def DBMethod(action,**kwargs):
             try:
                 os.remove(task['localpath'])
             except:
-                print('未能成功删除本地文件')
+                ErrorLogger().print_r('未能成功删除本地文件')
                 info['msg']='删除任务成功。但是未能成功删除本地文件'
             result.append(info)
     elif action in ['removeAll']:
@@ -403,7 +404,7 @@ def DBMethod(action,**kwargs):
             try:
                 os.delete_many(task['localpath'])
             except:
-                print('未能成功删除本地文件')
+                ErrorLogger().print_r('未能成功删除本地文件')
                 info['msg']='删除任务成功。但是未能成功删除本地文件'
             result.append(info)
     elif action=='restart':
@@ -417,7 +418,7 @@ def DBMethod(action,**kwargs):
             user=it['user']
             remote_dir=it['remote_dir']
             cmd=u'python {} download_and_upload "{}" "{}" {} {}'.format(os.path.join(config_dir,'function.py'),1,remote_dir,user,gid)
-            print cmd
+            InfoLogger().print_r(cmd)
             subprocess.Popen(cmd,shell=True)
             result.append(info)
     elif action in ['unselected','selected']:

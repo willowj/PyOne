@@ -17,7 +17,7 @@ from shelljob import proc
 
 ############功能函数
 def set(key,value,user='A'):
-    print 'set {}:{}'.format(key,value)
+    InfoLogger().print_r('set {}:{}'.format(key,value))
     config_path=os.path.join(config_dir,'self_config.py')
     with open(config_path,'r') as f:
         old_text=f.read()
@@ -371,7 +371,8 @@ def server_to_one():
                 msg=_upload_session.next()['status']
                 yield "data:" + msg + "\n\n"
             except Exception as e:
-                print e
+                exstr = traceback.format_exc()
+                ErrorLogger().print_r(exstr)
                 msg='end'
                 yield "data:" + msg + "\n\n"
                 os.remove(filepath)
@@ -415,14 +416,14 @@ def delete():
     infos['delete']=0
     infos['fail']=0
     for id in ids:
-        print 'delete {}'.format(id)
+        InfoLogger().print_r('delete {}'.format(id))
         file=mon_db.items.find_one({'id':id})
         name=file['name']
         path=file['path'].replace(name,'')
         if len(path.split('/'))>2 and path.split('/')[-1]=='':
             path=path[:-1]
         key='has_item$#$#$#$#{}$#$#$#$#{}'.format(path,name)
-        print('delete key:{}'.format(key))
+        InfoLogger().print_r('delete key:{}'.format(key))
         redis_client.delete(key)
         kc='{}:content'.format(id)
         redis_client.delete(kc)
@@ -493,7 +494,11 @@ def off_download():
         return jsonify({'status':True,'msg':'ok'})
     path=request.args.get('path')
     user,grand_path=path.split(':')
-    return render_template('admin/offdownload.html',grand_path=grand_path,cur_user=user)
+    msg=None
+    p,status=get_aria2()
+    if not status:
+        msg=p
+    return render_template('admin/offdownload.html',grand_path=grand_path,cur_user=user,msg=msg)
 
 
 @admin.route('/jsonrpc',methods=['POST'])
@@ -648,7 +653,7 @@ def panage():
             if 'share_path' in k or 'other_name' in k:
                 user=re.findall('\[(.*?)\]',k)[0]
                 key=re.findall('(.*)\[',k)[0]
-                print('setting {}\'s {}\'s value {}'.format(user,key,v))
+                InfoLogger().print_r('setting {}\'s {}\'s value {}'.format(user,key,v))
                 set(key,v,user)
         config_path=os.path.join(config_dir,'self_config.py')
         with open(config_path,'r') as f:
