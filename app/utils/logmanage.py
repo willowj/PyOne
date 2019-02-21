@@ -1,6 +1,8 @@
 #-*- coding=utf-8 -*-
+import os
 import logging
 from logging import handlers
+from self_config import config_dir
 
 class Logger(object):
     level_relations = {
@@ -11,7 +13,7 @@ class Logger(object):
         'crit':logging.CRITICAL
     }#日志级别关系映射
 
-    def __init__(self,filename='logs/PyOne.running.log',level='debug',when='D',backCount=3,fmt='%(asctime)s - %(levelname)s: %(message)s'):
+    def __init__(self,filename=os.path.join(config_dir,'logs/PyOne.running.log'),level='debug',when='D',backCount=3,fmt='%(asctime)s - %(levelname)s: %(message)s'):
         self.filename=filename
         self.level=level
         self.logger = logging.getLogger(self.filename)
@@ -53,7 +55,7 @@ class InfoLogger(Logger):
 
 class ErrorLogger(Logger):
     """docstring for Log"""
-    def __init__(self,filename='logs/PyOne.error.log'):
+    def __init__(self,filename=os.path.join(config_dir,'logs/PyOne.error.log')):
         super(ErrorLogger,self).__init__(filename)
 
     def print_r(self,msg):

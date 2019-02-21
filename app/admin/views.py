@@ -30,7 +30,7 @@ def set(key,value,user='A'):
             value=value.split(',')
             new_text=re.sub('{}=.*'.format(key),'{}={}'.format(key,value),old_text)
         elif key in ['tj_code','cssCode','headCode','footCode']:
-            new_text=re.sub('{}=.*'.format(key),'{}="""{}"""'.format(key,value),old_text)
+            new_text=re.sub('{}="""[\w\W]*?"""'.format(key),'{}="""{}"""'.format(key,value),old_text)
         else:
             new_text=re.sub('{}=.*'.format(key),'{}="{}"'.format(key,value),old_text)
         f.write(new_text)
