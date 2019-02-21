@@ -85,7 +85,13 @@ upgrade(){
     fi
     update_config
     pip install -r requirements.txt
-    yum install lsof
+    which lsof > /dev/null 2>&1
+    if [ $? == 0 ]; then
+        echo "lsof exist"
+    else
+        echo "lsof dose not exist"
+        yum install lsof
+    fi
 }
 
 
@@ -113,6 +119,7 @@ echo "2019.02.15更新版本：新增一键卸载PyOne功能！"
 echo "2019.02.16更新版本：优化PyOne4.0安装流程！"
 echo "2019.02.19更新版本：优化细节"
 echo "2019.02.20更新版本：1. 填坑！2. 后台可配置mongo和redis信息；3. 优化离线下载体验；4. 输出日志"
+echo "2019.02.21更新版本：修复自定义代码bug"
 upgrade_to4
 upgrade
 restart
