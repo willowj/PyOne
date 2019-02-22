@@ -118,3 +118,4 @@ supervisord.conf
 *.log
 *.log*
 self_config.py
+nohup.out
