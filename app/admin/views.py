@@ -75,6 +75,9 @@ def web_console():
 @admin.route('/setting',methods=['GET','POST'])
 def setting():
     if request.method=='POST':
+        if request.files.keys()!=[]:
+            favicon=request.files['favicon']
+            favicon.save('./app/static/img/favicon.ico')
         title=request.form.get('title','PyOne')
         theme=request.form.get('theme','material')
         title_pre=request.form.get('title_pre','index of ')
@@ -162,8 +165,6 @@ def setting():
         redis_client.set('show_secret',show_secret)
         redis_client.set('encrypt_file',encrypt_file)
         redis_client.set('password',new_password)
-        favicon=request.files['favicon']
-        favicon.save('./app/static/img/favicon.ico')
         flash('更新成功')
         resp=make_response(redirect(url_for('admin.setting')))
         resp.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
