@@ -35,7 +35,7 @@ def download_and_upload(url,remote_dir,user,gid=None):
             mon_db.down_db.insert_one(item)
             return
         cur_order=mon_db.down_db.count()
-        option={"dir":down_path,"split":"16","max-connection-per-server":"8","seed-ratio":"0.1","bt-save-metadata":"false","bt-max-peers":"200","header":["User-Agent:Transmission/2.77"]}
+        option={"dir":down_path,"split":"16","max-connection-per-server":"8","seed-ratio":"0.1",'force-save':'true',"bt-save-metadata":"false","bt-max-peers":"200","header":["User-Agent:Transmission/2.77"]}
         item={}
         r=p.addUri(url,option)
         gid=json.loads(r)[0]["result"]
