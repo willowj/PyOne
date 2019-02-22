@@ -119,4 +119,4 @@ supervisord.conf
 *.log*
 self_config.py
 nohup.out
-favicon.ico
+*favicon.ico
