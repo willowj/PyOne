@@ -5,6 +5,7 @@ import os
 from flask_script import Manager, Shell
 from app import create_app
 from self_config import *
+from config import *
 from function import *
 from redis import Redis,ConnectionPool
 
@@ -42,6 +43,7 @@ tmp_rd.set('users',re.findall('od_users=([\w\W]*})',text)[0])
 key='themelist'
 tmp_rd.delete(key)
 ######################函数
+app.jinja_env.globals['version']=config.version
 app.jinja_env.globals['FetchData']=FetchData
 app.jinja_env.globals['path_list']=path_list
 app.jinja_env.globals['CanEdit']=CanEdit
