@@ -18,6 +18,11 @@ def test():
     tests = unittest.TestLoader().discover('tests')
     unittest.TextTestRunner(verbosity=2).run(tests)
 
+
+######################系统日志
+app.logger.addHandler(ErrorLogger().file_handler)
+app.logger.setLevel(logging.DEBUG)
+
 ######################初始化变量
 pool = ConnectionPool(host='localhost', port=6379, db=0)
 tmp_rd=Redis(connection_pool=pool)

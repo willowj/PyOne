@@ -6,14 +6,20 @@
     <div class="mdui-typo">
       <h1> 基本设置 <small>设置PyOne基本参数</small></h1>
     </div>
-    <form action="{{url_for('admin.setting')}}" method="POST">
+    <form action="{{url_for('admin.setting')}}" method="POST" enctype="multipart/form-data">
 
-          <h4>主题选择</h4>
-          <select class="mdui-select" name="theme" mdui-select>
-            {%for t in GetThemeList()%}
-              <option value="{{t}}"{%if GetConfig('theme')==t%} selected{%endif%}>{{t}}</option>
-            {%endfor%}
-          </select>
+        <div class="mdui-textfield">
+          <h4>图标选择</h4>
+          <img src="/favicon.ico" style="width: 20px;height: 20px;">
+          <input class="mdui-textfield-input" type="file" name="favicon" accept="image/vnd.microsoft.icon"/>
+        </div>
+
+        <h4>主题选择</h4>
+        <select class="mdui-select" name="theme" mdui-select>
+          {%for t in GetThemeList()%}
+            <option value="{{t}}"{%if GetConfig('theme')==t%} selected{%endif%}>{{t}}</option>
+          {%endfor%}
+        </select>
 
         <div class="mdui-textfield">
           <h4>网站名称</h4>

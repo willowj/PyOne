@@ -1,5 +1,5 @@
 #-*- coding=utf-8 -*-
-from flask import render_template,redirect,abort,make_response,jsonify,request,url_for,Response
+from flask import render_template,redirect,abort,make_response,jsonify,request,url_for,Response,send_from_directory
 from flask_sqlalchemy import Pagination
 from ..utils import *
 from ..extend import *
@@ -34,13 +34,19 @@ def page_not_found(e):
     # note that we set the 500 status explicitly
     return render_template('theme/{}/500.html'.format(GetConfig('theme')),cur_user=''), 500
 
+@front.route('/favicon.ico')
+def favicon():
+    resp=make_response(send_from_directory(os.path.join(config_dir, 'app/static/img'),'favicon.ico',mimetype='image/vnd.microsoft.icon'))
+    resp.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    resp.headers['Pragma'] = 'no-cache'
+    resp.headers['Expires'] = '0'
+    return resp
+
 @front.route('/<path:path>',methods=['POST','GET'])
 @front.route('/',methods=['POST','GET'])
 @limiter.limit("200/minute;50/second")
 def index(path='A:/'):
     path=urllib.unquote(path).replace('&action=play','')
-    if path=='favicon.ico':
-        return redirect('https://onedrive.live.com/favicon.ico')
     if not os.path.exists(os.path.join(config_dir,'.install')):
         resp=make_response(redirect(url_for('admin.install',step=0,user='A')))
         resp.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
