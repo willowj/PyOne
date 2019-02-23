@@ -313,13 +313,11 @@ def AddResource(data,user='A'):
         share_path=share_path[1:]
     if grand_path=='':
         parent_id=''
-        grandid=0
     else:
         g=GetItemThread(Queue(),user)
         parent_id=data.get('parentReference').get('id')
-        grand_path=grand_path[1:]
+        # grand_path=grand_path[1:]
         grand_path=grand_path.replace(share_path,'',1)
-        grandid=len(grand_path.split('/'))-1
         if grand_path.startswith('/'):
             grand_path=grand_path[1:]
         if grand_path!='':
@@ -331,7 +329,7 @@ def AddResource(data,user='A'):
                     pid=parent['id']
                     parent_path='/'.join([parent_path,parent['name']])
                 else:
-                    parent_path='/'.join([parent_path,p])
+                    parent_path=('/'.join([parent_path,p])).replace('//','/')
                     fdata=g.GetItemByPath(parent_path)
                     path=user+':/'+parent_path.replace('///','/')
                     path=path.replace('///','/').replace('//','/')
@@ -350,6 +348,7 @@ def AddResource(data,user='A'):
                     mon_db.items.insert_one(item)
                     pid=fdata.get('id')
     #插入数据
+    print data.get('size')
     item={}
     item['type']=GetExt(data.get('name'))
     item['name']=data.get('name')
@@ -358,7 +357,6 @@ def AddResource(data,user='A'):
     item['size']=humanize.naturalsize(data.get('size'), gnu=True)
     item['size_order']=data.get('size')
     item['lastModtime']=date_to_char(parse(data.get('lastModifiedDateTime')))
-    item['grandid']=grandid
     item['parent']=parent_id
     if grand_path=='':
         path=user+':/'+convert2unicode(data['name'])
@@ -368,14 +366,12 @@ def AddResource(data,user='A'):
         else:
             path=user+':/'+grand_path+'/'+convert2unicode(data['name'])
     path=path.replace('//','/')
-    InfoLogger().print_r('new file path:{}'.format(path))
+    grandid=len(path.split('/'))-2
+    item['grandid']=grandid
     item['path']=path
+    InfoLogger().print_r('AddResource: name:{};path:{};grandid:{}'.format(data.get('name'),path,grandid))
     if GetExt(data['name']) in ['bmp','jpg','jpeg','png','gif']:
         item['order']=3
-        # key1='name:{}'.format(data['id'])
-        # key2='path:{}'.format(data['id'])
-        # redis_client.set(key1,data['name'])
-        # redis_client.set(key2,path)
     elif data['name']=='.password':
         item['order']=1
     else:

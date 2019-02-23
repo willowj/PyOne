@@ -163,6 +163,8 @@ def show(fileid,user,action='download'):
         resp=make_response(abort(404))
     if 'no-referrer' in GetConfig('allow_site').split(',') or sum([i in referrer for i in GetConfig('allow_site').split(',')])>0:
         downloadUrl,play_url=GetDownloadUrl(fileid,user)
+        if not downloadUrl.startswith('http'):
+            return make_response(downloadUrl)
         if ext in ['webm','avi','mpg', 'mpeg', 'rm', 'rmvb', 'mov', 'wmv', 'mkv', 'asf']:
             if action=='play':
                 resp=make_response(redirect(play_url))

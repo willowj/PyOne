@@ -147,7 +147,8 @@ def _getdownloadurl(id,user):
     if data.get('@microsoft.graph.downloadUrl'):
         downloadUrl=data.get('@microsoft.graph.downloadUrl')
     else:
-        downloadUrl=False
+        ErrorLogger().print_r('Getting resource:{} {} error:{}'.format(id,filename,data.get('error').get('message')))
+        downloadUrl=data.get('error').get('message')
     if ext in ['webm','avi','mpg', 'mpeg', 'rm', 'rmvb', 'mov', 'wmv', 'mkv', 'asf']:
         play_url=_thunbnail(id,user)
         play_url=play_url.replace('thumbnail','videomanifest').replace('&width=800&height=800','')+'&part=index&format=dash&useScf=True&pretranscode=0&transcodeahead=0'
@@ -175,6 +176,8 @@ def GetDownloadUrl(id,user):
         # InfoLogger().print_r('first time get downloadUrl from {}'.format(id))
         downloadUrl,play_url=_getdownloadurl(id,user)
         ftime=int(time.time())
+        if not downloadUrl.startswith('http'):
+            return downloadUrl,downloadUrl
         k='####'.join([downloadUrl,play_url,str(ftime)])
         redis_client.set(key_,k)
     return downloadUrl,play_url
@@ -240,17 +243,20 @@ def CodeType(ext):
     return code_type.get(ext.lower())
 
 def file_ico(item):
-    ext = item['name'].split('.')[-1].lower()
-    if ext in ['bmp','jpg','jpeg','png','gif']:
-        return "image"
+    try:
+        ext = item['name'].split('.')[-1].lower()
+        if ext in ['bmp','jpg','jpeg','png','gif']:
+            return "image"
 
-    if ext in ['mp4','mkv','webm','avi','mpg', 'mpeg', 'rm', 'rmvb', 'mov', 'wmv', 'mkv', 'asf']:
-        return "ondemand_video"
+        if ext in ['mp4','mkv','webm','avi','mpg', 'mpeg', 'rm', 'rmvb', 'mov', 'wmv', 'mkv', 'asf']:
+            return "ondemand_video"
 
-    if ext in ['ogg','mp3','wav']:
-        return "audiotrack"
+        if ext in ['ogg','mp3','wav']:
+            return "audiotrack"
 
-    return "insert_drive_file"
+        return "insert_drive_file"
+    except:
+        return "insert_drive_file"
 
 def _remote_content(fileid,user):
     kc='{}:content'.format(fileid)
