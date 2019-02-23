@@ -25,7 +25,20 @@ def before_request():
     # print '{}:{}:{}'.format(request.endpoint,ip,ua)
     referrer=request.referrer if request.referrer is not None else 'no-referrer'
     if request.endpoint.startswith('front'):
-        msg,status=CheckServer()
+        key='CheckServer:last'
+        if redis_client.exists(key):
+            last,msg,status=redis_client.get(key).split('####')
+            status=eval(status)
+            if time.time()-float(last)>=3600:
+                msg,status=CheckServer()
+                last=str(time.time())
+                msg='####'.join([last,msg,str(status)])
+                redis_client.set(key,msg)
+        else:
+            msg,status=CheckServer()
+            last=str(time.time())
+            msg='####'.join([last,msg,str(status)])
+            redis_client.set(key,msg)
         if not status:
             return make_response(msg)
 
