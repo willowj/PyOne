@@ -590,14 +590,18 @@ def clearRedis():
 def CheckServer():
     mongo_cmd='lsof -i:27017 | grep LISTEN'
     redis_cmd='lsof -i:6379 | grep LISTEN'
-    r1=len(subprocess.Popen(mongo_cmd,shell=True,stdout=subprocess.PIPE).stdout.readlines())
-    r2=len(subprocess.Popen(redis_cmd,shell=True,stdout=subprocess.PIPE).stdout.readlines())
+    p1=subprocess.Popen(mongo_cmd,shell=True,stdout=subprocess.PIPE)
+    p2=subprocess.Popen(redis_cmd,shell=True,stdout=subprocess.PIPE)
+    r1=len(p1.stdout.readlines())
+    r2=len(p2.stdout.readlines())
     msg='<h1><br>'
     if r1==0:
         msg+='<p>MongoDB未运行</p>'
     if r2==0:
         msg+='<p>Redis未运行</p>'
     msg+='</h1>'
+    p1.terminate()
+    p2.terminate()
     if r1==0 or r2==0:
         return msg,False
     else:
