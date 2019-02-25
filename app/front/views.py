@@ -24,28 +24,13 @@ def before_request():
         return redirect('http://www.baidu.com')
     # print '{}:{}:{}'.format(request.endpoint,ip,ua)
     referrer=request.referrer if request.referrer is not None else 'no-referrer'
-    if request.endpoint.startswith('front'):
-        key='CheckServer:last'
-        if redis_client.exists(key):
-            last,msg,status=redis_client.get(key).split('####')
-            status=eval(status)
-            if time.time()-float(last)>=3600:
-                msg,status=CheckServer()
-                last=str(time.time())
-                msg='####'.join([last,msg,str(status)])
-                redis_client.set(key,msg)
-        else:
-            msg,status=CheckServer()
-            last=str(time.time())
-            msg='####'.join([last,msg,str(status)])
-            redis_client.set(key,msg)
-        if not status:
-            return make_response(msg)
+
 
 @front.errorhandler(500)
 def page_not_found(e):
     # note that we set the 500 status explicitly
-    return render_template('theme/{}/500.html'.format(GetConfig('theme')),cur_user=''), 500
+    msg,status=CheckServer()
+    return render_template('theme/{}/500.html'.format(GetConfig('theme')),cur_user='',msg=msg), 500
 
 @front.route('/favicon.ico')
 def favicon():
