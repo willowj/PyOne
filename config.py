@@ -9,7 +9,7 @@ class config:
     SECRET_KEY = os.path.join(config_dir,'PyOne'+password)
     CACHE_TYPE='redis'
     SEND_FILE_MAX_AGE_DEFAULT=timedelta(seconds=1)
-    version='4.19223'
+    version='4.19225'
 
     @staticmethod
     def init_app(app):
