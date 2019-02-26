@@ -2,33 +2,38 @@
 from header import *
 import header
 
+
 def _upload(filepath,remote_path,user='A'): #remote_path like 'share/share.mp4'
     token=GetToken(user=user)
     headers={'Authorization':'bearer {}'.format(token)}
     headers.update(default_headers)
     url=app_url+'v1.0/me/drive/root:{}:/content'.format(urllib.quote(convert2unicode(remote_path)))
-    r=requests.put(url,headers=headers,data=open(filepath,'rb'))
+    timeCalc=TimeCalculator()
+    r=browser.put(url,headers=headers,data=open(filepath,'rb'))
+    # r=CurlUpload(url,headers,open(filepath,'rb'))
     try:
         data=json.loads(r.content)
         trytime=1
         while 1:
             try:
                 if data.get('error'):
-                    InfoLogger().print_r(data.get('error').get('message'))
+                    InfoLogger().print_r('upload {} fail; reason: {}'.format(filepath,data.get('error').get('message')))
                     yield {'status':'upload fail!'}
                     break
                 elif r.status_code==201 or r.status_code==200:
-                    InfoLogger().print_r('upload {} success!'.format(filepath))
+                    speed=CalcSpeed(header._filesize(filepath),timeCalc.PassNow())['kb']
+                    InfoLogger().print_r('upload {} success! speed:{}'.format(filepath,speed))
                     AddResource(data,user)
-                    yield {'status':'upload success!'}
+                    yield {'status':'upload success!','speed':speed}
                     break
                 else:
                     InfoLogger().print_r(data)
                     yield {'status':'upload fail!'}
                     break
             except Exception as e:
+                exstr = traceback.format_exc()
                 trytime+=1
-                ErrorLogger().print_r('error to opreate _upload("{}","{}"), try times {},error:{}'.format(filepath,remote_path,trytime,e))
+                ErrorLogger().print_r('error to opreate _upload("{}","{}"), try times {},error:{}'.format(filepath,remote_path,trytime,exstr))
                 yield {'status':'upload fail! retry!'}
             if trytime>3:
                 yield {'status':'upload fail! touch max retry time(3)'}
@@ -38,30 +43,33 @@ def _upload(filepath,remote_path,user='A'): #remote_path like 'share/share.mp4'
         ErrorLogger().print_r(u'upload fail!{}'.format(exstr))
         ErrorLogger().print_r(r.content)
 
-def _upload_part(uploadUrl, filepath, offset, length,trytime=1):
-    size=header._filesize(filepath)
+def _upload_part(uploadUrl, filepath,filesize, offset, length,trytime=1):
     offset,length=map(int,(offset,length))
-    if offset>size:
+    if offset>filesize:
         InfoLogger().print_r('offset must smaller than file size')
         return {'status':'fail','msg':'params mistake','code':1}
-    length=length if offset+length<size else size-offset
-    endpos=offset+length-1 if offset+length<size else size-1
-    InfoLogger().print_r('upload file {} {}%'.format(filepath,round(float(endpos)/size*100,1)))
+    length=length if offset+length<filesize else filesize-offset
+    endpos=offset+length-1 if offset+length<filesize else filesize-1
+    # InfoLogger().print_r('upload file {} {}%'.format(filepath,round(float(endpos)/filesize*100,1)))
     filebin=header._file_content(filepath,offset,length)
     headers={}
     # headers['Authorization']='bearer {}'.format(token)
     headers['Content-Length']=str(length)
-    headers['Content-Range']='bytes {}-{}/{}'.format(offset,endpos,size)
+    headers['Content-Range']='bytes {}-{}/{}'.format(offset,endpos,filesize)
     headers.update(default_headers)
     try:
-        r=requests.put(uploadUrl,headers=headers,data=filebin)
+        timeCalc=TimeCalculator()
+        r=browser.put(uploadUrl,headers=headers,data=filebin)
+        # r=CurlUpload(uploadUrl,headers,filebin)
         data=json.loads(r.content)
+        speed=CalcSpeed(length,timeCalc.PassNow())['kb']
         if r.status_code==201 or r.status_code==200:
-            InfoLogger().print_r(u'{} upload success!'.format(filepath))
-            return {'status':'success','msg':'all upload success','code':0,'info':data}
+            InfoLogger().print_r(u'{} upload success! real time speed:{}'.format(filepath,speed))
+            return {'status':'success','msg':'all upload success','code':0,'info':data,'speed':speed}
         elif r.status_code==202:
             offset=data.get('nextExpectedRanges')[0].split('-')[0]
-            return {'status':'success','msg':'partition upload success','code':1,'offset':offset}
+            InfoLogger().print_r(u'{} partition upload success! {}%! real time speed:{}'.format(filepath,round(float(endpos)/filesize*100,1),speed))
+            return {'status':'success','msg':'partition upload success','code':1,'offset':offset,'speed':speed}
         else:
             trytime+=1
             if trytime<=3:
@@ -75,7 +83,8 @@ def _upload_part(uploadUrl, filepath, offset, length,trytime=1):
                         ,'sys_msg':data.get('error').get('message')
                         ,'code':3}
     except Exception as e:
-        ErrorLogger().print_r('error to opreate _upload_part("{}","{}","{}","{}"), try times {},reason:{}'.format(uploadUrl, filepath, offset, length,trytime,e))
+        exstr = traceback.format_exc()
+        ErrorLogger().print_r('error to opreate _upload_part("{}","{}","{}","{}"), try times {},reason:{}'.format(uploadUrl, filepath, offset, length,trytime,exstr))
         trytime+=1
         if trytime<=3:
             return {'status':'fail','msg':'please retry','code':2,'trytime':trytime,'sys_msg':''}
@@ -92,8 +101,9 @@ def CreateUploadSession(path,user='A'):
             "@microsoft.graph.conflictBehavior": "fail",
           }
         }
+    InfoLogger().print_r('create upload session for :{}'.format(path))
     try:
-        r=requests.post(url,headers=headers,data=json.dumps(data))
+        r=browser.post(url,headers=headers,data=json.dumps(data))
         retdata=json.loads(r.content)
         if r.status_code==409:
             InfoLogger().print_r('file exists')
@@ -104,13 +114,13 @@ def CreateUploadSession(path,user='A'):
         ErrorLogger().print_r('error to opreate CreateUploadSession("{}"),reason {}'.format(path,e))
         return False
 
-def UploadSession(uploadUrl, filepath,user):
-    length=327680*10
+def UploadSession(uploadUrl,filesize, filepath,user):
+    length=1024*1024*3.25
     offset=0
     trytime=1
-    filesize=header._filesize(filepath)
+    # filesize=header._filesize(filepath)
     while 1:
-        result=_upload_part(uploadUrl, filepath, offset, length,trytime=trytime)
+        result=_upload_part(uploadUrl, filepath,filesize, offset, length,trytime=trytime)
         code=result['code']
         #上传完成
         if code==0:
@@ -122,6 +132,7 @@ def UploadSession(uploadUrl, filepath,user):
             trytime=1
             offset=result['offset']
             per=round((float(offset)/filesize)*100,1)
+            # InfoLogger().print_r('upload file success {} {}%;real time speed:{}'.format(filepath,round(float(endpos)/size*100,1),speed))
             yield {'status':'partition upload success! {}%'.format(per),'uploadUrl':uploadUrl}
         #错误，重试
         elif code==2:
@@ -147,9 +158,10 @@ def Upload_for_server(filepath,remote_path=None,user='A'):
     if not remote_path.startswith('/'):
         remote_path='/'+remote_path
     filepath=convert2unicode(filepath)
-    remote_path=convert2unicode(remote_path)
+    remote_path=convert2unicode(remote_path.replace('//','/'))
+    filesize=header._filesize(filepath)
     InfoLogger().print_r('local file path:{}, remote file path:{}'.format(filepath,remote_path))
-    if header._filesize(filepath)<1024*1024*3.25:
+    if filesize<1024*1024*3.25:
         for msg in _upload(filepath,remote_path,user):
             yield msg
     else:
@@ -158,17 +170,49 @@ def Upload_for_server(filepath,remote_path=None,user='A'):
             yield {'status':'file exists!'}
         else:
             if session_data.get('uploadUrl'):
+                InfoLogger().print_r('start upload {}'.format(filepath))
                 uploadUrl=session_data.get('uploadUrl')
-                for msg in UploadSession(uploadUrl,filepath,user):
+                for msg in UploadSession(uploadUrl,filesize,filepath,user):
                     yield msg
             else:
                 InfoLogger().print_r('user:{} create upload session fail! {},{}'.format(user,remote_path,session_data.get('error').get('message')))
                 yield {'status':'user:{};create upload session fail!{}'.format(user,session_data.get('error').get('message'))}
 
+def Upload(filepath,remote_path=None,user='A'):
+    token=GetToken(user=user)
+    headers={'Authorization':'bearer {}'.format(token),'Content-Type':'application/json'}
+    if remote_path is None:
+        remote_path=os.path.basename(filepath)
+    if remote_path.endswith('/'):
+        remote_path=os.path.join(remote_path,os.path.basename(filepath))
+    if not remote_path.startswith('/'):
+        remote_path='/'+remote_path
+    remote_path=remote_path.replace('//','/')
+    filesize=header._filesize(filepath)
+    InfoLogger().print_r('local file path:{}, remote file path:{}'.format(filepath,remote_path))
+    if filesize<1024*1024*3.25:
+        for msg in _upload(filepath,remote_path,user):
+            1
+    else:
+        session_data=CreateUploadSession(remote_path,user)
+        if session_data==False:
+            return {'status':'file exists!'}
+        else:
+            if session_data.get('uploadUrl'):
+                InfoLogger().print_r('start upload {}'.format(filepath))
+                uploadUrl=session_data.get('uploadUrl')
+                for msg in UploadSession(uploadUrl,filesize,filepath,user):
+                    1
+            else:
+                InfoLogger().print_r(session_data.get('error').get('msg'))
+                InfoLogger().print_r('create upload session fail! {}'.format(remote_path))
+                return {'status':'create upload session fail!'}
+
+
 def ContinueUpload(filepath,uploadUrl,user):
     headers={'Content-Type':'application/json'}
     headers.update(default_headers)
-    r=requests.get(uploadUrl,headers=headers)
+    r=browser.get(uploadUrl,headers=headers)
     data=json.loads(r.text)
     offset=data.get('nextExpectedRanges')[0].split('-')[0]
     expires_on=time.mktime(parse(data.get('expirationDateTime')).timetuple())
@@ -205,32 +249,6 @@ def ContinueUpload(filepath,uploadUrl,user):
             elif code==3:
                 yield {'status':'partition upload fail! touch max retry times!'}
                 break
-
-def Upload(filepath,remote_path=None,user='A'):
-    token=GetToken(user=user)
-    headers={'Authorization':'bearer {}'.format(token),'Content-Type':'application/json'}
-    if remote_path is None:
-        remote_path=os.path.basename(filepath)
-    if remote_path.endswith('/'):
-        remote_path=os.path.join(remote_path,os.path.basename(filepath))
-    if not remote_path.startswith('/'):
-        remote_path='/'+remote_path
-    if header._filesize(filepath)<1024*1024*3.25:
-        for msg in _upload(filepath,remote_path,user):
-            1
-    else:
-        session_data=CreateUploadSession(remote_path,user)
-        if session_data==False:
-            return {'status':'file exists!'}
-        else:
-            if session_data.get('uploadUrl'):
-                uploadUrl=session_data.get('uploadUrl')
-                for msg in UploadSession(uploadUrl,filepath,user):
-                    1
-            else:
-                InfoLogger().print_r(session_data.get('error').get('msg'))
-                InfoLogger().print_r('create upload session fail! {}'.format(remote_path))
-                return {'status':'create upload session fail!'}
 
 
 class MultiUpload(Thread):

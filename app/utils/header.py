@@ -58,6 +58,8 @@ ReFreshData='client_id={client_id}&redirect_uri={redirect_uri}&client_secret={cl
 
 default_headers={'User-Agent':'ISV|PyOne|PyOne/4.0'}
 
+browser=requests.Session()
+
 #转字符串
 def convert2unicode(string):
     return string.encode('utf-8')
@@ -126,7 +128,7 @@ def ReFreshToken(refresh_token,user='A'):
     headers.update(default_headers)
     data=ReFreshData.format(client_id=client_id,redirect_uri=urllib.quote(redirect_uri),client_secret=client_secret,refresh_token=refresh_token)
     url=OAuthUrl
-    r=requests.post(url,data=data,headers=headers)
+    r=browser.post(url,data=data,headers=headers)
     return json.loads(r.text)
 
 
@@ -177,13 +179,13 @@ def CheckTimeOut(fileid):
     headers={'Authorization':'bearer {}'.format(token),'Content-Type':'application/json'}
     headers.update(default_headers)
     url=app_url+'v1.0/me/drive/mon_db.items/'+fileid
-    r=requests.get(url,headers=headers)
+    r=browser.get(url,headers=headers)
     data=json.loads(r.content)
     if data.get('@microsoft.graph.downloadUrl'):
         downloadUrl=data.get('@microsoft.graph.downloadUrl')
         start_time=time.time()
         for i in range(10000):
-            r=requests.head(downloadUrl)
+            r=browser.head(downloadUrl)
             InfoLogger().print_r('{}\'s gone, status:{}'.format(time.time()-start_time,r.status_code))
             if r.status_code==404:
                 break
@@ -384,13 +386,13 @@ def CheckTimeOut(fileid):
     headers={'Authorization':'bearer {}'.format(token),'Content-Type':'application/json'}
     headers.update(default_headers)
     url=app_url+'v1.0/me/drive/mon_db.items/'+fileid
-    r=requests.get(url,headers=headers)
+    r=browser.get(url,headers=headers)
     data=json.loads(r.content)
     if data.get('@microsoft.graph.downloadUrl'):
         downloadUrl=data.get('@microsoft.graph.downloadUrl')
         start_time=time.time()
         for i in range(10000):
-            r=requests.head(downloadUrl)
+            r=browser.head(downloadUrl)
             InfoLogger().print_r('{}\'s gone, status:{}'.format(time.time()-start_time,r.status_code))
             if r.status_code==404:
                 break
@@ -431,7 +433,7 @@ class GetItemThread(Thread):
         headers={'Authorization': 'Bearer {}'.format(token)}
         headers.update(default_headers)
         try:
-            r=requests.get(url,headers=headers,timeout=10)
+            r=browser.get(url,headers=headers,timeout=10)
             data=json.loads(r.content)
             if data.get('error'):
                 InfoLogger().print_r('error:{}! waiting 180s'.format(data.get('error').get('message')))
@@ -566,7 +568,7 @@ class GetItemThread(Thread):
             url=app_url+u'v1.0/me/drive/root:{}:/'.format(path)
         headers={'Authorization': 'Bearer {}'.format(token)}
         headers.update(default_headers)
-        r=requests.get(url,headers=headers)
+        r=browser.get(url,headers=headers)
         data=json.loads(r.content)
         return data
 
@@ -575,7 +577,7 @@ class GetItemThread(Thread):
         token=GetToken(user=self.user)
         headers={'Authorization': 'Bearer {}'.format(token)}
         headers.update(default_headers)
-        r=requests.get(url,headers=headers)
+        r=browser.get(url,headers=headers)
         data=json.loads(r.content)
         return data
 
@@ -607,3 +609,18 @@ def CheckServer():
     else:
         return msg,True
 
+class TimeCalculator:
+    """docstring for SpeedCalculator"""
+    def __init__(self):
+        self.starttime=time.time()
+
+    def PassNow(self):
+        return round(time.time()-self.starttime,3)
+
+def CalcSpeed(length,timecost):
+    raw_sp=length/timecost
+    info={
+        'kb':str(round(raw_sp/1024,1))+'KB/s',
+        'mb':str(round(raw_sp/1024/1024,1))+'MB/s',
+    }
+    return info

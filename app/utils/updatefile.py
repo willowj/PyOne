@@ -110,7 +110,7 @@ def GetRootid(user='A'):
         url=app_url+u'v1.0/me/drive/root/'
         headers={'Authorization': 'Bearer {}'.format(token)}
         headers.update(default_headers)
-        r=requests.get(url,headers=headers)
+        r=browser.get(url,headers=headers)
         data=json.loads(r.content)
         redis_client.set(key,data['id'],3600)
         return data['id']
@@ -121,7 +121,7 @@ def FileExists(filename,user='A'):
     headers={'Authorization':'bearer {}'.format(token),'Content-Type':'application/json'}
     headers.update(default_headers)
     search_url=app_url+"v1.0/me/drive/root/search(q='{}')".format(convert2unicode(filename))
-    r=requests.get(search_url,headers=headers)
+    r=browser.get(search_url,headers=headers)
     jsondata=json.loads(r.text)
     if len(jsondata['value'])==0:
         return False
@@ -133,6 +133,6 @@ def FileInfo(fileid,user='A'):
     headers={'Authorization':'bearer {}'.format(token),'Content-Type':'application/json'}
     headers.update(default_headers)
     search_url=app_url+"v1.0/me/drive/items/{}".format(fileid)
-    r=requests.get(search_url,headers=headers)
+    r=browser.get(search_url,headers=headers)
     jsondata=json.loads(r.text)
     return jsondata

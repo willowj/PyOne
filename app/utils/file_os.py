@@ -11,7 +11,7 @@ def DeleteRemoteFile(fileid,user='A'):
     headers={'Authorization':'bearer {}'.format(token)}
     headers.update(default_headers)
     url=app_url+'v1.0/me/drive/items/'+fileid
-    r=requests.delete(url,headers=headers)
+    r=browser.delete(url,headers=headers)
     if r.status_code==204:
         DeleteLocalFile(fileid)
         return True
@@ -40,7 +40,7 @@ def CreateFolder(folder_name,grand_path,user='A'):
       "folder": {},
       "@microsoft.graph.conflictBehavior": "rename"
     }
-    r=requests.post(url,headers=headers,data=json.dumps(payload))
+    r=browser.post(url,headers=headers,data=json.dumps(payload))
     data=json.loads(r.content)
     if data.get('id'):
         #插入数据
@@ -86,7 +86,7 @@ def CreateFile(filename,path,content,user='A'):
     headers={'Authorization':'bearer {}'.format(token)}
     headers.update(default_headers)
     url=app_url+'v1.0/me/drive/items/root:{}:/content'.format(remote_file)
-    r=requests.put(url,headers=headers,data=content,timeout=10)
+    r=browser.put(url,headers=headers,data=content,timeout=10)
     data=json.loads(r.content)
     if data.get('id'):
         AddResource(data,user)
@@ -108,7 +108,7 @@ def EditFile(fileid,content,user='A'):
     headers.update(default_headers)
     url=app_url+'v1.0/me/drive/items/{}/content'.format(fileid)
     try:
-        r=requests.put(url,headers=headers,data=content,timeout=10)
+        r=browser.put(url,headers=headers,data=content,timeout=10)
         data=json.loads(r.content)
         if data.get('id'):
             info['status']=0
@@ -159,7 +159,7 @@ def MoveFile(fileid,new_folder_path,user='A'):
       },
       "name": GetName(fileid)
     }
-    r=requests.patch(url,headers=headers,data=json.dumps(payload))
+    r=browser.patch(url,headers=headers,data=json.dumps(payload))
     data=json.loads(r.content)
     if data.get('id'):
         new_value={'parent':parent,'grandid':grandid,'path':path}
@@ -186,7 +186,7 @@ def ReName(fileid,new_name,user='A'):
     payload={
       "name": new_name
     }
-    r=requests.patch(url,headers=headers,data=json.dumps(payload))
+    r=browser.patch(url,headers=headers,data=json.dumps(payload))
     data=json.loads(r.content)
     if data.get('id'):
         it=mon_db.items.find_one({'id':fileid})
