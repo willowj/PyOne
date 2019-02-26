@@ -125,7 +125,7 @@ def UploadSession(uploadUrl,filesize, filepath,user):
         #上传完成
         if code==0:
             AddResource(result['info'],user)
-            yield {'status':'upload success!','uploadUrl':uploadUrl}
+            yield {'status':'upload success!','uploadUrl':uploadUrl,'speed':result['speed']}
             break
         #分片上传成功
         elif code==1:
@@ -133,7 +133,7 @@ def UploadSession(uploadUrl,filesize, filepath,user):
             offset=result['offset']
             per=round((float(offset)/filesize)*100,1)
             # InfoLogger().print_r('upload file success {} {}%;real time speed:{}'.format(filepath,round(float(endpos)/size*100,1),speed))
-            yield {'status':'partition upload success! {}%'.format(per),'uploadUrl':uploadUrl}
+            yield {'status':'partition upload success! {}%'.format(per),'uploadUrl':uploadUrl,'speed':result['speed']}
         #错误，重试
         elif code==2:
             if result['sys_msg']=='The request has been throttled':
@@ -175,7 +175,7 @@ def Upload_for_server(filepath,remote_path=None,user='A'):
                 for msg in UploadSession(uploadUrl,filesize,filepath,user):
                     yield msg
             else:
-                InfoLogger().print_r('user:{} create upload session fail! {},{}'.format(user,remote_path,session_data.get('error').get('message')))
+                # InfoLogger().print_r('user:{} create upload session fail! {},{}'.format(user,remote_path,session_data.get('error').get('message')))
                 yield {'status':'user:{};create upload session fail!{}'.format(user,session_data.get('error').get('message'))}
 
 def Upload(filepath,remote_path=None,user='A'):
@@ -217,37 +217,38 @@ def ContinueUpload(filepath,uploadUrl,user):
     offset=data.get('nextExpectedRanges')[0].split('-')[0]
     expires_on=time.mktime(parse(data.get('expirationDateTime')).timetuple())
     if time.time()>expires_on:
-        yield 'alright expired!'
+        yield {'status':'alright expired!'}
     else:
-        length=327680*10
+        length=1024*1024*3.25
         trytime=1
         filesize=header._filesize(filepath)
         while 1:
-            result=_upload_part(uploadUrl, filepath, offset, length,trytime=trytime)
+            result=_upload_part(uploadUrl, filepath,filesize, offset, length,trytime=trytime)
             code=result['code']
             #上传完成
             if code==0:
                 AddResource(result['info'],user)
-                yield {'status':'upload success!'}
+                yield {'status':'upload success!','uploadUrl':uploadUrl,'speed':result['speed']}
                 break
             #分片上传成功
             elif code==1:
                 trytime=1
                 offset=result['offset']
                 per=round((float(offset)/filesize)*100,1)
-                yield {'status':'partition upload success! {}%'.format(per)}
+                # InfoLogger().print_r('upload file success {} {}%;real time speed:{}'.format(filepath,round(float(endpos)/size*100,1),speed))
+                yield {'status':'partition upload success! {}%'.format(per),'uploadUrl':uploadUrl,'speed':result['speed']}
             #错误，重试
             elif code==2:
                 if result['sys_msg']=='The request has been throttled':
                     InfoLogger().print_r(result['sys_msg']+' ; wait for 1800s')
-                    yield {'status':'The request has been throttled! wait for 1800s'}
+                    yield {'status':'The request has been throttled! wait for 1800s','uploadUrl':uploadUrl}
                     time.sleep(1800)
                 offset=offset
                 trytime=result['trytime']
-                yield {'status':'partition upload fail! retry!'}
+                yield {'status':'partition upload fail! retry!','uploadUrl':uploadUrl}
             #重试超过3次，放弃
             elif code==3:
-                yield {'status':'partition upload fail! touch max retry times!'}
+                yield {'status':'partition upload fail! touch max retry times!','uploadUrl':uploadUrl}
                 break
 
 

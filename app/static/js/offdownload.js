@@ -197,7 +197,7 @@ function tellActive() {
                     //header
                     html+='   <div class="mdui-panel-item-header">';
                     html+='        <div class="mdui-col-xs-6 mdui-text-truncate">'+t['title']+'</div>';
-                    html+='        <div class="mdui-col-xs-2">'+t['size']+' / '+t['down_percent']+'</div>';
+                    html+='        <div class="mdui-col-xs-4">'+t['size']+' / '+t['down_percent']+' / '+t['speed']+'</div>';
                          //active -- >pause/unpause/remove
                         td='       <div class="mdui-col-xs-2">&nbsp;&nbsp;&nbsp;';
                         if(t['down_status']=='暂停下载'){
@@ -289,7 +289,7 @@ function tellFail() {
                     //header
                     html+='   <div class="mdui-panel-item-header">';
                     html+='        <div class="mdui-col-xs-6 mdui-text-truncate">'+t['title']+'</div>';
-                    html+='        <div class="mdui-col-xs-2">'+t['size']+' / '+t['down_percent']+'</div>';
+                    html+='        <div class="mdui-col-xs-4">'+t['size']+' / '+t['down_percent']+' / '+t['speed']+'</div>';
                          //active -- >pause/unpause/remove
                         td='       <div class="mdui-col-xs-2">&nbsp;&nbsp;&nbsp;';
                         if(t['down_status']=='暂停下载'){
@@ -305,8 +305,8 @@ function tellFail() {
                         td+='<button class="mdui-btn mdui-btn-icon" onclick="removeAll(\''+t['gid']+'\')" mdui-tooltip="{content: \'删除同磁力下所有任务\'}"><i class="mdui-icon material-icons">&#xe92b;</i></button>';
                         td+='<button class="mdui-btn mdui-btn-icon" onclick="restart(\''+t['gid']+'\')" mdui-tooltip="{content: \'重新开始\'}"><i class="mdui-icon material-icons">&#xe863;</i></button> ';
                         td+='      </div>';
-                        html+=td;
                         //active end
+                    html+=td;
                     html+='    </div>';
                     //header end
                     //内嵌页面
@@ -381,7 +381,7 @@ function tellSuccess() {
                     //header
                     html+='   <div class="mdui-panel-item-header">';
                     html+='        <div class="mdui-col-xs-6 mdui-text-truncate">'+t['title']+'</div>';
-                    html+='        <div class="mdui-col-xs-2">'+t['size']+' / '+t['down_percent']+'</div>';
+                    html+='        <div class="mdui-col-xs-4">'+t['size']+' / '+t['down_percent']+' / '+t['speed']+'</div>';
                          //active -- >pause/unpause/remove
                         td='       <div class="mdui-col-xs-2">&nbsp;&nbsp;&nbsp;';
                         // if(t['selectable']=='true'){
