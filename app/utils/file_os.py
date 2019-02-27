@@ -45,6 +45,8 @@ def CreateFolder(folder_name,grand_path,user='A'):
     if data.get('id'):
         #插入数据
         share_path=od_users.get(user).get('share_path')
+        if share_path=='/':
+            share_path=''
         item={}
         item['type']='folder'
         item['user']=user
