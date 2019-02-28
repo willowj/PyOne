@@ -30,7 +30,14 @@ def before_request():
 def page_not_found(e):
     # note that we set the 500 status explicitly
     msg,status=CheckServer()
-    return render_template('theme/{}/500.html'.format(GetConfig('theme')),cur_user='',msg=msg), 500
+    return render_template('error.html',msg=msg,code=500), 500
+
+@front.errorhandler(404)
+def page_not_found(e):
+    # note that we set the 404 status explicitly
+    msg,status=CheckServer()
+    return render_template('error.html',msg=msg,code=404), 404
+
 
 @front.route('/favicon.ico')
 def favicon():
@@ -46,11 +53,9 @@ def index(path='A:/'):
         resp=MakeResponse(redirect(url_for('admin.install',step=0,user='A')))
         return resp
     try:
-        path.split(':')
+        user,n_path=path.split(':')
     except:
-        path='A:/'+path
-    #参数
-    user,n_path=path.split(':')
+        return MakeResponse(abort(404))
     if n_path=='':
         path=':'.join([user,'/'])
     page=request.args.get('page',1,type=int)
@@ -58,10 +63,6 @@ def index(path='A:/'):
     sortby=GetCookie(key='sortby',default='lastModtime')
     order=GetCookie(key='order',default='desc')
     action=request.args.get('action','download')
-    # try:
-    #     action=re.findall('action=(.*)',request.url)[0]
-    # except:
-    #     action='download'
     data,total = FetchData(path=path,page=page,per_page=50,sortby=sortby,order=order,dismiss=True)
     #是否有密码
     password,_,cur=has_item(path,'.password')
