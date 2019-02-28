@@ -1,4 +1,5 @@
 #-*- coding=utf-8 -*-
+from flask import make_response
 import json
 import requests
 import collections
@@ -624,3 +625,11 @@ def CalcSpeed(length,timecost):
         'mb':str(round(raw_sp/1024/1024,1))+'MB/s',
     }
     return info
+
+
+def MakeResponse(content):
+    resp=make_response(content)
+    resp.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    resp.headers['Pragma'] = 'no-cache'
+    resp.headers['Expires'] = '0'
+    return resp

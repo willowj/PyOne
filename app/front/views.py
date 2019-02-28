@@ -34,10 +34,7 @@ def page_not_found(e):
 
 @front.route('/favicon.ico')
 def favicon():
-    resp=make_response(send_from_directory(os.path.join(config_dir, 'app/static/img'),'favicon.ico',mimetype='image/vnd.microsoft.icon'))
-    resp.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
-    resp.headers['Pragma'] = 'no-cache'
-    resp.headers['Expires'] = '0'
+    resp=MakeResponse(send_from_directory(os.path.join(config_dir, 'app/static/img'),'favicon.ico',mimetype='image/vnd.microsoft.icon'))
     return resp
 
 @front.route('/<path:path>',methods=['POST','GET'])
@@ -46,10 +43,7 @@ def favicon():
 def index(path='A:/'):
     path=urllib.unquote(path).replace('&action=play','')
     if not os.path.exists(os.path.join(config_dir,'.install')):
-        resp=make_response(redirect(url_for('admin.install',step=0,user='A')))
-        resp.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
-        resp.headers['Pragma'] = 'no-cache'
-        resp.headers['Expires'] = '0'
+        resp=MakeResponse(redirect(url_for('admin.install',step=0,user='A')))
         return resp
     try:
         path.split(':')
@@ -76,21 +70,15 @@ def index(path='A:/'):
     if request.method=="POST":
         password1=request.form.get('password')
         if password1==password:
-            resp=make_response(redirect(url_for('.index',path=path)))
+            resp=MakeResponse(redirect(url_for('.index',path=path)))
             resp.delete_cookie(md5_p)
             resp.set_cookie(md5_p,password)
-            resp.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
-            resp.headers['Pragma'] = 'no-cache'
-            resp.headers['Expires'] = '0'
             return resp
     if password!=False:
         if (not request.cookies.get(md5_p) or request.cookies.get(md5_p)!=password) and has_verify_==False:
             if total=='files' and GetConfig('encrypt_file')=="no":
                 return show(data['id'],user,action)
-            resp=make_response(render_template('theme/{}/password.html'.format(GetConfig('theme')),path=path,cur_user=user))
-            resp.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
-            resp.headers['Pragma'] = 'no-cache'
-            resp.headers['Expires'] = '0'
+            resp=MakeResponse(render_template('theme/{}/password.html'.format(GetConfig('theme')),path=path,cur_user=user))
             return resp
     if total=='files':
         return show(data['id'],user,action)
@@ -101,7 +89,7 @@ def index(path='A:/'):
     pagination=Pagination(query=None,page=page, per_page=50, total=total, items=None)
     if path.split(':',1)[-1]=='/':
         path=':'.join([path.split(':',1)[0],''])
-    resp=make_response(render_template('theme/{}/index.html'.format(GetConfig('theme'))
+    resp=MakeResponse(render_template('theme/{}/index.html'.format(GetConfig('theme'))
                     ,pagination=pagination
                     ,items=data
                     ,path=path
@@ -118,9 +106,6 @@ def index(path='A:/'):
     resp.set_cookie('image_mode',str(image_mode))
     resp.set_cookie('sortby',str(sortby))
     resp.set_cookie('order',str(order))
-    resp.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
-    resp.headers['Pragma'] = 'no-cache'
-    resp.headers['Expires'] = '0'
     return resp
 
 @front.route('/file/<user>/<fileid>/<action>')
@@ -135,46 +120,40 @@ def show(fileid,user,action='download'):
         if ext in ['csv','doc','docx','odp','ods','odt','pot','potm','potx','pps','ppsx','ppsxm','ppt','pptm','pptx','rtf','xls','xlsx']:
             downloadUrl,play_url=GetDownloadUrl(fileid,user)
             url = 'https://view.officeapps.live.com/op/view.aspx?src='+urllib.quote(downloadUrl)
-            resp=make_response(redirect(url))
+            resp=MakeResponse(redirect(url))
         elif ext in ['bmp','jpg','jpeg','png','gif']:
-            resp=make_response(render_template('theme/{}/show/image.html'.format(GetConfig('theme')),url=url,inner_url=inner_url,path=path,cur_user=user))
+            resp=MakeResponse(render_template('theme/{}/show/image.html'.format(GetConfig('theme')),url=url,inner_url=inner_url,path=path,cur_user=user))
         elif ext in ['mp4','webm']:
-            resp=make_response(render_template('theme/{}/show/video.html'.format(GetConfig('theme')),url=url,inner_url=inner_url,path=path,cur_user=user))
+            resp=MakeResponse(render_template('theme/{}/show/video.html'.format(GetConfig('theme')),url=url,inner_url=inner_url,path=path,cur_user=user))
         elif ext in ['avi','mpg', 'mpeg', 'rm', 'rmvb', 'mov', 'wmv', 'mkv', 'asf']:
-            resp=make_response(render_template('theme/{}/show/video2.html'.format(GetConfig('theme')),url=url,inner_url=inner_url,path=path,cur_user=user))
+            resp=MakeResponse(render_template('theme/{}/show/video2.html'.format(GetConfig('theme')),url=url,inner_url=inner_url,path=path,cur_user=user))
         elif ext in ['ogg','mp3','wav']:
-            resp=make_response(render_template('theme/{}/show/audio.html'.format(GetConfig('theme')),url=url,inner_url=inner_url,path=path,cur_user=user))
+            resp=MakeResponse(render_template('theme/{}/show/audio.html'.format(GetConfig('theme')),url=url,inner_url=inner_url,path=path,cur_user=user))
         elif CodeType(ext) is not None:
             content=common._remote_content(fileid,user)
-            resp=make_response(render_template('theme/{}/show/code.html'.format(GetConfig('theme')),content=content,url=url,inner_url=inner_url,language=CodeType(ext),path=path,cur_user=user))
+            resp=MakeResponse(render_template('theme/{}/show/code.html'.format(GetConfig('theme')),content=content,url=url,inner_url=inner_url,language=CodeType(ext),path=path,cur_user=user))
         elif name=='.password':
-            resp=make_response(abort(404))
+            resp=MakeResponse(abort(404))
         else:
             downloadUrl,play_url=GetDownloadUrl(fileid,user)
-            resp=make_response(redirect(downloadUrl))
-        resp.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
-        resp.headers['Pragma'] = 'no-cache'
-        resp.headers['Expires'] = '0'
+            resp=MakeResponse(redirect(downloadUrl))
         return resp
     InfoLogger().print_r('action:{}'.format(action))
     if name=='.password':
-        resp=make_response(abort(404))
+        resp=MakeResponse(abort(404))
     if 'no-referrer' in GetConfig('allow_site').split(',') or sum([i in referrer for i in GetConfig('allow_site').split(',')])>0:
         downloadUrl,play_url=GetDownloadUrl(fileid,user)
         if not downloadUrl.startswith('http'):
-            return make_response(downloadUrl)
+            return MakeResponse(downloadUrl)
         if ext in ['webm','avi','mpg', 'mpeg', 'rm', 'rmvb', 'mov', 'wmv', 'mkv', 'asf']:
             if action=='play':
-                resp=make_response(redirect(play_url))
+                resp=MakeResponse(redirect(play_url))
             else:
-                resp=make_response(redirect(downloadUrl))
+                resp=MakeResponse(redirect(downloadUrl))
         else:
-            resp=make_response(redirect(play_url))
+            resp=MakeResponse(redirect(play_url))
     else:
-        resp=make_response(abort(404))
-    resp.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
-    resp.headers['Pragma'] = 'no-cache'
-    resp.headers['Expires'] = '0'
+        resp=MakeResponse(abort(404))
     return resp
 
 
@@ -208,7 +187,7 @@ def find(key_word):
             info['id']=d['id']
             retdata['data'].append(info)
         return jsonify(retdata)
-    resp=make_response(render_template('theme/{}/find.html'.format(GetConfig('theme'))
+    resp=MakeResponse(render_template('theme/{}/find.html'.format(GetConfig('theme'))
                     ,pagination=pagination
                     ,items=data
                     ,path='/'
@@ -220,9 +199,6 @@ def find(key_word):
     resp.set_cookie('image_mode',str(image_mode))
     resp.set_cookie('sortby',str(sortby))
     resp.set_cookie('order',str(order))
-    resp.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
-    resp.headers['Pragma'] = 'no-cache'
-    resp.headers['Expires'] = '0'
     return resp
 
 @front.route('/robots.txt')
@@ -231,7 +207,7 @@ def robot():
 User-agent:  *
 Disallow:  /
     """
-    resp=make_response(resp)
+    resp=MakeResponse(resp)
     resp.headers['Content-Type'] = 'text/javascript; charset=utf-8'
     return resp
 
