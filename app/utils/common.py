@@ -232,6 +232,7 @@ def CodeType(ext):
     code_type['html'] = 'html';
     code_type['htm'] = 'html';
     code_type['php'] = 'php';
+    code_type['py'] = 'python';
     code_type['css'] = 'css';
     code_type['go'] = 'golang';
     code_type['java'] = 'java';

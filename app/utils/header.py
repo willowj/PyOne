@@ -39,16 +39,17 @@ def GetConfig_pre(key):
         value=eval(key)
     return value
 
-
 #######Mongodb & redis
 mongo = MongoClient(host=GetConfig_pre('MONGO_HOST'),port=int(GetConfig_pre('MONGO_PORT')),connect=False)
 mon_db=eval('mongo.{}'.format(GetConfig_pre('MONGO_DB')))
 if GetConfig_pre('MONGO_PASSWORD')!='':
     mon_db.authenticate(GetConfig_pre('MONGO_USER'),GetConfig_pre('MONGO_PASSWORD'))
 if GetConfig_pre('REDIS_PASSWORD')!='':
-    redis_client=redis.Redis(host=GetConfig_pre('REDIS_HOST'),port=int(GetConfig_pre('REDIS_PORT')),db=GetConfig_pre('REDIS_DB'),password=GetConfig_pre('REDIS_PASSWORD'))
+    pool=redis.ConnectionPool(host=GetConfig_pre('REDIS_HOST'),port=int(GetConfig_pre('REDIS_PORT')),db=GetConfig_pre('REDIS_DB'),password=GetConfig_pre('REDIS_PASSWORD'))
+    redis_client=redis.Redis(connection_pool=pool)
 else:
-    redis_client=redis.Redis(host=GetConfig_pre('REDIS_HOST'),port=int(GetConfig_pre('REDIS_PORT')),db=GetConfig_pre('REDIS_DB'))
+    pool=redis.ConnectionPool(host=GetConfig_pre('REDIS_HOST'),port=int(GetConfig_pre('REDIS_PORT')),db=GetConfig_pre('REDIS_DB'))
+    redis_client=redis.Redis(connection_pool=pool)
 
 #######授权链接
 LoginUrl=BaseAuthUrl+'/common/oauth2/v2.0/authorize?response_type=code\
@@ -597,12 +598,11 @@ def CheckServer():
     p2=subprocess.Popen(redis_cmd,shell=True,stdout=subprocess.PIPE)
     r1=len(p1.stdout.readlines())
     r2=len(p2.stdout.readlines())
-    msg='<h1><br>'
+    msg=''
     if r1==0:
-        msg+='<p>MongoDB未运行</p>'
+        msg+='<p><B>MongoDB未运行<B></p>'
     if r2==0:
-        msg+='<p>Redis未运行</p>'
-    msg+='</h1>'
+        msg+='<p><B>Redis未运行<B></p>'
     p1.terminate()
     p2.terminate()
     if r1==0 or r2==0:
