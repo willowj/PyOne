@@ -29,6 +29,7 @@ def download_and_upload(url,remote_dir,user,gid=None):
             item['remote_dir']=remote_dir
             item['uploadUrl']=''
             item['size']=0
+            item['speed']=0
             item['down_status']='-'
             item['up_status']='-'
             item['status']=-1
@@ -49,6 +50,7 @@ def download_and_upload(url,remote_dir,user,gid=None):
             localpath=a['files'][0]['path']
         item['name']=name
         item['idx']=0
+        item['speed']=0
         item['localpath']=localpath
         item['downloadUrl']=url
         item['selected']='true'
@@ -88,6 +90,7 @@ def download_and_upload(url,remote_dir,user,gid=None):
                 new_item['selected']='true'
                 new_item['selectable']='true'
                 new_item['user']=user
+                new_item['speed']='{} KB/s'.format(round(int(aa['downloadSpeed'])/1024,1))
                 new_item['remote_dir']=remote_dir
                 new_item['uploadUrl']=''
                 new_item['size']=file['length']
@@ -114,13 +117,19 @@ def download_and_upload(url,remote_dir,user,gid=None):
                 complete+=1
                 continue
             name=file['path'].replace(down_path+'/','').replace(down_path,'').replace(down_path[:-1],'')
-            new_value={'down_status':u'{}%'.format(round(float(file['completedLength'])/(float(file['length'])+0.1)*100,0))}
+            down_percent=round(float(file['completedLength'])/(float(file['length'])+0.1)*100,0)
+            down_speed='{} KB/s'.format(round(int(a['downloadSpeed'])/1024,1))
+            new_value={'down_status':u'{}%'.format(down_percent)}
+            new_value['speed']=down_speed
             new_value['name']=name
             new_value['size']=file['length']
             # new_value['size']=humanize.naturalsize(file['length'], gnu=True)
             new_value['localpath']=file['path']
+            InfoLogger().print_r('{} download status:{};speed:{}'.format(name,down_percent,down_speed))
             if a['status']=='complete' or (file['completedLength']==file['length'] and int(file['length'])!=0):
                 new_value['up_status']=u'准备上传'
+                new_value['status']=0
+                new_value['down_status']='100.0%'
                 mon_db.down_db.find_one_and_update({'gid':gid,'idx':idx},{'$set':new_value})
                 upload_status(gid,idx,remote_dir,user)
                 complete+=1
@@ -147,19 +156,24 @@ def upload_status(gid,idx,remote_dir,user):
     if not remote_dir.endswith('/'):
         remote_dir=remote_dir+'/'
     remote_path=os.path.join(remote_dir,item['name'])
-    if not os.path.exists(localpath) and mon_db.down_db.find_one({'_id':item['_id']})['status']!=0:
+    if (not os.path.exists(localpath)) and mon_db.down_db.find_one({'_id':item['_id']})['status']!=0:
         new_value={}
         new_value['up_status']=u'本地文件不存在。检查：{}'.format(localpath)
         new_value['status']=-1
         mon_db.down_db.find_one_and_update({'_id':item['_id']},{'$set':new_value})
         return
-    _upload_session=Upload_for_server(localpath,remote_path,user)
+    if item['uploadUrl'] is not None and item['uploadUrl'].startswith('http'):
+        _upload_session=ContinueUpload(filepath=item['localpath'],uploadUrl=item['uploadUrl'],user=user)
+    else:
+        _upload_session=Upload_for_server(localpath,remote_path,user)
     while 1:
         try:
             new_value={}
             data=_upload_session.next()
             msg=data['status']
+            InfoLogger().print_r('{} upload status:{}'.format(item['localpath'],msg))
             """
+            alright expired!
             partition upload success
             The request has been throttled!
             partition upload fail! retry
@@ -167,8 +181,13 @@ def upload_status(gid,idx,remote_dir,user):
             file exists
             create upload session fail
             """
-            if 'partition upload success' in msg:
+            if 'alright expired!' in msg:
+                new_value['uploadUrl']=''
+                mon_db.down_db.find_one_and_update({'_id':item['_id']},{'$set':new_value})
+                return upload_status(gid,idx,remote_dir,user)
+            elif 'partition upload success' in msg:
                 new_value['up_status']=msg
+                new_value['speed']=data.get('speed')
                 new_value['uploadUrl']=data.get('uploadUrl')
                 new_value['status']=1
             elif 'The request has been throttled' in msg:
@@ -181,29 +200,30 @@ def upload_status(gid,idx,remote_dir,user):
                 new_value['up_status']='上传失败，已经超过重试次数'
                 new_value['status']=-1
                 mon_db.down_db.find_one_and_update({'_id':item['_id']},{'$set':new_value})
-                break
+                return
             elif 'file exists' in msg:
                 new_value['up_status']='远程文件已存在'
                 new_value['status']=-1
                 mon_db.down_db.find_one_and_update({'_id':item['_id']},{'$set':new_value})
-                break
+                return
             elif 'create upload session fail' in msg:
                 new_value['up_status']='创建实例失败！'
                 new_value['status']=-1
                 mon_db.down_db.find_one_and_update({'_id':item['_id']},{'$set':new_value})
-                break
+                return
             else:
                 new_value['up_status']='上传成功！'
+                new_value['speed']=data.get('speed')
                 new_value['status']=0
                 mon_db.down_db.find_one_and_update({'_id':item['_id']},{'$set':new_value})
                 time.sleep(2)
                 os.remove(localpath)
-                break
+                return
             mon_db.down_db.find_one_and_update({'_id':item['_id']},{'$set':new_value})
         except Exception as e:
             exstr = traceback.format_exc()
             ErrorLogger().print_r(exstr)
-            break
+            return
         time.sleep(2)
 
 
@@ -224,6 +244,7 @@ def get_tasks(status):
         info['files']=[]
         total_size=0
         complete=0
+        tmp_speed=0
         for file in mon_db.down_db.find({'gid':gid}):
             file_info={}
             total_size+=int(file['size'])
@@ -231,7 +252,10 @@ def get_tasks(status):
                 complete+=int(file['size'])*float(file['down_status'].replace('%',''))/100
             except Exception as e:
                 complete+=0
+            if 'partition upload success' in file['up_status'] or (file['down_status']!='100%' and '%' in file['down_status']):
+                tmp_speed=max(file['speed'],tmp_speed)
             file_info['idx']=file['idx']
+            file_info['speed']=file['speed']
             file_info['name']=file['name'].replace(title+'/','')
             file_info['size']=humanize.naturalsize(file['size'], gnu=True)
             file_info['down_status']=file['down_status']
@@ -243,9 +267,10 @@ def get_tasks(status):
                 if file['down_status'] in ["暂停下载","下载出错"]:
                     info['down_status']='暂停下载'
             info['files'].append(file_info)
+        info['speed']=tmp_speed
         info['size']=humanize.naturalsize(total_size, gnu=True)
         d=round(float(complete)/(float(total_size)+0.1)*100,0)
-        info['down_percent']=u'{}% / '.format(d)
+        info['down_percent']=u'{}%'.format(d)
         result.append(info)
     return result
 
