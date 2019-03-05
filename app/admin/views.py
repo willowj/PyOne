@@ -104,17 +104,8 @@ def setting():
         REDIS_DB=request.form.get('REDIS_DB','0')
         REDIS_PASSWORD=request.form.get('REDIS_PASSWORD','')
 
-        password1=request.form.get('password1')
-        password2=request.form.get('password2')
         show_secret=request.form.get('show_secret','no')
         encrypt_file=request.form.get('encrypt_file','no')
-        new_password=password
-        if ((password1 is not None and password2 is None) or (password1 is None and password2 is not None)):
-            flash(u'请输入新密码或者二次确认新密码')
-        elif password1 is not None and password2 is not None and password1!=password2:
-            flash(u'两次输入密码不相同')
-        elif password1 is not None and password2 is not None and password1==password2 and password1!='':
-            new_password=password1
         set('title',title)
         set('title_pre',title_pre)
         set('theme',theme)
@@ -139,7 +130,6 @@ def setting():
 
         set('show_secret',show_secret)
         set('encrypt_file',encrypt_file)
-        set('password',new_password)
         # reload()
         redis_client.set('title',title)
         redis_client.set('title_pre',title_pre)
@@ -167,12 +157,23 @@ def setting():
 
         redis_client.set('show_secret',show_secret)
         redis_client.set('encrypt_file',encrypt_file)
-        redis_client.set('password',new_password)
         flash('更新成功')
         resp=MakeResponse(redirect(url_for('admin.setting')))
         return resp
     resp=MakeResponse(render_template('admin/setting/setting.html'))
     return resp
+
+@admin.route('/setPass',methods=['POST'])
+def setPass():
+    new_password=request.form.get('new_password')
+    old_password=request.form.get('old_password')
+    if old_password==GetConfig('password'):
+        set('password',new_password)
+        redis_client.set('password',new_password)
+        data={'msg':'修改成功！'}
+    else:
+        data={'msg':'旧密码不正确'}
+    return jsonify(data)
 
 
 @admin.route('/setCode',methods=['GET','POST'])
