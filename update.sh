@@ -2,7 +2,7 @@
 
 #11.20
 del_rubbish(){
-    python -c "from function import *;down_db.delete_many({});"
+    python -c "from function import *;mon_db.down_db.delete_many({});"
 }
 
 #2019.01.10
