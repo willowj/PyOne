@@ -690,6 +690,9 @@ def add_pan():
     if request.method=='POST':
         title=request.form.get('title','PyOne')
         pan=request.form.get('pan',''.join(random.sample(string.ascii_letters,2)))
+        if pan in od_users.keys():
+            flash('盘位重复！')
+            return redirect(url_for('admin.add_pan'))
         order=request.form.get('order',0,type=int)
         info={"client_id":"",
                 "client_secret":"",
@@ -704,12 +707,13 @@ def add_pan():
         with open(config_path,'w') as f:
             old_od=re.findall('od_users={[\w\W]*}',old_text)[0]
             new_od='od_users='+json.dumps(od_users,indent=4,ensure_ascii=False)
+            print(new_od)
             new_text=old_text.replace(old_od,new_od,1)
             f.write(new_text)
         flash('添加盘符[{}]成功'.format(pan))
         key='users'
         redis_client.delete(key)
-        return render_template('admin/pan_manage/add_pan.html')
+        return redirect(url_for('admin.add_pan'))
     return render_template('admin/pan_manage/add_pan.html')
 
 
