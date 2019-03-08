@@ -49,23 +49,25 @@
                     {%else%}
                        <li class="list-group-item list-group-item-action file">
                             <a href="{{url_for('front.index',path=data['path'])}}" target="_blank">
-                                <div class="row">
                                 {%if image_mode==1%}
                                     {%if file_ico(data)=='image'%}
-                                        <img class="img-fluid" src="{{url_for('front.show',fileid=data['id'],user=cur_user,action='download')}}"/>
+                                    <img class="img-fluid" src="{{url_for('front.show',fileid=data['id'],user=cur_user,action='download')}}"/>
                                     {%else%}
+                                    <div class="row">
                                         <div class="col-8 col-sm-6" style="text-overflow:ellipsis;overflow:hidden;white-space:nowrap;">{{ macros.get_ico(file_ico(data)) }}{{data['name']}}</div>
                                         <div class="col-sm-2 d-none d-md-block d-md-none"><span class="pull-right">{{data['lastModtime']}}</span></div>
                                         <div class="col-sm-2 d-none d-md-block d-md-none"><span class="pull-right">{{data['type']}}</span></div>
                                         <div class="col-4 col-sm-2"><span class="pull-right">{{data['size']}}</span></div>
+                                    </div>
                                     {%endif%}
                                 {%else%}
+                                <div class="row">
                                     <div class="col-8 col-sm-6" style="text-overflow:ellipsis;overflow:hidden;white-space:nowrap;">{{ macros.get_ico(file_ico(data)) }}{{data['name']}}</div>
                                     <div class="col-sm-2 d-none d-md-block d-md-none"><span class="pull-right">{{data['lastModtime']}}</span></div>
                                     <div class="col-sm-2 d-none d-md-block d-md-none"><span class="pull-right">{{data['type']}}</span></div>
                                     <div class="col-4 col-sm-2"><span class="pull-right">{{data['size']}}</span></div>
-                                {%endif%}
                                 </div>
+                                {%endif%}
                             </a>
                         </li>
                     {%endif%}
