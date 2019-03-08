@@ -42,7 +42,7 @@ def FetchData(path='A:/',page=1,per_page=50,sortby='lastModtime',order='desc',di
                 if d['type']=='folder':
                     folder_name=d['path']
                 else:
-                    folder_name=d['path'].replace(d['name']+'/','')
+                    folder_name=d['path'].replace('/'+d['name'],'')
                 _,has_password,_=has_item(folder_name,'.password')
                 if has_password!=False:
                     continue
@@ -283,9 +283,12 @@ def _remote_content(fileid,user):
 def has_item(path,name):
     if mon_db.items.count()==0:
         return False,False,False
+    if len(path.split('/'))==1:
+        path=path+'/'
     key='has_item$#$#$#$#{}$#$#$#$#{}'.format(path,name)
-    InfoLogger().print_r('get key {}'.format(key))
-    if redis_client.exists(key):
+    # InfoLogger().print_r('get key {}'.format(key))
+    if False:
+    # if redis_client.exists(key):
         values=redis_client.get(key)
         item,fid,cur=values.split('########')
         if item=='False':

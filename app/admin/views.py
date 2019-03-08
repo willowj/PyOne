@@ -428,9 +428,10 @@ def setFile(filename=None):
     if path.split(':')[-1]=='':
         path=path.split(':')[0]+':/'
     user,n_path=path.split(':')
-    _,fid,i=has_item(path,filename)
-    if fid!=False and i!=False:
-        resp=MakeResponse(redirect(url_for('admin.edit',fileid=fid,user=user)))
+    check_filepath=(path+'/'+filename).replace('//','/')
+    check_data=mon_db.items.find_one({'path':check_filepath})
+    if check_data:
+        resp=MakeResponse(redirect(url_for('admin.edit',fileid=check_data['id'],user=check_data['user'])))
         return resp
     resp=MakeResponse(render_template('admin/setFile/setpass.html',path=path,filename=filename,cur_user=user))
     return resp
