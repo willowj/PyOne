@@ -52,7 +52,7 @@
                                 <div class="row">
                                 {%if image_mode==1%}
                                     {%if file_ico(data)=='image'%}
-                                        <img class="img-responsive" src="{{url_for('front.show',fileid=data['id'],user=cur_user,action='download')}}"/>
+                                        <img class="img-fluid" src="{{url_for('front.show',fileid=data['id'],user=cur_user,action='download')}}"/>
                                     {%else%}
                                         <div class="col-8 col-sm-6" style="text-overflow:ellipsis;overflow:hidden;white-space:nowrap;">{{ macros.get_ico(file_ico(data)) }}{{data['name']}}</div>
                                         <div class="col-sm-2 d-none d-md-block d-md-none"><span class="pull-right">{{data['lastModtime']}}</span></div>
