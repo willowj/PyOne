@@ -1,24 +1,29 @@
 <nav class="navbar navbar-expand-lg sticky-top navbar-dark bg-primary">
     <div class="container">
-        <a class="navbar-brand" href="https://pan.01.hn/home">{{GetConfig('title')}}</a>
-        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarColor01" aria-controls="navbarColor01" aria-expanded="false" aria-label="Toggle navigation">
-            <span class="navbar-toggler-icon"></span>
-        </button>
-        <div class="collapse navbar-collapse" id="navbarColor01">
-            <ul class="navbar-nav mr-auto">
-                {%for user in get_od_user()%}
-                    {%if user[1]!='添加网盘'%}
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{user[2]}}" class="active">{{user[1]}}</a>
-                    </li>
-                    {%endif%}
-                {%endfor%}
-            </ul>
+      <a class="navbar-brand" href="#">{{GetConfig('title')}}</a>
+      <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarColor01" aria-controls="navbarColor01" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+
+      <div class="collapse navbar-collapse" id="navbarColor01">
+        <ul class="navbar-nav mr-auto">
+        {%for user in get_od_user()%}
+            {%if user[1]!='添加网盘'%}
+              <li class="nav-item active">
+                {%if cur_user==user[0]%}
+                <a class="nav-link" href="{{user[2]}}">{{user[1]}}<span class="sr-only">(current)</span></a>
+                {%else%}
+                <a class="nav-link" href="{{user[2]}}">{{user[1]}}</a>
+                {%endif%}
+              </li>
+          {%endif%}
+        {%endfor%}
+        </ul>
+        <div class="form-inline my-2 my-lg-0">
+            <input class="form-control mr-sm-2" type="text" id='key_word' placeholder="关键词">
+            <button class="btn btn-secondary my-2 my-sm-0" onclick="py_find();">搜索</button>
         </div>
-        <div class="form-inline my-2 my-lg-0" _lpchecked="1">
-          <input class="form-control mr-sm-2" type="text" id='key_word' placeholder="关键词">
-          <button class="btn btn-secondary my-2 my-sm-0" onclick="py_find();">搜索</button>
-        </div>
+      </div>
     </div>
 </nav>
 <br>
