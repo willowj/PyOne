@@ -286,9 +286,9 @@ def has_item(path,name):
     if len(path.split('/'))==1:
         path=path+'/'
     key='has_item$#$#$#$#{}$#$#$#$#{}'.format(path,name)
-    # InfoLogger().print_r('get key {}'.format(key))
-    if False:
-    # if redis_client.exists(key):
+    InfoLogger().print_r('get key {}'.format(key))
+    # if False:
+    if redis_client.exists(key):
         values=redis_client.get(key)
         item,fid,cur=values.split('########')
         if item=='False':
