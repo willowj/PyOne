@@ -28,11 +28,7 @@
                     {%if path.split(':')[-1]!=''%}
                         <tr>
                             <td>
-                            {%if '/'.join(path_list(path)[:-1])==''%}
-                                <a href="{{url_for('front.index',path=cur_user+':/')|safe}}">
-                            {%else%}
-                                <a href="{{url_for('front.index',path='/'.join(path_list(path)[:-1]))|safe}}">
-                            {%endif%}
+                                <a href="{{list(breadCrumb(path))[-2][1]}}">
                                 <i class="fa fa-level-up" aria-hidden="true"></i> 返回上一层</a>
                             </td>
                             <td></td>

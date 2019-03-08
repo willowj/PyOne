@@ -429,7 +429,7 @@ def setFile(filename=None):
         path=path.split(':')[0]+':/'
     user,n_path=path.split(':')
     _,fid,i=has_item(path,filename)
-    if fid!=False:
+    if fid!=False and i!=False:
         resp=MakeResponse(redirect(url_for('admin.edit',fileid=fid,user=user)))
         return resp
     resp=MakeResponse(render_template('admin/setFile/setpass.html',path=path,filename=filename,cur_user=user))

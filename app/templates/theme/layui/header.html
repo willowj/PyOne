@@ -19,13 +19,13 @@
     <div class="layui-row">
         <div class="layui-col-lg12">
             <p>
-                当前位置：<a href="{{url_for('front.index',path=cur_user+':/')}}">{%if path%}{{cur_user}}{%else%}<cite>{{cur_user}}</cite>{%endif%}</a> /
+                当前位置：
                 {%if path%}
-                    {%for idx,p in enumerate(path_list(path))%}
-                        {%if idx==len(path_list(path))-1%}
-                            <a href="#">{{p|replace(cur_user+':/','')|replace(cur_user+':','')}}</a>
+                    {%for name,p,last in breadCrumb(path)%}
+                        {%if last==False%}
+                        <a href="{{p}}">{{name}}</a> /
                         {%else%}
-                            <a href="{{url_for('front.index',path='/'.join(path_list(path)[:idx+1]))}}">{{p|replace(cur_user+':/','')|replace(cur_user+':','')}}</a> /
+                        <a href="#">{{name}}</a> 
                         {%endif%}
                     {%endfor%}
                 {%endif%}

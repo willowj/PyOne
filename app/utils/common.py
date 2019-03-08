@@ -284,7 +284,7 @@ def has_item(path,name):
     if mon_db.items.count()==0:
         return False,False,False
     key='has_item$#$#$#$#{}$#$#$#$#{}'.format(path,name)
-    InfoLogger().print_r('get key:{}'.format(key))
+    InfoLogger().print_r('get key {}'.format(key))
     if redis_client.exists(key):
         values=redis_client.get(key)
         item,fid,cur=values.split('########')
@@ -311,13 +311,16 @@ def has_item(path,name):
                     fid=mon_db.items.find_one({'grandid':0,'name':name,'user':user})['id']
                     item=_remote_content(fid,user).strip()
             else:
-                route=n_path[1:].split('/')
+                route=n_path.split('/')
                 if name=='.password':
                     for idx,r in enumerate(route):
-                        p=user+':/'+'/'.join(route[:idx+1])
-                        f=mon_db.items.find_one({'path':p})
-                        pid=f['id']
-                        data=mon_db.items.find_one({'name':name,'parent':pid})
+                        if r=='':
+                            data=mon_db.items.find_one({'name':name,'user':user,'grandid':0})
+                        else:
+                            p=user+':'+'/'.join(route[:idx+1])
+                            f=mon_db.items.find_one({'path':p})
+                            pid=f['id']
+                            data=mon_db.items.find_one({'name':name,'parent':pid})
                         if data:
                             fid=data['id']
                             item=_remote_content(fid,user).strip()
@@ -330,18 +333,14 @@ def has_item(path,name):
                     if data:
                         fid=data['id']
                         item=_remote_content(fid,user).strip()
-        except:
+        except Exception as e:
+            exstr = traceback.format_exc()
+            ErrorLogger().print_r(exstr)
             item=False
         redis_client.set(key,'{}########{}########{}'.format(item,fid,cur))
         return item,fid,cur
 
 
-
-def verify_pass_before(path):
-    plist=path_list(path)
-    for i in [i for i in range(len(plist))]:
-        n='/'.join(plist[:-i])
-        yield n
 
 def has_verify(path):
     verify=False
@@ -352,16 +351,22 @@ def has_verify(path):
         if passwd==vp:
             verify=True
     else:
-        for last in verify_pass_before(path):
-            if last=='':
-                last='/'
-            passwd,fid,cur=has_item(last,'.password')
-            md5_p=md5(last)
+        check_path=path
+        while 1:
+            passwd,fid,cur=has_item(check_path,'.password')
+            md5_p=md5(check_path)
             vp=request.cookies.get(md5_p)
             if passwd==vp:
                 verify=True
+            if check_path.split('/')[-1]!='':
+                tmp_path='/'.join(check_path.split('/')[:-1])
+                if '/' not in tmp_path:
+                    check_path=tmp_path+'/'
+                else:
+                    check_path=tmp_path
+            else:
+                break
     return verify
-
 
 def path_list(path):
     try:
@@ -375,10 +380,35 @@ def path_list(path):
             if n_path.endswith('/'):
                 n_path=n_path[:-1]
             plist=n_path.split('/')
-            plist=['{}:/{}'.format(user,plist[0])]+plist[1:]
+            if len(plist)==1:
+                plist=['',plist[0]]
+            plist=list(set(['{}:/{}'.format(user,i) for i in plist]))
         return plist
     except:
         return []
+
+def breadCrumb(path):
+    if path.endswith('/'):
+        path=path[:-1]
+    plist=path.split('/')
+    for idx,p in enumerate(plist):
+        if idx==0:
+            name=p.split(':')[0]
+            pt='/'
+            last=False
+        elif idx==len(plist)-1:
+            name=p
+            pt='/'+'/'.join(plist[:idx+1])
+            last=True
+        else:
+            name=p
+            pt='/'+'/'.join(plist[:idx+1])
+            last=False
+        yield name,pt,last
+
+
+
+
 
 def get_od_user():
     config_path=os.path.join(config_dir,'self_config.py')

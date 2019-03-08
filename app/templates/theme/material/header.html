@@ -11,14 +11,13 @@
             {%endfor%}
          </div>
         <div class="mdui-toolbar nexmoe-item">
-            <a href="{{url_for('front.index',path=cur_user+':/')}}">{{cur_user}}</a>
             {%if path%}
-                {%for idx,p in enumerate(path_list(path))%}
+                {%for name,p,last in breadCrumb(path)%}
+                    {%if last==False%}
+                    <a href="{{p}}">{{name}}</a>
                     <i class="mdui-icon material-icons mdui-icon-dark" style="margin:0;">chevron_right</i>
-                    {%if idx==len(path_list(path))-1%}
-                        <a href="#">{{p|replace(cur_user+':/','')|replace(cur_user+':','')}}</a>
                     {%else%}
-                        <a href="{{url_for('front.index',path='/'.join(path_list(path)[:idx+1]))}}">{{p|replace(cur_user+':/','')|replace(cur_user+':','')}}</a>
+                    <a href="#">{{name}}</a> 
                     {%endif%}
                 {%endfor%}
             {%endif%}

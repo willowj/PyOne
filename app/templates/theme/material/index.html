@@ -27,11 +27,7 @@
                 </li>
                 {%if path.split(':')[-1]!=''%}
                 <li class="mdui-list-item mdui-ripple">
-                    {%if '/'.join(path_list(path)[:-1])==''%}
-                    <a href="{{url_for('front.index',path=cur_user+':/')|safe}}">
-                    {%else%}
-                    <a href="{{url_for('front.index',path='/'.join(path_list(path)[:-1]))|safe}}">
-                    {%endif%}
+                    <a href="{{list(breadCrumb(path))[-2][1]}}">
                         <div class="mdui-col-xs-12 mdui-col-sm-7">
                             <i class="mdui-icon material-icons">arrow_upward</i> 返回上一层
                         </div>
