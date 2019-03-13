@@ -123,4 +123,19 @@
        </button>
     </form>
 </div>
+<div class="mdui-fab-wrapper" id="exampleFab">
+  <button class="mdui-fab mdui-ripple mdui-color-theme-accent">
+    <!-- 默认显示的图标 -->
+    <i class="mdui-icon material-icons">add</i>
+
+    <!-- 在拨号菜单开始打开时，平滑切换到该图标，若不需要切换图标，则可以省略该元素 -->
+    <i class="mdui-icon mdui-fab-opened material-icons">add</i>
+  </button>
+  <div class="mdui-fab-dial">
+    <a class="mdui-fab mdui-fab-mini mdui-ripple mdui-color-pink" href="{{url_for('admin.logout')}}" mdui-tooltip="{content: '退出'}"><i class="mdui-icon material-icons">&#xe8ac;</i></a>
+    <a class="mdui-fab mdui-fab-mini mdui-ripple mdui-color-red" href="{{url_for('admin.reload')}}" mdui-tooltip="{content: '重启网站'}"><i class="mdui-icon material-icons">&#xe5d5;</i></a>
+    <a class="mdui-fab mdui-fab-mini mdui-ripple mdui-color-orange" href="javascript:void(0);" onclick="uninstall();" mdui-tooltip="{content: '卸载PyOne'}"><i class="mdui-icon material-icons">&#xe16c;</i></a>
+    <a class="mdui-fab mdui-fab-mini mdui-ripple mdui-color-blue" href="javascript:void(0);" onclick="ChangePass();" mdui-tooltip="{content: '修改密码'}"><i class="mdui-icon material-icons">&#xe63f;</i></a>
+  </div>
+</div>
 {%endblock content%}
