@@ -72,3 +72,18 @@ def web_console():
         yield "data:end\n\n"
     resp=Response(read_process(), mimetype= 'text/event-stream')
     return resp
+
+
+@admin.route('/stream',methods=["POST","GET"])
+def stream():
+    command=urllib.unquote(request.args.get('command'))
+    def generate():
+        popen=subprocess.Popen(command,stdout=subprocess.PIPE,stderr=subprocess.PIPE,shell=True)
+        while not popen.poll():
+            msg=popen.stdout.readline()
+            if msg=='end':
+                yield "data:end\n\n"
+                break
+            yield "data:" + msg + "\n\n"
+        yield "data:end\n\n"
+    return Response(generate(), mimetype= 'text/event-stream')

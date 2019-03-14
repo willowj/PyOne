@@ -24,7 +24,7 @@
     <textarea class="mdui-textfield-input" rows="20" placeholder="" id="output"></textarea>
 </div>
 <script type="text/javascript">
-    var source = new EventSource("{{url_for('admin.logstream',logname=logname)}}");
+    var source = new EventSource("{{url_for('admin.stream',command=command)}}");
     source.onmessage = function(event) {
         if(event.data=='end'){
             source.close();

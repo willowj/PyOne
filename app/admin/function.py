@@ -46,3 +46,37 @@ def setPass():
         data={'msg':'旧密码不正确'}
     return jsonify(data)
 
+@admin.route('/UpdatePyOne')
+def UpdatePyOne():
+    cmd="cd {} && git pull origin master && sh update.sh".format(config_dir)
+    html="""
+    <style type="text/css">
+    #output {
+        background-color: #000000;
+        color: #fff;
+        font-family: monospace, fixed;
+        font-size: 15px;
+        line-height: 18px;
+    }
+    </style>
+    <textarea rows="20" placeholder="" id="output" style="width:100%;max-heigth:100%;"></textarea>
+    <script type="text/javascript">
+        var source = new EventSource("/admin/stream?command=##request_url##");
+        source.onmessage = function(event) {
+            if(event.data=='end'){
+                source.close();
+            }
+            else{
+                document.getElementById("output").innerHTML += event.data + "\\n";
+                document.getElementById("output").scrollTop = document.getElementById('output').scrollHeight;
+            }
+          }
+          source.addEventListener('error',function(e){
+              source.close();
+          })
+    </script>
+    """
+    html=html.replace('##request_url##',urllib.quote(cmd))
+    return MakeResponse(html)
+
+
