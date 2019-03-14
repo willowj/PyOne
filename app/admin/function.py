@@ -48,7 +48,6 @@ def setPass():
 
 @admin.route('/UpdatePyOne')
 def UpdatePyOne():
-    cmd="cd {} && git pull origin master && sh update.sh".format(config_dir)
     html="""
     <style type="text/css">
     #output {
@@ -76,7 +75,7 @@ def UpdatePyOne():
           })
     </script>
     """
-    html=html.replace('##request_url##',urllib.quote(cmd))
+    html=html.replace('##request_url##','upgrade')
     return MakeResponse(html)
 
 

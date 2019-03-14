@@ -76,7 +76,12 @@ def web_console():
 
 @admin.route('/stream',methods=["POST","GET"])
 def stream():
-    command=urllib.unquote(request.args.get('command'))
+    cmd_dict={
+        'upgrade':"cd {} && git pull origin master && sh update.sh".format(config_dir),
+        'running_log':'tail -30f {}/logs/PyOne.{}.log'.format(config_dir,'running'),
+        'error_log':'tail -30f {}/logs/PyOne.{}.log'.format(config_dir,'error')
+    }
+    command=cmd_dict[request.args.get('command')]
     def generate():
         popen=subprocess.Popen(command,stdout=subprocess.PIPE,stderr=subprocess.PIPE,shell=True)
         while not popen.poll():
