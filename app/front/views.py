@@ -60,7 +60,7 @@ def index(path='A:/'):
         path=':'.join([user,'/'])
     page=request.args.get('page',1,type=int)
     image_mode=GetCookie(key='image_mode',default=0)
-    sortby=GetCookie(key='sortby',default='lastModtime')
+    sortby=GetCookie(key='sortby',default=GetConfig('default_sort'))
     order=GetCookie(key='order',default='desc')
     action=request.args.get('action','download')
     data,total = FetchData(path=path,page=page,per_page=50,sortby=sortby,order=order,dismiss=True)

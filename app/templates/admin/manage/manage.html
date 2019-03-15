@@ -61,14 +61,13 @@ a:hover {
 
     <table class="mdui-table mdui-table-selectable">
         <div class="mdui-toolbar nexmoe-item">
-            <a href="/">{{cur_user}}</a>
             {%if path%}
-                {%for idx,p in enumerate(path_list(path))%}
+                {%for name,p,last in breadCrumb(path)%}
+                    {%if last==False%}
+                    <a href="{{url_for('admin.manage',path=p[1:])}}">{{name}}</a>
                     <i class="mdui-icon material-icons mdui-icon-dark" style="margin:0;">chevron_right</i>
-                    {%if idx==len(path_list(path))-1%}
-                        <a href="{{url_for('admin.manage',path=cur_user+':/')}}">{{p|replace(cur_user+':/','')|replace(cur_user+':','')}}</a>
                     {%else%}
-                        <a href="{{url_for('admin.manage',path='/'.join(path_list(path)[:idx+1]))}}">{{p|replace(cur_user+':/','')|replace(cur_user+':','')}}</a>
+                    <a href="#">{{name}}</a>
                     {%endif%}
                 {%endfor%}
             {%endif%}
@@ -91,15 +90,9 @@ a:hover {
             <tr>
                 <td></td>
                 <td>
-                    {%if '/'.join(path_list(path)[:-1])==''%}
-                    <a href="{{url_for('admin.manage',path=cur_user+':/')|safe}}">
+                    <a href="{{url_for('admin.manage',path=list(breadCrumb(path))[-2][1][1:])}}">
                         <i class="mdui-icon material-icons">arrow_upward</i> 返回上一层
                     </a>
-                    {%else%}
-                    <a href="{{url_for('admin.manage',path='/'.join(path_list(path)[:-1]))|safe}}">
-                        <i class="mdui-icon material-icons">arrow_upward</i> 返回上一层
-                    </a>
-                    {%endif%}
                 </td>
                 <td></td>
                 <td></td>

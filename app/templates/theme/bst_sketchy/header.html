@@ -9,13 +9,15 @@
         <ul class="navbar-nav mr-auto">
         {%for user in get_od_user()%}
             {%if user[1]!='添加网盘'%}
-              <li class="nav-item active">
                 {%if cur_user==user[0]%}
-                <a class="nav-link" href="{{user[2]}}">{{user[1]}}<span class="sr-only">(current)</span></a>
+                <li class="nav-item">
+                <a class="nav-link active" href="{{user[2]}}">{{user[1]}}<span class="sr-only">(current)</span></a>
+                </li>
                 {%else%}
+                <li class="nav-item">
                 <a class="nav-link" href="{{user[2]}}">{{user[1]}}</a>
+                </li>
                 {%endif%}
-              </li>
           {%endif%}
         {%endfor%}
         </ul>

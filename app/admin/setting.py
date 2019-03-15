@@ -32,6 +32,7 @@ def setting():
         REDIS_DB=request.form.get('REDIS_DB','0')
         REDIS_PASSWORD=request.form.get('REDIS_PASSWORD','')
 
+        default_sort=request.form.get('default_sort','lastModtime')
         show_secret=request.form.get('show_secret','no')
         encrypt_file=request.form.get('encrypt_file','no')
         set('title',title)
@@ -56,6 +57,7 @@ def setting():
         set('REDIS_DB',REDIS_DB)
         set('REDIS_PASSWORD',REDIS_PASSWORD)
 
+        set('default_sort',default_sort)
         set('show_secret',show_secret)
         set('encrypt_file',encrypt_file)
         # reload()
@@ -83,6 +85,7 @@ def setting():
         redis_client.set('REDIS_DB',REDIS_DB)
         redis_client.set('REDIS_PASSWORD',REDIS_PASSWORD)
 
+        redis_client.set('default_sort',default_sort)
         redis_client.set('show_secret',show_secret)
         redis_client.set('encrypt_file',encrypt_file)
         flash('更新成功')

@@ -394,10 +394,11 @@ def breadCrumb(path):
     if path.endswith('/'):
         path=path[:-1]
     plist=path.split('/')
+    #name:显示名称；pt：路径；
     for idx,p in enumerate(plist):
         if idx==0:
             name=p.split(':')[0]
-            pt='/'
+            pt='/'+plist[0]
             last=False
         elif idx==len(plist)-1:
             name=p

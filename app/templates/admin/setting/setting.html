@@ -41,6 +41,14 @@
           <input class="mdui-textfield-input" type="text" name="allow_site" value="{{GetConfig('allow_site')}}"/>
         </div>
 
+        <h4>默认排序字段</h4>
+        <select class="mdui-select" name="default_sort" mdui-select>
+            <option value="lastModtime"{%if GetConfig('default_sort')=='lastModtime'%} selected{%endif%}>修改时间</option>
+            <option value="name"{%if GetConfig('default_sort')=='name'%} selected{%endif%}>文件名</option>
+            <option value="type"{%if GetConfig('default_sort')=='type'%} selected{%endif%}>文件类型</option>
+            <option value="size"{%if GetConfig('default_sort')=='size'%} selected{%endif%}>文件大小</option>
+        </select>
+
         <div class="mdui-textfield">
           <h4>Aria2信息编辑</h4>
           <div class="mdui-panel" mdui-panel>

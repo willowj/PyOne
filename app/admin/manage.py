@@ -9,6 +9,8 @@ def manage():
     if request.method=='POST':
         pass
     path=urllib.unquote(request.args.get('path','A:/'))
+    if path=='':
+        path='A:/'
     user,n_path=path.split(':')
     if n_path=='':
         path=':'.join([user,'/'])

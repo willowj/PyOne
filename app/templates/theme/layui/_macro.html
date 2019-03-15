@@ -35,15 +35,18 @@
 
 
 {% macro Arraw(endpoint,name,cur_type,sortby,order) %}
+<th>
     <a href="{% if order=='asc' %}{{url_for(endpoint,sortby=cur_type,order='desc',**kwargs)|safe}}{%else%}{{url_for(endpoint,sortby=cur_type,order='asc',**kwargs)|safe}}{%endif%}">
-    {{ name }}
     {% if cur_type==sortby %}
         {% if order=='asc' %}
-            <i class="fa fa-arrow-up" aria-hidden="true"></i>
+                {{ name }}<i class="fa fa-arrow-up" aria-hidden="true"></i>
         {% else %}
-            <i class="fa fa-arrow-down" aria-hidden="true"></i>
+                {{ name }}<i class="fa fa-arrow-down" aria-hidden="true"></i>
         {% endif %}
+    {%else%}
+        {{ name }}
     {% endif %}
     </a>
+</th>
 {% endmacro %}
 

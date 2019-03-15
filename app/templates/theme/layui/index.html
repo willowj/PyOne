@@ -15,57 +15,97 @@
     {%if all_image!=True or image_mode==0%}
     <div class="layui-row">
         <div class="layui-col-lg12">
-            <table class="layui-table" lay-filter="filelist">
-              <thead>
-                <tr>
-                  <th lay-data="{field: 'name', width:400, sort: true, fixed: 'left',unresize:true}">标题</th>
-                  <th lay-data="{field: 'lastModtime', width:200,unresize:true}" class="layui-hide-xs">修改时间</th>
-                  <th lay-data="{field: 'type', width:200, sort: true,unresize:true}" class="layui-hide-xs">类型</th>
-                  <th lay-data="{field: 'size', width:200, sort: true,unresize:true}", fixed: 'right'>大小</th>
-                </tr>
-              </thead>
-              <tbody>
+            <table class="layui-table">
+                <colgroup>
+                    <col width="600">
+                    <col width="200">
+                    <col width="150">
+                    <col>
+                </colgroup>
+                <thead>
+                    <tr>
+                        {{ macros.Arraw(endpoint=endpoint,name='标题',cur_type='name',sortby=sortby,order=order,path=path) }}
+                        {{ macros.Arraw(endpoint=endpoint,name='修改时间',cur_type='lastModtime',sortby=sortby,order=order,path=path) }}
+                        {{ macros.Arraw(endpoint=endpoint,name='类型',cur_type='type',sortby=sortby,order=order,path=path) }}
+                        {{ macros.Arraw(endpoint=endpoint,name='大小',cur_type='size',sortby=sortby,order=order,path=path) }}
+                    </tr>
+                </thead>
+                <tbody>
                     {%if path.split(':')[-1]!=''%}
-                        <tr>
-                            <td>
+                    <tr>
+                        <td>
+                            <div class="layui-table-cell laytable-cell-1-0-0">
                                 <a href="{{list(breadCrumb(path))[-2][1]}}">
-                                <i class="fa fa-level-up" aria-hidden="true"></i> 返回上一层</a>
-                            </td>
-                            <td></td>
-                            <td></td>
-                            <td></td>
-                        </tr>
+                                <i class="fa fa-level-up" aria-hidden="true"></i> 返回上一层
+                                </a>
+                            </div>
+                        </td>
+                        <td>
+                        </td>
+                        <td>
+                        </td>
+                        <td>
+                        </td>
+                    </tr>
                     {%endif%}
+
                     {%for data in items%}
                         {%if data['type']=='folder' %}
-                        <tr>
-                            <td><a href="{{url_for('front.index',path=data['path'])}}"><i class="fa fa-folder-o"></i> {{data['name']}}</a></td>
-                            <td>{{data['lastModtime']}}</td>
-                            <td>{{data['type']}}</td>
-                            <td>{{data['size']}}</td>
-                        </tr>
+                            <tr>
+                                <td>
+                                        <a href="{{url_for('front.index',path=data['path'])}}"><i class="fa fa-folder-o"></i> {{data['name']}}</a>
+                                </td>
+                                <td>
+                                    {{data['lastModtime']}}
+                                </td>
+                                <td>
+                                    {{data['type']}}
+                                </td>
+                                <td>
+                                    {{data['size']}}
+                                </td>
+                            </tr>
                         {%else%}
                             {%if image_mode==1%}
                                 {%if file_ico(data)!='image'%}
-                                <tr>
-                                <td><a href="{{url_for('front.index',path=data['path'],action='share')}}" target="_blank">{{ macros.get_ico(file_ico(data)) }} {{data['name']}}</a></td>
-                                <td>{{data['lastModtime']}}</td>
-                                <td>{{data['type']}}</td>
-                                <td>{{data['size']}}</td>
-                                </tr>
+                                    <tr>
+                                        <td>
+                                            <a href="{{url_for('front.index',path=data['path'],action='share')}}" target="_blank">
+                                                {{ macros.get_ico(file_ico(data)) }} {{data['name']}}
+                                            </a>
+                                        </td>
+                                        <td>
+                                            {{data['lastModtime']}}
+                                        </td>
+                                        <td>
+                                            {{data['type']}}
+                                        </td>
+                                        <td>
+                                            {{data['size']}}
+                                        </td>
+                                    </tr>
                                 {%endif%}
                             {%else%}
-                            <tr>
-                                <td><a href="{{url_for('front.index',path=data['path'],action='share')}}" target="_blank">{{ macros.get_ico(file_ico(data)) }} {{data['name']}}</a></td>
-                                <td>{{data['lastModtime']}}</td>
-                                <td>{{data['type']}}</td>
-                                <td>{{data['size']}}</td>
-                            </tr>
+                                <tr>
+                                    <td>
+                                        <a href="{{url_for('front.index',path=data['path'],action='share')}}" target="_blank">
+                                            {{ macros.get_ico(file_ico(data)) }} {{data['name']}}
+                                        </a>
+                                    </td>
+                                    <td>
+                                        {{data['lastModtime']}}
+                                    </td>
+                                    <td>
+                                        {{data['type']}}
+                                    </td>
+                                    <td>
+                                        {{data['size']}}
+                                    </td>
+                                </tr>
                             {%endif%}
                         {%endif%}
-                    </tr>
                     {%endfor%}
-              </tbody>
+                </tbody>
             </table>
         </div>
     </div>
