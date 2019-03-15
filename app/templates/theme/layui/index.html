@@ -50,7 +50,7 @@
                         {%if data['type']=='folder' %}
                             <tr>
                                 <td>
-                                        <a href="{{url_for('front.index',path=data['path'])}}"><i class="fa fa-folder-o"></i> {{data['name']}}</a>
+                                        <a href="{{url_for('front.index',path=data['path'])}}"><i class="fa fa-folder-o"></i> {{CutText(data['name'])}}</a>
                                 </td>
                                 <td class="layui-hide-xs">{{data['lastModtime']}}</td>
                                 <td class="layui-hide-xs">{{data['type']}}</td>
@@ -62,7 +62,7 @@
                                     <tr>
                                         <td>
                                             <a href="{{url_for('front.index',path=data['path'],action='share')}}" target="_blank">
-                                                {{ macros.get_ico(file_ico(data)) }} {{data['name']}}
+                                                {{ macros.get_ico(file_ico(data)) }} {{CutText(data['name'])}}
                                             </a>
                                         </td>
                                         <td class="layui-hide-xs">{{data['lastModtime']}}</td>
@@ -74,7 +74,7 @@
                                 <tr>
                                     <td>
                                         <a href="{{url_for('front.index',path=data['path'],action='share')}}" target="_blank">
-                                            {{ macros.get_ico(file_ico(data)) }} {{data['name']}}
+                                            {{ macros.get_ico(file_ico(data)) }} {{CutText(data['name'])}}
                                         </a>
                                     </td>
                                     <td class="layui-hide-xs">{{data['lastModtime']}}</td>
