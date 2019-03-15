@@ -34,8 +34,8 @@
 {% endmacro %}
 
 
-{% macro Arraw(endpoint,name,cur_type,sortby,order) %}
-<th>
+{% macro Arraw(endpoint,name,cur_type,sortby,order,class) %}
+<th class="{{class}}">
     <a href="{% if order=='asc' %}{{url_for(endpoint,sortby=cur_type,order='desc',**kwargs)|safe}}{%else%}{{url_for(endpoint,sortby=cur_type,order='asc',**kwargs)|safe}}{%endif%}">
     {% if cur_type==sortby %}
         {% if order=='asc' %}
