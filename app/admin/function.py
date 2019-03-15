@@ -17,10 +17,10 @@ def login():
         else:
             resp=MakeResponse(render_template('admin/login.html'))
         return resp
+    if session.get('login'):
+        return redirect(url_for('admin.setting'))
     resp=MakeResponse(render_template('admin/login.html'))
     return resp
-
-
 
 @admin.route('/logout',methods=['GET','POST'])
 def logout():
