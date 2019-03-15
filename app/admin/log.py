@@ -7,6 +7,6 @@ from base_view import *
 def logs():
     logname=request.args.get('logname','running')
     command='{}_log'.format(logname)
-    resp=MakeResponse(render_template('admin/logs.html',command=command))
+    resp=MakeResponse(render_template('admin/logs.html',command=command,logname=logname))
     return resp
 
