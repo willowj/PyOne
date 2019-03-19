@@ -102,7 +102,16 @@ function open_port(){
 
 
 
+apt update
+apt install redis-server
 
+ufw allow 'Nginx HTTP'
+apt-key adv --keyserver keyserver.ubuntu.com --recv 7F0CEB10
+
+deb http://downloads-distro.mongodb.org/repo/ubuntu-upstart dist 10gen
+apt update
+apt-get install mongodb-10gen
+service mongodb start
 
 #执行
 wget_exists
