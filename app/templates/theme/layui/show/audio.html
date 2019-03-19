@@ -1,10 +1,12 @@
 {%extends 'theme/'+GetConfig('theme')+'/layout.html'%}
 
 {%block content%}
+<script src="https://cdn.staticfile.org/audiojs/1.0.1/audio.min.js"></script>
+
 <div class="layui-container">
   <br>
   <center>
-  <audio src="{{inner_url}}" controls autoplay style="width: 100%;">
+  <audio src="{{inner_url}}" controls autoplay style="width: 100%;" preload="auto">
   </audio>
   </center>
   <br>
@@ -25,6 +27,11 @@
         </div>
       </div>
     </div>
+    <script>
+      audiojs.events.ready(function() {
+        var as = audiojs.createAll();
+      });
+    </script>
 </div>
     <a href="{{inner_url}}" class="fab-fixed"><i class="fa fa-download fa-3x" aria-hidden="true"></i></a>
 {%endblock content%}
