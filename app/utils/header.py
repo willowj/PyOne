@@ -62,12 +62,28 @@ default_headers={'User-Agent':'ISV|PyOne|PyOne/4.0'}
 
 browser=requests.Session()
 
+#获取参数
+def GetConfig(key):
+    if key=='allow_site':
+        value=redis_client.get('allow_site') if redis_client.exists('allow_site') else ','.join(allow_site)
+    else:
+        value=redis_client.get(key) if redis_client.exists(key) else eval(key)
+    #这里是为了储存
+    if key=='od_users' and isinstance(value,dict):
+        value=json.dumps(value)
+    if not redis_client.exists(key):
+        redis_client.set(key,value)
+    #这里是为了转为字典
+    if key=='od_users':
+        value=json.loads(value)
+    return value
+
 #转字符串
 def convert2unicode(string):
     return string.encode('utf-8')
 
 #获取
-def get_value(key,user='A'):
+def get_value(key,user=GetConfig('default_pan')):
     allow_key=['client_secret','client_id']
     #InfoLogger().print_r('get user {}\'s {}'.format(user,key))
     if key not in allow_key:
@@ -123,7 +139,7 @@ def open_json(filepath):
                     return token
     return token
 
-def ReFreshToken(refresh_token,user='A'):
+def ReFreshToken(refresh_token,user=GetConfig('default_pan')):
     client_id=get_value('client_id',user)
     client_secret=get_value('client_secret',user)
     headers={'Content-Type':'application/x-www-form-urlencoded'}
@@ -134,7 +150,7 @@ def ReFreshToken(refresh_token,user='A'):
     return json.loads(r.text)
 
 
-def GetToken(Token_file='token.json',user='A'):
+def GetToken(Token_file='token.json',user=GetConfig('default_pan')):
     Token_file='{}_{}'.format(user,Token_file)
     token_path=os.path.join(data_dir,Token_file)
     if os.path.exists(token_path):
@@ -293,23 +309,8 @@ def _file_content(path,offset,length):
     return content
 
 
-def GetConfig(key):
-    if key=='allow_site':
-        value=redis_client.get('allow_site') if redis_client.exists('allow_site') else ','.join(allow_site)
-    else:
-        value=redis_client.get(key) if redis_client.exists(key) else eval(key)
-    #这里是为了储存
-    if key=='od_users' and isinstance(value,dict):
-        value=json.dumps(value)
-    if not redis_client.exists(key):
-        redis_client.set(key,value)
-    #这里是为了转为字典
-    if key=='od_users':
-        value=json.loads(value)
-    return value
 
-
-def AddResource(data,user='A'):
+def AddResource(data,user=GetConfig('default_pan')):
     #检查父文件夹是否在数据库，如果不在则获取添加
     grand_path=data.get('parentReference').get('path').replace('/drive/root:','') #空值或者/path
     share_path=od_users.get(user).get('share_path')

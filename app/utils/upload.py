@@ -3,7 +3,7 @@ from header import *
 import header
 
 
-def _upload(filepath,remote_path,user='A'): #remote_path like 'share/share.mp4'
+def _upload(filepath,remote_path,user=GetConfig('default_pan')): #remote_path like 'share/share.mp4'
     token=GetToken(user=user)
     headers={'Authorization':'bearer {}'.format(token)}
     headers.update(default_headers)
@@ -91,7 +91,7 @@ def _upload_part(uploadUrl, filepath,filesize, offset, length,trytime=1):
         else:
             return {'status':'fail','msg':'retry times limit','code':3,'sys_msg':''}
 
-def CreateUploadSession(path,user='A'):
+def CreateUploadSession(path,user=GetConfig('default_pan')):
     token=GetToken(user=user)
     headers={'Authorization':'bearer {}'.format(token),'Content-Type':'application/json'}
     headers.update(default_headers)
@@ -148,7 +148,7 @@ def UploadSession(uploadUrl,filesize, filepath,user):
             yield {'status':'partition upload fail! touch max retry times!','uploadUrl':uploadUrl}
             break
 
-def Upload_for_server(filepath,remote_path=None,user='A'):
+def Upload_for_server(filepath,remote_path=None,user=GetConfig('default_pan')):
     token=GetToken(user=user)
     headers={'Authorization':'bearer {}'.format(token),'Content-Type':'application/json'}
     if remote_path is None:
@@ -178,7 +178,7 @@ def Upload_for_server(filepath,remote_path=None,user='A'):
                 # InfoLogger().print_r('user:{} create upload session fail! {},{}'.format(user,remote_path,session_data.get('error').get('message')))
                 yield {'status':'user:{};create upload session fail!{}'.format(user,session_data.get('error').get('message'))}
 
-def Upload(filepath,remote_path=None,user='A'):
+def Upload(filepath,remote_path=None,user=GetConfig('default_pan')):
     token=GetToken(user=user)
     headers={'Authorization':'bearer {}'.format(token),'Content-Type':'application/json'}
     if remote_path is None:

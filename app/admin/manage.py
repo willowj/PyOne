@@ -8,9 +8,9 @@ from base_view import *
 def manage():
     if request.method=='POST':
         pass
-    path=urllib.unquote(request.args.get('path','A:/'))
+    path=urllib.unquote(request.args.get('path','{}:/'.format(GetConfig('default_pan'))))
     if path=='':
-        path='A:/'
+        path='{}:/'.format(GetConfig('default_pan'))
     user,n_path=path.split(':')
     if n_path=='':
         path=':'.join([user,'/'])

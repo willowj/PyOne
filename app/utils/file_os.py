@@ -5,7 +5,7 @@ from header import *
 def DeleteLocalFile(fileid):
     mon_db.items.remove({'id':fileid})
 
-def DeleteRemoteFile(fileid,user='A'):
+def DeleteRemoteFile(fileid,user=GetConfig('default_pan')):
     app_url=GetAppUrl()
     token=GetToken(user=user)
     headers={'Authorization':'bearer {}'.format(token)}
@@ -20,7 +20,7 @@ def DeleteRemoteFile(fileid,user='A'):
         return False
 
 ########################
-def CreateFolder(folder_name,grand_path,user='A'):
+def CreateFolder(folder_name,grand_path,user=GetConfig('default_pan')):
     app_url=GetAppUrl()
     token=GetToken(user=user)
     if grand_path=='' or grand_path is None or grand_path=='/':
@@ -73,7 +73,7 @@ def CreateFolder(folder_name,grand_path,user='A'):
         InfoLogger().print_r(data.get('error').get('msg'))
         return False
 
-def CreateFile(filename,path,content,user='A'):
+def CreateFile(filename,path,content,user=GetConfig('default_pan')):
     token=GetToken(user=user)
     app_url=GetAppUrl()
     if not path.startswith('/'):
@@ -102,7 +102,7 @@ def CreateFile(filename,path,content,user='A'):
         info['msg']=data.get('error').get('message')
     return info
 
-def EditFile(fileid,content,user='A'):
+def EditFile(fileid,content,user=GetConfig('default_pan')):
     token=GetToken(user=user)
     app_url=GetAppUrl()
     info={}
@@ -135,7 +135,7 @@ def EditFile(fileid,content,user='A'):
     return info
 
 
-def MoveFile(fileid,new_folder_path,user='A'):
+def MoveFile(fileid,new_folder_path,user=GetConfig('default_pan')):
     app_url=GetAppUrl()
     token=GetToken(user=user)
     #GetRootid
@@ -179,7 +179,7 @@ def MoveFile(fileid,new_folder_path,user='A'):
         InfoLogger().print_r(data.get('error').get('msg'))
         return False
 
-def ReName(fileid,new_name,user='A'):
+def ReName(fileid,new_name,user=GetConfig('default_pan')):
     app_url=GetAppUrl()
     token=GetToken(user=user)
     url=app_url+'v1.0/me/drive/items/{}'.format(fileid)

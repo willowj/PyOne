@@ -18,7 +18,7 @@ import urllib
 from shelljob import proc
 
 ############功能函数
-def set(key,value,user='A'):
+def set(key,value,user=GetConfig('default_pan')):
     InfoLogger().print_r('set {}:{}'.format(key,value))
     config_path=os.path.join(config_dir,'self_config.py')
     with open(config_path,'r') as f:

@@ -47,10 +47,12 @@ def favicon():
 @front.route('/<path:path>',methods=['POST','GET'])
 @front.route('/',methods=['POST','GET'])
 @limiter.limit("200/minute;50/second")
-def index(path='A:/'):
+def index(path=None):
+    if path is None:
+        path='{}:/'.format(GetConfig('default_pan'))
     path=urllib.unquote(path).replace('&action=play','')
     if not os.path.exists(os.path.join(config_dir,'.install')):
-        resp=MakeResponse(redirect(url_for('admin.install',step=0,user='A')))
+        resp=MakeResponse(redirect(url_for('admin.install',step=0,user=GetConfig('default_pan'))))
         return resp
     try:
         user,n_path=path.split(':')
@@ -61,7 +63,8 @@ def index(path='A:/'):
     page=request.args.get('page',1,type=int)
     image_mode=GetCookie(key='image_mode',default=0)
     sortby=GetCookie(key='sortby',default=GetConfig('default_sort'))
-    order=GetCookie(key='order',default='desc')
+    order=GetCookie(key='order',default=GetConfig('order_m'))
+    print('sortby:{}, order:{}'.format(sortby,order))
     action=request.args.get('action','download')
     data,total = FetchData(path=path,page=page,per_page=50,sortby=sortby,order=order,dismiss=True)
     #是否有密码

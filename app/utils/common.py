@@ -12,7 +12,7 @@ def md5(string):
     a.update(string.encode(encoding='utf-8'))
     return a.hexdigest()
 
-def GetTotal(path='A:/'):
+def GetTotal(path='{}:/'.format(GetConfig('default_pan'))):
     key='total:{}'.format(path)
     if redis_client.exists(key):
         return int(redis_client.get(key))
@@ -29,7 +29,7 @@ def GetTotal(path='A:/'):
 
 
 # @cache.memoize(timeout=60*5)
-def FetchData(path='A:/',page=1,per_page=50,sortby='lastModtime',order='desc',dismiss=False,search_mode=False):
+def FetchData(path='{}:/'.format(GetConfig('default_pan')),page=1,per_page=50,sortby='lastModtime',order='desc',dismiss=False,search_mode=False):
     if search_mode:
         show_secret=GetConfig('show_secret')
         query=mon_db.items.find({'name':re.compile(path)})

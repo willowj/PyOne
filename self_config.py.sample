@@ -57,11 +57,14 @@ REDIS_DB="0"
 show_secret="no"
 
 #文件默认排序字段
-default_sort='lastModtime'
+default_sort="lastModtime"
+order_m="desc"
 
 #文件是否支持加密--no-文件夹加密的情况下，如果直接访问该文件夹下的文件链接，则会跳过密码
 encrypt_file="no"
 
+#默认盘位
+default_pan="A"
 
 od_users={
     "A":{

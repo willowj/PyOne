@@ -1,7 +1,7 @@
 #-*- coding=utf-8 -*-
 from header import *
 
-def Dir(path=u'A:/'):
+def Dir(path=u'{}:/'.format(GetConfig('default_pan'))):
     app_url=GetAppUrl()
     user,n_path=path.split(':')
     InfoLogger().print_r('update {}\'s {} file'.format(user,n_path))
@@ -100,7 +100,7 @@ def UpdateFile(renew='all'):
     os.kill(os.getpid(), signal.SIGKILL)
 
 
-def GetRootid(user='A'):
+def GetRootid(user=GetConfig('default_pan')):
     key='{}:rootid'.format(user)
     if redis_client.exists(key):
         return redis_client.get(key)
@@ -116,7 +116,7 @@ def GetRootid(user='A'):
         return data['id']
 
 
-def FileExists(filename,user='A'):
+def FileExists(filename,user=GetConfig('default_pan')):
     token=GetToken(user=user)
     headers={'Authorization':'bearer {}'.format(token),'Content-Type':'application/json'}
     headers.update(default_headers)
@@ -128,7 +128,7 @@ def FileExists(filename,user='A'):
     else:
         return True
 
-def FileInfo(fileid,user='A'):
+def FileInfo(fileid,user=GetConfig('default_pan')):
     token=GetToken(user=user)
     headers={'Authorization':'bearer {}'.format(token),'Content-Type':'application/json'}
     headers.update(default_headers)

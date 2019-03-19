@@ -19,7 +19,7 @@ def panage():
             text=f.read()
         redis_client.set('users',re.findall('od_users=([\w\W]*})',text)[0])
         flash('更新成功')
-        resp=MakeResponse(render_template('admin/pan_manage/pan_manage.html'))
+        resp=MakeResponse(redirect(url_for('admin.panage')))
         return resp
     resp=MakeResponse(render_template('admin/pan_manage/pan_manage.html'))
     return resp
@@ -77,5 +77,13 @@ def rm_pan():
         return jsonify(data)
     return render_template('admin/pan_manage/rm_pan.html')
 
+
+
+@admin.route('/setDefaultPan',methods=["POST"])
+def setDefaultPan():
+    pan=request.form.get('pan')
+    set('default_pan',pan)
+    redis_client.set('default_pan',pan)
+    return jsonify({'msg':'修改成功'})
 
 
